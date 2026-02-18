@@ -13,27 +13,27 @@ where you already write handlers.
 ## Current Position
 
 Phase: 1 of 5 (Foundation)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-18 — Roadmap and state initialized; research complete
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-18 — Completed 01-01-PLAN.md (Fresh core Effect hook points)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 7%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: -
+- Total plans completed: 1
+- Average duration: 3 min
+- Total execution time: 3 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 1/3 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 3 min
 - Trend: -
 
 *Updated after each plan completion*
@@ -53,6 +53,12 @@ Recent decisions affecting current work:
   per-request; disposed via `globalThis.addEventListener("unload", ...)`
 - [Research]: Import atoms from `effect/unstable/reactivity/Atom` (v4 core) —
   `@effect-atom/atom` is v3-only and incompatible
+- [01-01]: Use `any` (not `unknown`) for `EffectLike` TypeId property — Effect sets
+  it to an internal tag, not a user-visible type
+- [01-01]: Cast `ctx as Context<unknown>` at resolver call site — `Context<State>` is
+  not assignable to `Context<unknown>` due to contravariance on `state` property
+- [01-01]: Cast `res as any` after `instanceof Response` guard in `renderRoute` —
+  `result: unknown` cannot be narrowed structurally to `PageResponse`; cast is sound
 
 ### Pending Todos
 
@@ -69,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-18
-Stopped at: Roadmap created; ready to plan Phase 1
+Last session: 2026-02-18T22:32:48Z
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None
