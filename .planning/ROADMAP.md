@@ -46,12 +46,12 @@ appearing in `@fresh/core`'s public API.
    works with a user-supplied Layer — both paths verified by running the example
    server and observing requests succeed.
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: `isEffect()` duck-type detector + `EffectLike` structural type + `setEffectResolver()` hook in `segments.ts`
-- [ ] 01-02: `effectPlugin()` — `ManagedRuntime` lifecycle, middleware attachment, `unload` disposal
-- [ ] 01-03: Error dispatch via `runPromiseExit`, `mapError` config, failure-to-Response mapping
+- [ ] 01-01-PLAN.md — EffectLike structural type + setEffectResolver() hook in Fresh core
+- [ ] 01-02-PLAN.md — effectPlugin() package: ManagedRuntime lifecycle, middleware, resolver wiring
+- [ ] 01-03-PLAN.md — Error dispatch refinement + resolver/plugin test suite
 
 ---
 
@@ -164,7 +164,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 0/3 | Planning complete | - |
 | 2. Type-Safe API | 0/1 | Not started | - |
 | 3. Preact Atom Hooks | 0/1 | Not started | - |
 | 4. Atom Hydration | 0/2 | Not started | - |
@@ -172,4 +172,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-18 after initial roadmap creation*
+*Last updated: 2026-02-18 after Phase 1 planning*
