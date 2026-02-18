@@ -65,23 +65,23 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HAND-01 | Phase 1 | Pending |
-| HAND-02 | Phase 1 | Pending |
-| HAND-03 | Phase 1 | Pending |
-| HAND-04 | Phase 2 | Pending |
-| HAND-05 | Phase 1 | Pending |
-| PLUG-01 | Phase 1 | Pending |
-| PLUG-02 | Phase 1 | Pending |
-| PLUG-03 | Phase 1 | Pending |
-| PLUG-04 | Phase 1 | Pending |
-| ATOM-01 | Phase 3 | Pending |
-| ATOM-02 | Phase 3 | Pending |
-| ATOM-03 | Phase 3 | Pending |
-| HYDR-01 | Phase 4 | Pending |
-| HYDR-02 | Phase 4 | Pending |
-| HYDR-03 | Phase 4 | Pending |
-| EXAM-01 | Phase 5 | Pending |
-| EXAM-02 | Phase 5 | Pending |
+| HAND-01 | Phase 1 — Foundation | Pending |
+| HAND-02 | Phase 1 — Foundation | Pending |
+| HAND-03 | Phase 1 — Foundation | Pending |
+| HAND-04 | Phase 2 — Type-Safe API | Pending |
+| HAND-05 | Phase 1 — Foundation | Pending |
+| PLUG-01 | Phase 1 — Foundation | Pending |
+| PLUG-02 | Phase 1 — Foundation | Pending |
+| PLUG-03 | Phase 1 — Foundation | Pending |
+| PLUG-04 | Phase 1 — Foundation | Pending |
+| ATOM-01 | Phase 3 — Preact Atom Hooks | Pending |
+| ATOM-02 | Phase 3 — Preact Atom Hooks | Pending |
+| ATOM-03 | Phase 3 — Preact Atom Hooks | Pending |
+| HYDR-01 | Phase 4 — Atom Hydration | Pending |
+| HYDR-02 | Phase 4 — Atom Hydration | Pending |
+| HYDR-03 | Phase 4 — Atom Hydration | Pending |
+| EXAM-01 | Phase 5 — Example | Pending |
+| EXAM-02 | Phase 5 — Example | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
@@ -90,4 +90,4 @@
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-18 after initial definition*
+*Last updated: 2026-02-18 after roadmap creation — phase names added to traceability*
