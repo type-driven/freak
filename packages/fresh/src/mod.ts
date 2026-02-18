@@ -3,6 +3,7 @@ export { trailingSlashes } from "./middlewares/trailing_slashes.ts";
 export {
   type HandlerByMethod,
   type HandlerFn,
+  type EffectLike,
   page,
   type PageResponse,
   type RouteData,

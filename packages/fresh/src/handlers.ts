@@ -190,11 +190,24 @@ export function isHandlerByMethod<D, S>(
  * });
  * ```
  */
+/**
+ * Structural type matching Effect v4 values. Used to extend
+ * {@link HandlerFn} without importing `npm:effect` in Fresh core.
+ *
+ * This uses the Effect v4 TypeId string key for duck-type matching.
+ * The type parameter `A` represents the expected success value type.
+ */
+export interface EffectLike<A> {
+  // deno-lint-ignore no-explicit-any
+  readonly ["~effect/Effect"]: any;
+}
+
 export interface HandlerFn<Data, State> {
   (ctx: Context<State>):
     | Response
     | PageResponse<Data>
-    | Promise<Response | PageResponse<Data>>;
+    | Promise<Response | PageResponse<Data>>
+    | EffectLike<Response | PageResponse<Data>>;
 }
 
 /**
