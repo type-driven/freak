@@ -1,0 +1,13 @@
+{
+  "name": "@fresh/plugin-effect",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/mod.ts"
+  },
+  "imports": {
+    "effect": "npm:effect@4.0.0-beta.0",
+    "@fresh/core": "jsr:@fresh/core@^2.0.0",
+    "@fresh/core/internal": "jsr:@fresh/core@^2.0.0/internal"
+  }
+}
