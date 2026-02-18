@@ -7,18 +7,18 @@
 
 ### Handler Integration
 
-- [ ] **HAND-01**: Route handler can return `Effect<Response | PageResponse<Data>, E>` and Fresh runs it
-- [ ] **HAND-02**: Effect detection uses `EffectTypeId` duck-type check (structural, no Effect import in `@fresh/core`)
-- [ ] **HAND-03**: `HandlerFn` union type extended with `EffectLike<A>` — no new `E` type parameter (preserves inference)
+- [x] **HAND-01**: Route handler can return `Effect<Response | PageResponse<Data>, E>` and Fresh runs it
+- [x] **HAND-02**: Effect detection uses `EffectTypeId` duck-type check (structural, no Effect import in `@fresh/core`)
+- [x] **HAND-03**: `HandlerFn` union type extended with `EffectLike<A>` — no new `E` type parameter (preserves inference)
 - [ ] **HAND-04**: `createEffectDefine()` typed wrapper carries `R` (Layer requirements) through route definition
-- [ ] **HAND-05**: Unhandled Effect failures map to Fresh's existing error boundary / error page
+- [x] **HAND-05**: Unhandled Effect failures map to Fresh's existing error boundary / error page
 
 ### Plugin & Runtime
 
-- [ ] **PLUG-01**: `effectPlugin({ layer })` configures a `ManagedRuntime` from a user-supplied Effect `Layer`
-- [ ] **PLUG-02**: `effectPlugin()` with no arguments works using `Layer.empty` (zero-config path)
-- [ ] **PLUG-03**: `ManagedRuntime` attached to Fresh middleware context; available per-request via `ctx.state.effectRuntime`
-- [ ] **PLUG-04**: `ManagedRuntime` disposed cleanly on Deno `unload` event (Fresh has no app lifecycle hooks)
+- [x] **PLUG-01**: `effectPlugin({ layer })` configures a `ManagedRuntime` from a user-supplied Effect `Layer`
+- [x] **PLUG-02**: `effectPlugin()` with no arguments works using `Layer.empty` (zero-config path)
+- [x] **PLUG-03**: `ManagedRuntime` attached to Fresh middleware context; available per-request via `ctx.state.effectRuntime`
+- [x] **PLUG-04**: `ManagedRuntime` disposed cleanly on Deno `unload` event (Fresh has no app lifecycle hooks)
 
 ### Preact Atom Hooks
 
@@ -65,15 +65,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| HAND-01 | Phase 1 — Foundation | Pending |
-| HAND-02 | Phase 1 — Foundation | Pending |
-| HAND-03 | Phase 1 — Foundation | Pending |
+| HAND-01 | Phase 1 — Foundation | Complete |
+| HAND-02 | Phase 1 — Foundation | Complete |
+| HAND-03 | Phase 1 — Foundation | Complete |
 | HAND-04 | Phase 2 — Type-Safe API | Pending |
-| HAND-05 | Phase 1 — Foundation | Pending |
-| PLUG-01 | Phase 1 — Foundation | Pending |
-| PLUG-02 | Phase 1 — Foundation | Pending |
-| PLUG-03 | Phase 1 — Foundation | Pending |
-| PLUG-04 | Phase 1 — Foundation | Pending |
+| HAND-05 | Phase 1 — Foundation | Complete |
+| PLUG-01 | Phase 1 — Foundation | Complete |
+| PLUG-02 | Phase 1 — Foundation | Complete |
+| PLUG-03 | Phase 1 — Foundation | Complete |
+| PLUG-04 | Phase 1 — Foundation | Complete |
 | ATOM-01 | Phase 3 — Preact Atom Hooks | Pending |
 | ATOM-02 | Phase 3 — Preact Atom Hooks | Pending |
 | ATOM-03 | Phase 3 — Preact Atom Hooks | Pending |
@@ -90,4 +90,4 @@
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-18 after roadmap creation — phase names added to traceability*
+*Last updated: 2026-02-18 after Phase 1 execution — Phase 1 requirements marked Complete*

@@ -8,7 +8,7 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Phase 1 — Foundation (COMPLETE)
+**Current focus:** Phase 2 — Type-Safe API (Phase 1 complete, verified)
 
 ## Current Position
 
