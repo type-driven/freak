@@ -20,6 +20,16 @@ export function isEffect(value: unknown): boolean {
 }
 
 export interface ResolverOptions {
+  /**
+   * Custom error mapper for Effect failures. Receives `exit.cause` which is
+   * an Effect `Cause<E>` value — a structured wrapper around the failure, NOT
+   * a plain Error. Use `Cause.squash(cause)` or pattern-match on the Cause
+   * variants (Fail, Die, Interrupt) to extract the underlying error.
+   *
+   * If omitted, the resolver throws a standard Error with the Cause preserved
+   * in `error.cause`, which Fresh routes to its error page (_error.tsx) or
+   * DEFAULT_ERROR_HANDLER (returns 500).
+   */
   mapError?: (cause: unknown) => Response;
 }
 
@@ -51,14 +61,36 @@ export function createResolver(
       return exit.value;
     }
 
-    // Failure path — delegate to mapError or throw for Fresh error page
+    // Failure path
     if (options.mapError) {
       return options.mapError(exit.cause);
     }
 
-    // Default: throw the cause. This propagates through Fresh's middleware
-    // chain to segmentMiddleware's catch block, which renders _error.tsx
-    // if one exists, or to DEFAULT_ERROR_HANDLER in app.ts.
-    throw exit.cause;
+    // Default: extract a readable error from the Cause and throw it.
+    // This propagates through Fresh's middleware chain:
+    // - segmentMiddleware catches it and renders _error.tsx if present
+    // - Otherwise DEFAULT_ERROR_HANDLER in app.ts returns 500
+    //
+    // Note: exit.cause is a Cause<E> — a structured Effect wrapper, not a plain Error.
+    // We wrap it in a standard Error so Fresh's error handling works correctly.
+    const cause = exit.cause;
+    let message = "Effect handler failure";
+
+    // Try to extract a readable message from the Cause structure
+    if (typeof cause === "object" && cause !== null) {
+      if ("message" in cause && typeof (cause as { message: unknown }).message === "string") {
+        message = (cause as { message: string }).message;
+      } else {
+        try {
+          message = String(cause);
+        } catch {
+          // keep default message
+        }
+      }
+    }
+
+    const error = new Error(message);
+    error.cause = cause;
+    throw error;
   };
 }
