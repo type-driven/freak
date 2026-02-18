@@ -12,6 +12,27 @@ import {
 } from "./render.ts";
 import { HttpError } from "./error.ts";
 
+// Effect resolver hook — null unless effectPlugin() registers one.
+// This keeps Fresh core free of any npm:effect dependency.
+let _effectResolver:
+  | ((value: unknown, ctx: Context<unknown>) => Promise<unknown>)
+  | null = null;
+
+/**
+ * Register a resolver function that intercepts handler return values.
+ * Called by effectPlugin() at setup time. The resolver receives the raw
+ * handler return value and the request context; it should return the
+ * value unchanged if it is not an Effect, or run the Effect and return
+ * the unwrapped result.
+ *
+ * @internal Exported via `@fresh/core/internal` for plugin use only.
+ */
+export function setEffectResolver(
+  fn: (value: unknown, ctx: Context<unknown>) => Promise<unknown>,
+): void {
+  _effectResolver = fn;
+}
+
 export type RouteComponent<State> =
   | AsyncAnyComponent<PageProps<unknown, State>>
   | AnyComponent<PageProps<unknown, State>>;
@@ -180,7 +201,11 @@ export async function renderRoute<State>(
 
       if (fn === null) return await ctx.next();
 
-      return await fn(ctx);
+      let result: unknown = await fn(ctx);
+      if (_effectResolver !== null) {
+        result = await _effectResolver(result, ctx as Context<unknown>);
+      }
+      return result;
     } catch (err) {
       recordSpanError(span, err);
       throw err;
@@ -193,22 +218,27 @@ export async function renderRoute<State>(
     return res;
   }
 
-  if (typeof res.status === "number") {
-    status = res.status;
+  // At this point res is a PageResponse<unknown> (or the resolved value of an
+  // EffectLike that the resolver unwrapped to one). Cast to access its fields.
+  // deno-lint-ignore no-explicit-any
+  const pageRes = res as any;
+
+  if (typeof pageRes.status === "number") {
+    status = pageRes.status;
   }
-  if (res.headers !== undefined) {
-    if (res.headers instanceof Headers) {
-      res.headers.forEach((value, key) => {
+  if (pageRes.headers !== undefined) {
+    if (pageRes.headers instanceof Headers) {
+      pageRes.headers.forEach((value: string, key: string) => {
         headers.set(key, value);
       });
-    } else if (Array.isArray(res.headers)) {
-      for (let i = 0; i < res.headers.length; i++) {
-        const entry = res.headers[i];
+    } else if (Array.isArray(pageRes.headers)) {
+      for (let i = 0; i < pageRes.headers.length; i++) {
+        const entry = pageRes.headers[i];
         headers.set(entry[0], entry[1]);
       }
     } else {
-      for (const [name, value] of Object.entries(res.headers)) {
-        headers.set(name, value);
+      for (const [name, value] of Object.entries(pageRes.headers)) {
+        headers.set(name, value as string);
       }
     }
   }
@@ -218,7 +248,7 @@ export async function renderRoute<State>(
     const result = await renderRouteComponent(ctx, {
       component: route.component,
       // deno-lint-ignore no-explicit-any
-      props: res.data as any,
+      props: pageRes.data as any,
     }, () => null);
 
     if (result instanceof Response) {
