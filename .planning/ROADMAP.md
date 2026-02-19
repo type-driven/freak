@@ -49,9 +49,9 @@ appearing in `@fresh/core`'s public API.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — EffectLike structural type + setEffectResolver() hook in Fresh core
-- [ ] 01-02-PLAN.md — effectPlugin() package: ManagedRuntime lifecycle, middleware, resolver wiring
-- [ ] 01-03-PLAN.md — Error dispatch refinement + resolver/plugin test suite
+- [x] 01-01-PLAN.md — EffectLike structural type + setEffectResolver() hook in Fresh core
+- [x] 01-02-PLAN.md — effectPlugin() package: ManagedRuntime lifecycle, middleware, resolver wiring
+- [x] 01-03-PLAN.md — Error dispatch refinement + resolver/plugin test suite
 
 ---
 
@@ -72,10 +72,10 @@ inference over their Layer's service requirements via `createEffectDefine()`.
    service not provided by the configured Layer produces a TypeScript compile error
    at the handler definition site.
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 02-01: `createEffectDefine<State, R>()` implementation + `EffectHandlerFn` branch + `expect-type` tests
+- [ ] 02-01-PLAN.md — createEffectDefine<State, R>() implementation + EffectHandlerFn types + expect-type and runtime tests
 
 ---
 
@@ -172,4 +172,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-18 after Phase 1 execution (verified)*
+*Last updated: 2026-02-19 after Phase 2 planning*
