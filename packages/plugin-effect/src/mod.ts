@@ -101,6 +101,16 @@ export function effectPlugin<R = never, E = never>(
   };
 }
 
+// createEffectDefine: typed define wrapper for Effect route handlers
+export { createEffectDefine } from "./define.ts";
+export type {
+  CreateEffectDefineOptions,
+  EffectDefine,
+  EffectHandlerByMethod,
+  EffectHandlerFn,
+  EffectRouteHandler,
+} from "./define.ts";
+
 // Re-export utilities and types
 export { isEffect } from "./resolver.ts";
 export type { Layer, ManagedRuntime } from "./types.ts";
