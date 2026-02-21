@@ -8,23 +8,23 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Phase 3 — Preact Atom Hooks (Phase 2 complete, verified)
+**Current focus:** Phase 4 — SSR Atom Hydration (Phase 3 complete, verified)
 
 ## Current Position
 
-Phase: 2 of 5 (Type-Safe API)
+Phase: 3 of 5 (Preact Atom Hooks)
 Plan: 1 of 1 in current phase
 Status: Phase complete
-Last activity: 2026-02-21 — Completed 02-01-PLAN.md (createEffectDefine factory)
+Last activity: 2026-02-21 — Completed 03-01-PLAN.md (Preact atom hooks: useAtom, useAtomValue, useAtomSet)
 
-Progress: [█████░░░░░] 50% (4/8 total plans)
+Progress: [██████░░░░] 62% (5/8 total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~4.7 min
-- Total execution time: ~19 min
+- Total plans completed: 5
+- Average duration: ~4.2 min
+- Total execution time: ~21 min
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [█████░░░░░] 50% (4/8 total plans)
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 13 min | 4.3 min |
 | 02-type-safe-api | 1/1 | 6 min | 6 min |
+| 03-preact-atom-hooks | 1/1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 8 min, 6 min
-- Trend: Stable
+- Last 5 plans: 2 min, 8 min, 6 min, 2 min
+- Trend: Fast (Phase 3 well-researched, executed cleanly with no deviations)
 
 *Updated after each plan completion*
 
@@ -78,6 +79,14 @@ Recent decisions affecting current work:
   property (POST:) inside handler object, NOT above the handlers() call site
 - [02-01]: expect-type added to plugin-effect deno.json imports (not inline npm: specifiers)
 - [02-01]: FakeServer.post() for POST tests — FakeServer has no raw .fetch() method
+- [03-01]: Use `registry.mount()` method (returns () => void) not standalone `Atom.mount`
+  function (returns Effect) — the interface method is the imperative API for useEffect
+- [03-01]: Separate `./island` export entry, not re-exported from mod.ts — island.ts pulls
+  in preact which is client-only; server-side imports from `.`, islands import from `./island`
+- [03-01]: Module-level AtomRegistry singleton — Fresh islands are separate render roots;
+  Preact context does not cross island boundaries; module scope persists across renders
+- [03-01]: Sync `registry.get(atom)` before subscribing in useEffect — prevents stale value
+  in window between useState initializer (render) and useEffect subscription setup
 
 ### Pending Todos
 
@@ -89,17 +98,24 @@ None.
   source before implementing `isEffect()` detector.
   RESOLUTION: Confirmed `"~effect/Effect"` string key from npm:effect@4.0.0-beta.0; used
   in plugin-effect/src/resolver.ts.
-- [Phase 3]: Verify `effect/unstable/reactivity/Atom` v4 API surface before
+- [Phase 3 - RESOLVED]: Verify `effect/unstable/reactivity/Atom` v4 API surface before
   implementing hooks — `unstable/` prefix means API may differ from v3 docs.
+  RESOLUTION: Confirmed API surface at 4.0.0-beta.0; registry.mount() method returns
+  () => void (not Effect); subscribe callback receives value directly.
 - [Phase 4]: Verify whether v4 atoms support pre-seeded initial values before
   designing serialization protocol.
+  NOTE: `AtomRegistry.make({ initialValues: Iterable<[Atom, any]> })` confirmed in
+  AtomRegistry.d.ts — SSR seeding is supported via the make() options.
 - [Phase 2+]: Integration tests must use app.route() not app.get() when testing
   Effect-returning handlers — Effect resolver runs via renderRoute (RouteCommand path only).
 - [Phase 2+]: ServiceMap.Service R type: use ServiceMap.Service.Identifier<typeof Service>
   not `typeof Service` — critical for correct Layer and Effect type matching.
+- [Phase 3+]: island_test.ts no-preact/compat test requires --allow-run permission;
+  workspace `deno task test` uses `deno test -A` which grants this. Direct `deno test`
+  without flags will fail that specific test.
 
 ## Session Continuity
 
-Last session: 2026-02-21T00:54:05Z
-Stopped at: Completed 02-01-PLAN.md (createEffectDefine factory + type tests)
+Last session: 2026-02-21T19:47:12Z
+Stopped at: Completed 03-01-PLAN.md (Preact atom hooks: useAtom, useAtomValue, useAtomSet)
 Resume file: None
