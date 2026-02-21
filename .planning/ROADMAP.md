@@ -97,10 +97,10 @@ run in parallel with Phase 3 after Phase 1 completes)
 3. No `react` or `preact/compat` import appears anywhere in `plugin-effect/src/island.ts`
    — verified by `deno info` dependency graph output.
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: Verify `effect/unstable/reactivity/Atom` v4 API surface (constructor, `AtomRegistry.make()`, `subscribe()` shape) — then implement `useAtom`, `useAtomValue`, `useAtomSet` in `island.ts`
+- [ ] 03-01-PLAN.md — Verify v4 Atom API surface, implement useAtom/useAtomValue/useAtomSet in island.ts, export and type tests
 
 ---
 
@@ -172,4 +172,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-21 after Phase 2 completion*
+*Last updated: 2026-02-21 after Phase 3 planning*
