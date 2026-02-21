@@ -10,7 +10,7 @@
 - [x] **HAND-01**: Route handler can return `Effect<Response | PageResponse<Data>, E>` and Fresh runs it
 - [x] **HAND-02**: Effect detection uses `EffectTypeId` duck-type check (structural, no Effect import in `@fresh/core`)
 - [x] **HAND-03**: `HandlerFn` union type extended with `EffectLike<A>` — no new `E` type parameter (preserves inference)
-- [ ] **HAND-04**: `createEffectDefine()` typed wrapper carries `R` (Layer requirements) through route definition
+- [x] **HAND-04**: `createEffectDefine()` typed wrapper carries `R` (Layer requirements) through route definition
 - [x] **HAND-05**: Unhandled Effect failures map to Fresh's existing error boundary / error page
 
 ### Plugin & Runtime
@@ -22,9 +22,9 @@
 
 ### Preact Atom Hooks
 
-- [ ] **ATOM-01**: `useAtom(atom)` hook returns `[value, set]` — native Preact hooks (no `preact/compat`)
-- [ ] **ATOM-02**: `useAtomValue(atom)` hook returns current atom value
-- [ ] **ATOM-03**: `useAtomSet(atom)` hook returns setter function
+- [x] **ATOM-01**: `useAtom(atom)` hook returns `[value, set]` — native Preact hooks (no `preact/compat`)
+- [x] **ATOM-02**: `useAtomValue(atom)` hook returns current atom value
+- [x] **ATOM-03**: `useAtomSet(atom)` hook returns setter function
 
 ### Atom Hydration
 
@@ -68,15 +68,15 @@
 | HAND-01 | Phase 1 — Foundation | Complete |
 | HAND-02 | Phase 1 — Foundation | Complete |
 | HAND-03 | Phase 1 — Foundation | Complete |
-| HAND-04 | Phase 2 — Type-Safe API | Pending |
+| HAND-04 | Phase 2 — Type-Safe API | Complete |
 | HAND-05 | Phase 1 — Foundation | Complete |
 | PLUG-01 | Phase 1 — Foundation | Complete |
 | PLUG-02 | Phase 1 — Foundation | Complete |
 | PLUG-03 | Phase 1 — Foundation | Complete |
 | PLUG-04 | Phase 1 — Foundation | Complete |
-| ATOM-01 | Phase 3 — Preact Atom Hooks | Pending |
-| ATOM-02 | Phase 3 — Preact Atom Hooks | Pending |
-| ATOM-03 | Phase 3 — Preact Atom Hooks | Pending |
+| ATOM-01 | Phase 3 — Preact Atom Hooks | Complete |
+| ATOM-02 | Phase 3 — Preact Atom Hooks | Complete |
+| ATOM-03 | Phase 3 — Preact Atom Hooks | Complete |
 | HYDR-01 | Phase 4 — Atom Hydration | Pending |
 | HYDR-02 | Phase 4 — Atom Hydration | Pending |
 | HYDR-03 | Phase 4 — Atom Hydration | Pending |
@@ -90,4 +90,4 @@
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-18 after Phase 1 execution — Phase 1 requirements marked Complete*
+*Last updated: 2026-02-21 after Phase 3 execution — HAND-04, ATOM-01/02/03 marked Complete*

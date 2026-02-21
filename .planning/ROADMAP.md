@@ -18,7 +18,7 @@ hooks, server-to-client hydration — working end-to-end and demonstrated in
 
 - [x] **Phase 1: Foundation** — Effect detection, plugin runtime, error dispatch
 - [x] **Phase 2: Type-Safe API** — `createEffectDefine()` typed wrapper
-- [ ] **Phase 3: Preact Atom Hooks** — Native `useAtom` / `useAtomValue` / `useAtomSet`
+- [x] **Phase 3: Preact Atom Hooks** — Native `useAtom` / `useAtomValue` / `useAtomSet`
 - [ ] **Phase 4: Atom Hydration** — Server-to-client atom serialization
 - [ ] **Phase 5: Example** — End-to-end demonstration in `packages/examples/`
 
@@ -100,7 +100,7 @@ run in parallel with Phase 3 after Phase 1 completes)
 **Plans**: 1 plan
 
 Plans:
-- [ ] 03-01-PLAN.md — Verify v4 Atom API surface, implement useAtom/useAtomValue/useAtomSet in island.ts, export and type tests
+- [x] 03-01-PLAN.md — Verify v4 Atom API surface, implement useAtom/useAtomValue/useAtomSet in island.ts, export and type tests
 
 ---
 
@@ -166,10 +166,10 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-18 |
 | 2. Type-Safe API | 1/1 | ✓ Complete | 2026-02-21 |
-| 3. Preact Atom Hooks | 0/1 | Not started | - |
+| 3. Preact Atom Hooks | 1/1 | ✓ Complete | 2026-02-21 |
 | 4. Atom Hydration | 0/2 | Not started | - |
 | 5. Example | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-21 after Phase 3 planning*
+*Last updated: 2026-02-21 after Phase 3 completion*
