@@ -97,6 +97,7 @@
     "npm:esbuild-wasm@~0.25.11": "0.25.12",
     "npm:esbuild@0.25.7": "0.25.7",
     "npm:esbuild@~0.25.5": "0.25.7",
+    "npm:expect-type@^1.1.0": "1.3.0",
     "npm:feed@^5.1.0": "5.1.0",
     "npm:github-slugger@2": "2.0.0",
     "npm:ioredis@^5.7.0": "5.8.2",
@@ -2563,6 +2564,9 @@
     "estree-walker@2.0.2": {
       "integrity": "sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w=="
     },
+    "expect-type@1.3.0": {
+      "integrity": "sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA=="
+    },
     "fast-check@4.5.3": {
       "integrity": "sha512-IE9csY7lnhxBnA8g/WI5eg/hygA6MGWJMSNfFRrBlXUciADEhS1EDB0SIsMSvzubzIlOBbVITSsypCsW717poA==",
       "dependencies": [
@@ -4214,7 +4218,8 @@
       "packages/plugin-effect": {
         "dependencies": [
           "jsr:@fresh/core@2",
-          "npm:effect@4.0.0-beta.0"
+          "npm:effect@4.0.0-beta.0",
+          "npm:expect-type@^1.1.0"
         ]
       },
       "packages/plugin-tailwindcss-v3": {
