@@ -4219,7 +4219,8 @@
         "dependencies": [
           "jsr:@fresh/core@2",
           "npm:effect@4.0.0-beta.0",
-          "npm:expect-type@^1.1.0"
+          "npm:expect-type@^1.1.0",
+          "npm:preact@^10.28.3"
         ]
       },
       "packages/plugin-tailwindcss-v3": {
