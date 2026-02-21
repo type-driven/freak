@@ -12,28 +12,29 @@ where you already write handlers.
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-02-18 — Completed 01-03-PLAN.md (tests + resolver refinement)
+Phase: 2 of 5 (Type-Safe API)
+Plan: 1 of ? in current phase
+Status: In progress
+Last activity: 2026-02-21 — Completed 02-01-PLAN.md (createEffectDefine factory)
 
-Progress: [████░░░░░░] 20%
+Progress: [█████░░░░░] 25% (4/? total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4.3 min
-- Total execution time: 13 min
+- Total plans completed: 4
+- Average duration: ~4.7 min
+- Total execution time: ~19 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 13 min | 4.3 min |
+| 02-type-safe-api | 1/? | 6 min | 6 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 8 min
+- Last 5 plans: 3 min, 2 min, 8 min, 6 min
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -71,6 +72,12 @@ Recent decisions affecting current work:
   `Context` is not exported from effect@4.0.0-beta.0
 - [01-03]: Resolver wraps failure in standard Error with Cause preserved in error.cause —
   Fresh error handling requires Error instances; raw Cause objects produce poor stack traces
+- [02-01]: Use ServiceMap.Service.Identifier<typeof Service> for R type parameter in tests —
+  `typeof DbService` gives full `Service<I,S>` object; Identifier is what Effect.gen uses as R
+- [02-01]: @ts-expect-error for negative type tests must be placed directly above the method
+  property (POST:) inside handler object, NOT above the handlers() call site
+- [02-01]: expect-type added to plugin-effect deno.json imports (not inline npm: specifiers)
+- [02-01]: FakeServer.post() for POST tests — FakeServer has no raw .fetch() method
 
 ### Pending Todos
 
@@ -88,9 +95,11 @@ None.
   designing serialization protocol.
 - [Phase 2+]: Integration tests must use app.route() not app.get() when testing
   Effect-returning handlers — Effect resolver runs via renderRoute (RouteCommand path only).
+- [Phase 2+]: ServiceMap.Service R type: use ServiceMap.Service.Identifier<typeof Service>
+  not `typeof Service` — critical for correct Layer and Effect type matching.
 
 ## Session Continuity
 
-Last session: 2026-02-18T22:50:48Z
-Stopped at: Completed 01-03-PLAN.md (Phase 1 complete)
+Last session: 2026-02-21T00:54:05Z
+Stopped at: Completed 02-01-PLAN.md (createEffectDefine factory + type tests)
 Resume file: None
