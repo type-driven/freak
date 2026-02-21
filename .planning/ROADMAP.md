@@ -17,7 +17,7 @@ hooks, server-to-client hydration — working end-to-end and demonstrated in
 ## Phases
 
 - [x] **Phase 1: Foundation** — Effect detection, plugin runtime, error dispatch
-- [ ] **Phase 2: Type-Safe API** — `createEffectDefine()` typed wrapper
+- [x] **Phase 2: Type-Safe API** — `createEffectDefine()` typed wrapper
 - [ ] **Phase 3: Preact Atom Hooks** — Native `useAtom` / `useAtomValue` / `useAtomSet`
 - [ ] **Phase 4: Atom Hydration** — Server-to-client atom serialization
 - [ ] **Phase 5: Example** — End-to-end demonstration in `packages/examples/`
@@ -75,7 +75,7 @@ inference over their Layer's service requirements via `createEffectDefine()`.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 02-01-PLAN.md — createEffectDefine<State, R>() implementation + EffectHandlerFn types + expect-type and runtime tests
+- [x] 02-01-PLAN.md — createEffectDefine<State, R>() implementation + EffectHandlerFn types + expect-type and runtime tests
 
 ---
 
@@ -165,11 +165,11 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-18 |
-| 2. Type-Safe API | 0/1 | Not started | - |
+| 2. Type-Safe API | 1/1 | ✓ Complete | 2026-02-21 |
 | 3. Preact Atom Hooks | 0/1 | Not started | - |
 | 4. Atom Hydration | 0/2 | Not started | - |
 | 5. Example | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-19 after Phase 2 planning*
+*Last updated: 2026-02-21 after Phase 2 completion*
