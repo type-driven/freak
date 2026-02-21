@@ -8,6 +8,7 @@
   "imports": {
     "effect": "npm:effect@4.0.0-beta.0",
     "@fresh/core": "jsr:@fresh/core@^2.0.0",
-    "@fresh/core/internal": "jsr:@fresh/core@^2.0.0/internal"
+    "@fresh/core/internal": "jsr:@fresh/core@^2.0.0/internal",
+    "expect-type": "npm:expect-type@^1.1.0"
   }
 }
