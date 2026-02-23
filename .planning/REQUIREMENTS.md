@@ -28,9 +28,9 @@
 
 ### Atom Hydration
 
-- [ ] **HYDR-01**: Server handler can set an atom value that is serialized into the island's initial props
-- [ ] **HYDR-02**: Fresh island boots with the pre-seeded atom value (client hydration from server state)
-- [ ] **HYDR-03**: Atoms have stable string identifiers for cross-boundary identity
+- [x] **HYDR-01**: Server handler can set an atom value that is serialized into the island's initial props
+- [x] **HYDR-02**: Fresh island boots with the pre-seeded atom value (client hydration from server state)
+- [x] **HYDR-03**: Atoms have stable string identifiers for cross-boundary identity
 
 ### Example
 
@@ -77,9 +77,9 @@
 | ATOM-01 | Phase 3 — Preact Atom Hooks | Complete |
 | ATOM-02 | Phase 3 — Preact Atom Hooks | Complete |
 | ATOM-03 | Phase 3 — Preact Atom Hooks | Complete |
-| HYDR-01 | Phase 4 — Atom Hydration | Pending |
-| HYDR-02 | Phase 4 — Atom Hydration | Pending |
-| HYDR-03 | Phase 4 — Atom Hydration | Pending |
+| HYDR-01 | Phase 4 — Atom Hydration | Complete |
+| HYDR-02 | Phase 4 — Atom Hydration | Complete |
+| HYDR-03 | Phase 4 — Atom Hydration | Complete |
 | EXAM-01 | Phase 5 — Example | Pending |
 | EXAM-02 | Phase 5 — Example | Pending |
 
@@ -90,4 +90,4 @@
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-21 after Phase 3 execution — HAND-04, ATOM-01/02/03 marked Complete*
+*Last updated: 2026-02-23 after Phase 4 execution — HYDR-01/02/03 marked Complete*
