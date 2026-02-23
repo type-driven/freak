@@ -35,6 +35,7 @@ import { getCodeFrame } from "../../dev/middlewares/error_overlay/code_frame.ts"
 import { escapeScript } from "../../utils.ts";
 import { HeadContext } from "../head.ts";
 import { useContext } from "preact/hooks";
+import { getAtomHydrationHook } from "../../segments.ts";
 
 interface InternalPreactOptions extends PreactOptions {
   [OptionsType.ATTR](name: string, value: unknown): string | void;
@@ -632,10 +633,28 @@ function FreshRuntimeScript() {
     const scriptContent =
       `import { boot } from "${basePath}${runtimeUrl}";${islandImports}boot(${islandObj},${serializedProps});`;
 
+    // Check if effectPlugin registered an atom hydration hook for this request.
+    // The hook returns server-generated JSON from schema-encoded values — not
+    // user input. escapeScript() prevents script tag breakout in the JSON.
+    const atomHook = getAtomHydrationHook();
+    const atomJson = atomHook
+      ? atomHook(ctx as unknown as Parameters<typeof atomHook>[0])
+      : null;
+
     return (
       h(
         Fragment,
         null,
+        atomJson !== null
+          ? h("script", {
+            id: "__FRSH_ATOM_STATE",
+            type: "application/json",
+            nonce,
+            dangerouslySetInnerHTML: {
+              __html: escapeScript(atomJson, { json: true }),
+            },
+          })
+          : null,
         h("script", {
           type: "module",
           nonce,

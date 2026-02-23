@@ -18,6 +18,32 @@ let _effectResolver:
   | ((value: unknown, ctx: Context<unknown>) => Promise<unknown>)
   | null = null;
 
+// Atom hydration hook — null unless effectPlugin() registers one.
+// Returns a JSON string of atom hydration data for the current request,
+// or null if no atoms were set. Keeps Fresh core free of Effect dependency.
+let _atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null =
+  null;
+
+/**
+ * Register a function that returns atom hydration JSON for the current request.
+ * Called by effectPlugin() at setup time. The function receives the request
+ * context and returns a JSON string of key-value pairs, or null if no atoms
+ * were set on this request.
+ *
+ * @internal Exported via `@fresh/core/internal` for plugin use only.
+ */
+export function setAtomHydrationHook(
+  fn: (ctx: Context<unknown>) => string | null,
+): void {
+  _atomHydrationHook = fn;
+}
+
+export function getAtomHydrationHook():
+  | ((ctx: Context<unknown>) => string | null)
+  | null {
+  return _atomHydrationHook;
+}
+
 /**
  * Register a resolver function that intercepts handler return values.
  * Called by effectPlugin() at setup time. The resolver receives the raw

@@ -17,9 +17,10 @@ import { Layer } from "effect";
 import type { Layer as LayerType } from "effect";
 import type { ManagedRuntime as ManagedRuntimeType } from "effect";
 import type { Context } from "@fresh/core";
-import { setEffectResolver } from "@fresh/core/internal";
+import { setAtomHydrationHook, setEffectResolver } from "@fresh/core/internal";
 import { makeRuntime, registerDisposal } from "./runtime.ts";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
+import { initAtomHydrationMap, serializeAtomHydration } from "./hydration.ts";
 
 /**
  * Configuration options for effectPlugin().
@@ -89,14 +90,20 @@ export function effectPlugin<R = never, E = never>(
   const resolver = createResolver(runtime, resolverOptions);
   setEffectResolver(resolver);
 
-  // 3. Register disposal on unload
+  // 3. Register atom hydration hook — called by FreshRuntimeScript to get
+  //    the JSON for the __FRSH_ATOM_STATE script tag
+  setAtomHydrationHook((ctx) => serializeAtomHydration(ctx));
+
+  // 4. Register disposal on unload
   registerDisposal(
     runtime as ManagedRuntimeType.ManagedRuntime<unknown, unknown>,
   );
 
-  // 4. Return middleware that attaches runtime to ctx.state
+  // 5. Return middleware that attaches runtime to ctx.state and initializes
+  //    the per-request atom hydration map before the handler runs
   return (ctx: Context<unknown>): Response | Promise<Response> => {
     (ctx.state as Record<string, unknown>).effectRuntime = runtime;
+    initAtomHydrationMap(ctx);
     return ctx.next();
   };
 }
@@ -114,3 +121,6 @@ export type {
 // Re-export utilities and types
 export { isEffect } from "./resolver.ts";
 export type { Layer, ManagedRuntime } from "./types.ts";
+
+// Atom hydration helpers
+export { setAtom } from "./hydration.ts";
