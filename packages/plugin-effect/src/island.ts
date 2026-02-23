@@ -22,13 +22,88 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import type { Atom, Writable } from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 
+// Tracks which atom keys were pre-seeded via hydration.
+// Used for orphan detection (deferred — requires AtomRegistry instrumentation).
+const _hydratedKeys = new Set<string>();
+
 // Module-level singleton: shared across all atoms in all islands on a page.
 // Fresh islands are separate Preact render roots with no shared component tree,
 // so Preact context cannot carry the registry across islands. Module scope persists.
 const registry = AtomRegistry.make();
 
+// Auto-initialize hydration from DOM if available.
+// Module-level code runs at import time, which happens BEFORE boot() calls revive().
+// This ensures useAtomValue() returns the server-hydrated value on first render.
+if (typeof globalThis.document !== "undefined") {
+  const el = globalThis.document.getElementById("__FRSH_ATOM_STATE");
+  if (el?.textContent) {
+    try {
+      const data = JSON.parse(el.textContent) as Record<string, unknown>;
+      for (const [key, encoded] of Object.entries(data)) {
+        registry.setSerializable(key, encoded);
+        _hydratedKeys.add(key);
+      }
+    } catch {
+      // Silently skip malformed data — initAtomHydration() provides the
+      // explicit API with a warning for callers who need error visibility.
+    }
+  }
+}
+
 // Clean up registry on page unload to prevent memory leaks.
 globalThis.addEventListener("unload", () => registry.dispose());
+
+/**
+ * Initialize client-side atom hydration from a `<script id="__FRSH_ATOM_STATE">`
+ * tag or a serialized JSON string.
+ *
+ * This function is called automatically at module import time for the DOM case.
+ * Use this explicit export in tests or server-rendered environments where you
+ * want to pass the JSON string directly.
+ *
+ * @param serialized - Optional JSON string to parse. If omitted, reads from
+ *   `document.getElementById("__FRSH_ATOM_STATE").textContent`.
+ *
+ * @example
+ * ```typescript
+ * // In tests (pass JSON directly):
+ * initAtomHydration(JSON.stringify({ count: 42 }));
+ *
+ * // DOM-based hydration happens automatically at module import time.
+ * ```
+ */
+export function initAtomHydration(serialized?: string): void {
+  let json: string | null | undefined = serialized;
+  if (json === undefined) {
+    const el = globalThis.document?.getElementById("__FRSH_ATOM_STATE");
+    if (!el) return;
+    json = el.textContent;
+  }
+  if (!json) return;
+
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    if (typeof globalThis.console !== "undefined") {
+      console.warn("[fresh-effect] Malformed atom hydration data, skipping.");
+    }
+    return;
+  }
+
+  for (const [key, encoded] of Object.entries(data)) {
+    registry.setSerializable(key, encoded);
+    _hydratedKeys.add(key);
+  }
+}
+
+/**
+ * No-op. Active orphan detection deferred — requires AtomRegistry instrumentation.
+ * @internal
+ */
+export function _checkOrphanedKeys(): void {
+  // Active orphan detection deferred -- requires AtomRegistry instrumentation.
+}
 
 /**
  * Subscribe to an atom's value. Re-renders when the atom updates.
