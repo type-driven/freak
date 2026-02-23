@@ -8,23 +8,23 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Phase 4 — SSR Atom Hydration (Plan 01 complete, Plan 02 next)
+**Current focus:** Phase 4 complete — SSR Atom Hydration pipeline end-to-end done
 
 ## Current Position
 
 Phase: 4 of 5 (SSR Atom Hydration)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-23 — Completed 04-01-PLAN.md (server-side hydration pipeline: setAtom, __FRSH_ATOM_STATE, Fresh hook)
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-23 — Completed 04-02-PLAN.md (client-side hydration: initAtomHydration, module-level auto-init)
 
-Progress: [███████░░░] 75% (6/8 total plans)
+Progress: [████████░░] 87.5% (7/8 total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~4.3 min
-- Total execution time: ~26 min
+- Total plans completed: 7
+- Average duration: ~3.9 min
+- Total execution time: ~28 min
 
 **By Phase:**
 
@@ -33,11 +33,11 @@ Progress: [███████░░░] 75% (6/8 total plans)
 | 01-foundation | 3/3 | 13 min | 4.3 min |
 | 02-type-safe-api | 1/1 | 6 min | 6 min |
 | 03-preact-atom-hooks | 1/1 | 2 min | 2 min |
-| 04-atom-hydration | 1/2 | 6 min | 6 min |
+| 04-atom-hydration | 2/2 | 8 min | 4 min |
 
 **Recent Trend:**
-- Last 4 plans: 2 min, 6 min, 6 min
-- Trend: Consistent
+- Last 4 plans: 2 min, 6 min, 6 min, 2 min
+- Trend: Consistent (quick plans)
 
 *Updated after each plan completion*
 
@@ -96,6 +96,12 @@ Recent decisions affecting current work:
   data is in DOM before Plan 02 client code reads it
 - [04-01]: type="application/json" on atom state script tag — browsers do not execute this
   type; data inert and readable only via document.getElementById
+- [04-02]: Module-level auto-init in island.ts is sufficient — ES module import time
+  is before boot(); no boot script modification needed
+- [04-02]: initAtomHydration() dual-mode — no arg reads from DOM (production), string
+  arg for test/explicit injection
+- [04-02]: Active orphan detection deferred — requires AtomRegistry instrumentation
+  not yet available in v4.0.0-beta.0
 
 ### Pending Todos
 
@@ -113,11 +119,11 @@ None.
   () => void (not Effect); subscribe callback receives value directly.
 - [Phase 4 - RESOLVED]: Verify whether v4 atoms support pre-seeded initial values before
   designing serialization protocol.
-  RESOLUTION: AtomRegistry.make({ initialValues }) confirmed; but Plan 02 will use
+  RESOLUTION: AtomRegistry.make({ initialValues }) confirmed; but Plans 01+02 used
   registry.setSerializable(key, encoded) instead (better abstraction for pre-loaded encoded
   data; decodes on first get()).
-- [Phase 4 Plan 02]: Client-side hydration must call registry.setSerializable(key, encoded)
-  BEFORE any useAtomValue() render that calls registry.get(atom) — ordering critical.
+- [Phase 4 Plan 02 - RESOLVED]: Client-side hydration must call registry.setSerializable()
+  BEFORE any useAtomValue() render — ordering guaranteed by module-level auto-init.
 - [Phase 2+]: Integration tests must use app.route() not app.get() when testing
   Effect-returning handlers — Effect resolver runs via renderRoute (RouteCommand path only).
 - [Phase 2+]: ServiceMap.Service R type: use ServiceMap.Service.Identifier<typeof Service>
@@ -128,6 +134,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-23T22:08:55Z
-Stopped at: Completed 04-01-PLAN.md (server-side hydration: setAtom, __FRSH_ATOM_STATE, Fresh hook)
+Last session: 2026-02-23T22:14:50Z
+Stopped at: Completed 04-02-PLAN.md (client-side hydration: initAtomHydration, module-level auto-init)
 Resume file: None
