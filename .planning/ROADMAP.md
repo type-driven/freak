@@ -135,9 +135,10 @@ Plans:
 
 ### Phase 5: Example
 
-**Goal**: A runnable app in `packages/examples/effect-integration/` demonstrates
-an Effect-returning handler with a typed Layer and a Preact island using `useAtom`
-with a server-hydrated value.
+**Goal**: A runnable kitchen-sink app in `packages/examples/effect-integration/`
+demonstrates Effect-returning handlers with a typed Layer, Preact islands using
+`useAtom` with server-hydrated atoms, full CRUD via API routes, and typed error
+dispatch with Cause.pretty() logging.
 
 **Depends on**: Phase 4 (all prior phases must be complete)
 
@@ -150,10 +151,11 @@ with a server-hydrated value.
    and updates it via `useAtom` setter when a button is clicked — observable in a
    browser without any additional setup.
 
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Effect-returning GET handler with `AppLayer` service + island using `useAtomValue` with server-hydrated atom + typed `mapError`
+- [ ] 05-01-PLAN.md — Project scaffold, TodoService + TodoLayer (Deno KV), AppLayer, serializable atoms, app shell
+- [ ] 05-02-PLAN.md — Routes (index, API CRUD, error demo), TodoApp island with optimistic updates, error pages
 
 ---
 
@@ -167,9 +169,9 @@ Plans:
 | 1. Foundation | 3/3 | Complete | 2026-02-18 |
 | 2. Type-Safe API | 1/1 | Complete | 2026-02-21 |
 | 3. Preact Atom Hooks | 1/1 | Complete | 2026-02-21 |
-| 4. Atom Hydration | 2/2 | ✓ Complete | 2026-02-23 |
-| 5. Example | 0/1 | Not started | - |
+| 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
+| 5. Example | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-23 after Phase 4 completion*
+*Last updated: 2026-02-24 after Phase 5 planning*
