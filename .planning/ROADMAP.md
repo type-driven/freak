@@ -125,11 +125,11 @@ top; also requires verifying v4 atom pre-seeding API before starting)
 3. `deno publish --dry-run` on `@fresh/core` continues to pass after the
    `stringify.ts` / `reviver.ts` extension points are added.
 
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Verify v4 atom pre-seeding API; extensible `Stringifiers` registry in `preact_hooks.ts` + extensible `CUSTOM_PARSER` in `reviver.ts`
-- [ ] 04-02: `EffectAtom` stringifier + parser in `plugin-effect`; stable atom string keys; client-side registry init before `boot()`
+- [ ] 04-01-PLAN.md — Server-side: Fresh core hook + setAtom() helper + hydration serialization into HTML
+- [ ] 04-02-PLAN.md — Client-side: initAtomHydration() in island.ts + registry pre-seeding + round-trip tests
 
 ---
 
@@ -159,17 +159,17 @@ Plans:
 
 ## Progress
 
-**Execution Order**: 1 → 2 → 3 → 4 → 5
+**Execution Order**: 1 -> 2 -> 3 -> 4 -> 5
 (Phase 2 and Phase 3 are independent after Phase 1; Phase 4 requires Phase 3)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/3 | ✓ Complete | 2026-02-18 |
-| 2. Type-Safe API | 1/1 | ✓ Complete | 2026-02-21 |
-| 3. Preact Atom Hooks | 1/1 | ✓ Complete | 2026-02-21 |
-| 4. Atom Hydration | 0/2 | Not started | - |
+| 1. Foundation | 3/3 | Complete | 2026-02-18 |
+| 2. Type-Safe API | 1/1 | Complete | 2026-02-21 |
+| 3. Preact Atom Hooks | 1/1 | Complete | 2026-02-21 |
+| 4. Atom Hydration | 0/2 | Planned | - |
 | 5. Example | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-21 after Phase 3 completion*
+*Last updated: 2026-02-23 after Phase 4 planning*
