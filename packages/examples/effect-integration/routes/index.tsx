@@ -19,8 +19,7 @@ export const handler = define.handlers({
     }),
 });
 
-export default function IndexPage(props: PageProps<{ todos: Todo[] }>) {
-  const _todos = props.data.todos;
+export default function IndexPage(_props: PageProps<{ todos: Todo[] }>) {
   return (
     <div class="max-w-2xl mx-auto py-8 px-4">
       <h1 class="text-3xl font-bold mb-2">Fresh + Effect v4</h1>
