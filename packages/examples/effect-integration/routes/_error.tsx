@@ -1,5 +1,4 @@
 import { HttpError, type PageProps } from "@fresh/core";
-import { Cause } from "effect";
 
 export default function ErrorPage(props: PageProps) {
   const error = props.error;
@@ -18,25 +17,8 @@ export default function ErrorPage(props: PageProps) {
     }
   }
 
-  // Log the error server-side for debugging.
-  // If the error came from Effect (via the resolver's default throw path),
-  // error.cause holds the Effect Cause -- log it with Cause.pretty() for
-  // the full structured trace including tagged errors.
-  if (
-    error instanceof Error &&
-    error.cause !== undefined
-  ) {
-    try {
-      // deno-lint-ignore no-console
-      console.error("[effect error]", Cause.pretty(error.cause as never));
-    } catch {
-      // deno-lint-ignore no-console
-      console.error("[error page]", error);
-    }
-  } else {
-    // deno-lint-ignore no-console
-    console.error("[error page]", error);
-  }
+  // deno-lint-ignore no-console
+  console.error("[error page]", error);
 
   return (
     <div class="max-w-2xl mx-auto py-16 px-4 text-center">

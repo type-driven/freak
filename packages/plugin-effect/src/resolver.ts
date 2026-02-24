@@ -26,9 +26,9 @@ export interface ResolverOptions {
    * a plain Error. Use `Cause.squash(cause)` or pattern-match on the Cause
    * variants (Fail, Die, Interrupt) to extract the underlying error.
    *
-   * If omitted, the resolver throws a standard Error with the Cause preserved
-   * in `error.cause`, which Fresh routes to its error page (_error.tsx) or
-   * DEFAULT_ERROR_HANDLER (returns 500).
+   * If omitted, the resolver logs the Cause server-side and returns a
+   * plain 500 Response — no exception is thrown, so Fresh's dev error
+   * overlay never intercepts it.
    */
   mapError?: (cause: unknown) => Response;
 }
@@ -40,7 +40,7 @@ export interface ResolverOptions {
  * 2. If not, returns the value unchanged (pass-through)
  * 3. If yes, runs it via runtime.runPromiseExit
  * 4. On success, returns the unwrapped value
- * 5. On failure, delegates to mapError or re-throws for Fresh error page
+ * 5. On failure, delegates to mapError or returns a 500 Response
  */
 export function createResolver(
   // deno-lint-ignore no-explicit-any
@@ -66,12 +66,11 @@ export function createResolver(
       return options.mapError(exit.cause);
     }
 
-    // Default: throw a generic Error with Cause preserved in error.cause.
-    // The message is intentionally generic — Cause details must not leak
-    // to the browser (e.g., via Fresh's dev error overlay). Server-side
-    // code (_error.tsx) can inspect error.cause for structured logging.
-    const error = new Error("Effect handler failure");
-    error.cause = exit.cause;
-    throw error;
+    // Default: log server-side and return a clean 500 Response.
+    // Returning (not throwing) bypasses Fresh's dev error overlay,
+    // which would otherwise render the stack trace in the browser.
+    // deno-lint-ignore no-console
+    console.error("[effect] Handler failure:", exit.cause);
+    return new Response("Internal Server Error", { status: 500 });
   };
 }

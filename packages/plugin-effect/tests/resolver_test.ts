@@ -1,4 +1,4 @@
-import { assertEquals, assertExists } from "jsr:@std/assert@1";
+import { assertEquals } from "jsr:@std/assert@1";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { isEffect, createResolver } from "../src/resolver.ts";
 
@@ -96,21 +96,15 @@ Deno.test("resolver runs Effect with PageResponse and returns it", async () => {
 
 // --- createResolver failure path ---
 
-Deno.test("resolver throws standard Error on Effect.fail when no mapError provided", async () => {
+Deno.test("resolver returns 500 Response on Effect.fail when no mapError provided", async () => {
   const runtime = makeTestRuntime();
   try {
     const resolver = createResolver(runtime);
     const eff = Effect.fail("something went wrong");
-    let thrown: unknown;
-    try {
-      await resolver(eff, {});
-    } catch (e) {
-      thrown = e;
-    }
-    // Should have thrown a standard Error (not raw Cause)
-    assertEquals(thrown instanceof Error, true);
-    // The original Cause<E> should be preserved in error.cause
-    assertExists((thrown as Error).cause, "error.cause should preserve the Effect Cause");
+    const result = await resolver(eff, {});
+    // Should return a 500 Response (not throw)
+    assertEquals(result instanceof Response, true);
+    assertEquals((result as Response).status, 500);
   } finally {
     await runtime.dispose();
   }

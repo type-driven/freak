@@ -78,7 +78,7 @@ Deno.test("integration: Effect.fail produces 500 response (not crash)", async ()
   const server = new FakeServer(app.handler());
   const res = await server.get("/fail");
 
-  // Fresh's DEFAULT_ERROR_HANDLER returns 500 for non-HttpError errors
+  // Resolver returns a clean 500 Response (no throw, no dev overlay)
   assertEquals(res.status, 500);
 });
 
