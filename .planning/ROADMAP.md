@@ -20,7 +20,7 @@ hooks, server-to-client hydration — working end-to-end and demonstrated in
 - [x] **Phase 2: Type-Safe API** — `createEffectDefine()` typed wrapper
 - [x] **Phase 3: Preact Atom Hooks** — Native `useAtom` / `useAtomValue` / `useAtomSet`
 - [x] **Phase 4: Atom Hydration** — Server-to-client atom serialization
-- [ ] **Phase 5: Example** — End-to-end demonstration in `packages/examples/`
+- [x] **Phase 5: Example** — End-to-end demonstration in `packages/examples/`
 
 ## Phase Details
 
@@ -154,8 +154,8 @@ dispatch with Cause.pretty() logging.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Project scaffold, TodoService + TodoLayer (Deno KV), AppLayer, serializable atoms, app shell
-- [ ] 05-02-PLAN.md — Routes (index, API CRUD, error demo), TodoApp island with optimistic updates, error pages
+- [x] 05-01-PLAN.md — Project scaffold, TodoService + TodoLayer (in-memory), AppLayer, serializable atoms, app shell
+- [x] 05-02-PLAN.md — Routes (index, API CRUD, error demo), TodoApp island with optimistic updates, error pages
 
 ---
 
@@ -170,8 +170,8 @@ Plans:
 | 2. Type-Safe API | 1/1 | Complete | 2026-02-21 |
 | 3. Preact Atom Hooks | 1/1 | Complete | 2026-02-21 |
 | 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
-| 5. Example | 0/2 | Not started | - |
+| 5. Example | 2/2 | Complete | 2026-02-24 |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-24 after Phase 5 planning*
+*Last updated: 2026-02-24 — Phase 5 complete, milestone v1 complete*

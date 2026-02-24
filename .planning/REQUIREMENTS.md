@@ -34,8 +34,8 @@
 
 ### Example
 
-- [ ] **EXAM-01**: `packages/examples/effect-integration/` demonstrates an Effect-returning handler with a typed Layer
-- [ ] **EXAM-02**: Example includes a Preact island using `useAtom` with a value hydrated from the server
+- [x] **EXAM-01**: `packages/examples/effect-integration/` demonstrates an Effect-returning handler with a typed Layer
+- [x] **EXAM-02**: Example includes a Preact island using `useAtom` with a value hydrated from the server
 
 ## v2 Requirements
 
@@ -80,8 +80,8 @@
 | HYDR-01 | Phase 4 — Atom Hydration | Complete |
 | HYDR-02 | Phase 4 — Atom Hydration | Complete |
 | HYDR-03 | Phase 4 — Atom Hydration | Complete |
-| EXAM-01 | Phase 5 — Example | Pending |
-| EXAM-02 | Phase 5 — Example | Pending |
+| EXAM-01 | Phase 5 — Example | Complete |
+| EXAM-02 | Phase 5 — Example | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total
@@ -90,4 +90,4 @@
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-23 after Phase 4 execution — HYDR-01/02/03 marked Complete*
+*Last updated: 2026-02-24 after Phase 5 execution — EXAM-01/02 marked Complete, all v1 requirements complete*
