@@ -8,23 +8,23 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Phase 4 complete — SSR Atom Hydration pipeline end-to-end done
+**Current focus:** Phase 5 in progress — example app scaffold complete, routes and islands next
 
 ## Current Position
 
-Phase: 4 of 5 (SSR Atom Hydration)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-23 — Completed 04-02-PLAN.md (client-side hydration: initAtomHydration, module-level auto-init)
+Phase: 5 of 5 (Example App)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-24 — Completed 05-01-PLAN.md (example scaffold: TodoService, AppLayer, atoms, app shell)
 
-Progress: [████████░░] 87.5% (7/8 total plans)
+Progress: [█████████░] 88.9% (8/9 total plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: ~3.9 min
-- Total execution time: ~28 min
+- Total plans completed: 8
+- Average duration: ~4.0 min
+- Total execution time: ~33 min
 
 **By Phase:**
 
@@ -34,9 +34,10 @@ Progress: [████████░░] 87.5% (7/8 total plans)
 | 02-type-safe-api | 1/1 | 6 min | 6 min |
 | 03-preact-atom-hooks | 1/1 | 2 min | 2 min |
 | 04-atom-hydration | 2/2 | 8 min | 4 min |
+| 05-example | 1/2 | 5 min | 5 min |
 
 **Recent Trend:**
-- Last 4 plans: 2 min, 6 min, 6 min, 2 min
+- Last 4 plans: 2 min, 6 min, 5 min, 2 min
 - Trend: Consistent (quick plans)
 
 *Updated after each plan completion*
@@ -102,6 +103,12 @@ Recent decisions affecting current work:
   arg for test/explicit injection
 - [04-02]: Active orphan detection deferred — requires AtomRegistry instrumentation
   not yet available in v4.0.0-beta.0
+- [05-01]: Add packages/examples/effect-integration to root workspace — Deno 2.6.9
+  rejects nested deno.json not in workspace even for "standalone" apps
+- [05-01]: Use direct file paths in import map (../../plugin-effect/src/mod.ts) — directory
+  trailing-slash references fail to resolve with local workspace packages
+- [05-01]: Schema.mutable(Schema.Array(TodoSchema)) for serializable atom schema — plain
+  Schema.Array gives readonly T[] which fails Atom.serializable Codec<Type<R>, any> constraint
 
 ### Pending Todos
 
@@ -131,9 +138,14 @@ None.
 - [Phase 3+]: island_test.ts no-preact/compat test requires --allow-run permission;
   workspace `deno task test` uses `deno test -A` which grants this. Direct `deno test`
   without flags will fail that specific test.
+- [Phase 5+]: Example app import map uses direct file paths (not directory references) --
+  Plan 02 route/island files must import from @fresh/plugin-effect and @fresh/plugin-effect/island
+  which resolve via deno.json imports to specific .ts files.
+- [Phase 5+]: Example app is now a workspace member despite plan saying standalone --
+  this is a Deno 2.6.9 constraint, not a choice. The app still uses its own import map.
 
 ## Session Continuity
 
-Last session: 2026-02-23T22:14:50Z
-Stopped at: Completed 04-02-PLAN.md (client-side hydration: initAtomHydration, module-level auto-init)
+Last session: 2026-02-24T09:39:00Z
+Stopped at: Completed 05-01-PLAN.md (example scaffold: TodoService, AppLayer, atoms, app shell)
 Resume file: None
