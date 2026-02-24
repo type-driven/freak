@@ -66,31 +66,12 @@ export function createResolver(
       return options.mapError(exit.cause);
     }
 
-    // Default: extract a readable error from the Cause and throw it.
-    // This propagates through Fresh's middleware chain:
-    // - segmentMiddleware catches it and renders _error.tsx if present
-    // - Otherwise DEFAULT_ERROR_HANDLER in app.ts returns 500
-    //
-    // Note: exit.cause is a Cause<E> — a structured Effect wrapper, not a plain Error.
-    // We wrap it in a standard Error so Fresh's error handling works correctly.
-    const cause = exit.cause;
-    let message = "Effect handler failure";
-
-    // Try to extract a readable message from the Cause structure
-    if (typeof cause === "object" && cause !== null) {
-      if ("message" in cause && typeof (cause as { message: unknown }).message === "string") {
-        message = (cause as { message: string }).message;
-      } else {
-        try {
-          message = String(cause);
-        } catch {
-          // keep default message
-        }
-      }
-    }
-
-    const error = new Error(message);
-    error.cause = cause;
+    // Default: throw a generic Error with Cause preserved in error.cause.
+    // The message is intentionally generic — Cause details must not leak
+    // to the browser (e.g., via Fresh's dev error overlay). Server-side
+    // code (_error.tsx) can inspect error.cause for structured logging.
+    const error = new Error("Effect handler failure");
+    error.cause = exit.cause;
     throw error;
   };
 }
