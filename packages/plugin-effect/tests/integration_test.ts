@@ -78,7 +78,7 @@ Deno.test("integration: Effect.fail produces 500 response (not crash)", async ()
   const server = new FakeServer(app.handler());
   const res = await server.get("/fail");
 
-  // Resolver returns a clean 500 Response (no throw, no dev overlay)
+  // Resolver throws HttpError(500), Fresh error handling returns 500
   assertEquals(res.status, 500);
 });
 

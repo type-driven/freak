@@ -1,4 +1,5 @@
 import { Exit, type ManagedRuntime, type Effect } from "effect";
+import { HttpError } from "@fresh/core";
 
 /**
  * Effect v4 TypeId — verified from effect@4.0.0-beta.0 dist/internal/core.js.
@@ -26,9 +27,12 @@ export interface ResolverOptions {
    * a plain Error. Use `Cause.squash(cause)` or pattern-match on the Cause
    * variants (Fail, Die, Interrupt) to extract the underlying error.
    *
-   * If omitted, the resolver logs the Cause server-side and returns a
-   * plain 500 Response — no exception is thrown, so Fresh's dev error
-   * overlay never intercepts it.
+   * If omitted, the resolver throws `HttpError(500)` which Fresh routes
+   * to its error page (`_error.tsx`). The Cause is preserved in
+   * `error.cause` for server-side logging.
+   *
+   * The callback may also throw (e.g., `throw new HttpError(404)`) to
+   * enter Fresh's error handling chain with a specific status code.
    */
   mapError?: (cause: unknown) => Response;
 }
@@ -40,7 +44,7 @@ export interface ResolverOptions {
  * 2. If not, returns the value unchanged (pass-through)
  * 3. If yes, runs it via runtime.runPromiseExit
  * 4. On success, returns the unwrapped value
- * 5. On failure, delegates to mapError or returns a 500 Response
+ * 5. On failure, delegates to mapError or throws HttpError(500)
  */
 export function createResolver(
   // deno-lint-ignore no-explicit-any
@@ -66,11 +70,9 @@ export function createResolver(
       return options.mapError(exit.cause);
     }
 
-    // Default: log server-side and return a clean 500 Response.
-    // Returning (not throwing) bypasses Fresh's dev error overlay,
-    // which would otherwise render the stack trace in the browser.
-    // deno-lint-ignore no-console
-    console.error("[effect] Handler failure:", exit.cause);
-    return new Response("Internal Server Error", { status: 500 });
+    // Default: throw HttpError(500) so Fresh's error handling chain
+    // (_error.tsx / app.onError) renders a proper error page.
+    // Cause is preserved in error.cause for server-side inspection.
+    throw new HttpError(500, "Internal Server Error", { cause: exit.cause });
   };
 }
