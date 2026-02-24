@@ -4195,6 +4195,16 @@
           "npm:preact@^10.27.0"
         ]
       },
+      "packages/examples/effect-integration": {
+        "dependencies": [
+          "jsr:@fresh/core@2",
+          "npm:@tailwindcss/postcss@^4.1.10",
+          "npm:effect@4.0.0-beta.0",
+          "npm:postcss@8.5.6",
+          "npm:preact@^10.28.3",
+          "npm:tailwindcss@^4.1.10"
+        ]
+      },
       "packages/fresh": {
         "dependencies": [
           "jsr:@deno/esbuild-plugin@^1.2.0",

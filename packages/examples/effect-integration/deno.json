@@ -1,0 +1,37 @@
+{
+  "name": "@fresh/example-effect-integration",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": "./main.ts",
+  "imports": {
+    "@fresh/core": "jsr:@fresh/core@^2.0.0",
+    "@fresh/core/dev": "jsr:@fresh/core@^2.0.0/dev",
+    "@fresh/core/runtime": "jsr:@fresh/core@^2.0.0/runtime",
+    "@fresh/plugin-effect": "../../plugin-effect/src/mod.ts",
+    "@fresh/plugin-effect/island": "../../plugin-effect/src/island.ts",
+    "@fresh/plugin-tailwind": "../../plugin-tailwindcss/src/mod.ts",
+    "effect": "npm:effect@4.0.0-beta.0",
+    "effect/Schema": "npm:effect@4.0.0-beta.0/Schema",
+    "effect/Cause": "npm:effect@4.0.0-beta.0/Cause",
+    "effect/unstable/reactivity/Atom": "npm:effect@4.0.0-beta.0/unstable/reactivity/Atom",
+    "preact": "npm:preact@^10.28.3",
+    "preact/hooks": "npm:preact@^10.28.3/hooks",
+    "tailwindcss": "npm:tailwindcss@^4.1.10",
+    "@tailwindcss/postcss": "npm:@tailwindcss/postcss@^4.1.10",
+    "postcss": "npm:postcss@8.5.6"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "dom.asynciterable", "deno.ns", "deno.unstable"],
+    "jsx": "precompile",
+    "jsxImportSource": "preact",
+    "jsxPrecompileSkipElements": [
+      "a", "img", "source", "body", "html", "head", "title",
+      "meta", "script", "link", "style", "base", "noscript", "template"
+    ]
+  },
+  "tasks": {
+    "dev": "deno run -A --watch=static/,routes/ dev.ts",
+    "build": "deno run -A dev.ts build",
+    "start": "deno serve -A _fresh/server.js"
+  }
+}

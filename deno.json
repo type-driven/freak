@@ -3,6 +3,7 @@
   "nodeModulesDir": "manual",
   "workspace": [
     "./packages/*",
+    "./packages/examples/effect-integration",
     "./www"
   ],
   "tasks": {
