@@ -19,6 +19,7 @@
 
 import { expectTypeOf } from "npm:expect-type@^1.1.0";
 import { Effect, Layer, ServiceMap } from "effect";
+import { App } from "@fresh/core";
 import { createEffectDefine } from "../src/define.ts";
 import type { EffectDefine, EffectHandlerFn } from "../src/define.ts";
 
@@ -39,7 +40,8 @@ const _verifyEmailR: EmailR = { send: (_to: string) => {} };
 // --- SC-1: R threads through handler return types ---
 
 Deno.test("type: createEffectDefine compiles with R type parameter", () => {
-  const define = createEffectDefine<unknown, DbR>({ layer: DbLayer });
+  const app = new App();
+  const define = createEffectDefine<unknown, DbR>(app, { layer: DbLayer });
   expectTypeOf(define.handlers).toBeFunction();
   const h = define.handlers({
     GET: (_ctx) =>
@@ -66,7 +68,8 @@ Deno.test("type: createEffectDefine without layer compiles (type-parameter-only)
 // --- SC-2: Undeclared service causes compile error ---
 
 Deno.test("type: handler with undeclared service causes compile error", () => {
-  const define = createEffectDefine<unknown, DbR>({ layer: DbLayer });
+  const app = new App();
+  const define = createEffectDefine<unknown, DbR>(app, { layer: DbLayer });
   define.handlers({
     // @ts-expect-error — EmailService is not in R (only DbService is provided)
     POST: () =>
@@ -78,7 +81,8 @@ Deno.test("type: handler with undeclared service causes compile error", () => {
 });
 
 Deno.test("type: single handler function with undeclared service causes compile error", () => {
-  const define = createEffectDefine<unknown, DbR>({ layer: DbLayer });
+  const app = new App();
+  const define = createEffectDefine<unknown, DbR>(app, { layer: DbLayer });
   // @ts-expect-error — EmailService is not in R
   define.handlers(() =>
     Effect.gen(function* () {
@@ -112,7 +116,8 @@ Deno.test("type: EffectHandlerFn is a function type", () => {
 // --- Multiple services: R includes multiple service requirements ---
 
 Deno.test("type: handler using only declared service compiles", () => {
-  const define = createEffectDefine<unknown, DbR>({ layer: DbLayer });
+  const app = new App();
+  const define = createEffectDefine<unknown, DbR>(app, { layer: DbLayer });
   define.handlers({
     GET: () =>
       Effect.gen(function* () {
