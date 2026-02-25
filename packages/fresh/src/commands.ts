@@ -1,6 +1,6 @@
 import { setAdditionalStyles } from "./context.ts";
 import { HttpError } from "./error.ts";
-import { isHandlerByMethod, type PageResponse } from "./handlers.ts";
+import { type EffectRunner, isHandlerByMethod, type PageResponse } from "./handlers.ts";
 import type { MaybeLazyMiddleware, Middleware } from "./middlewares/mod.ts";
 import { mergePath, type Method, type Router, toRoutePath } from "./router.ts";
 import {
@@ -205,12 +205,13 @@ export function applyCommands<State>(
   router: Router<MaybeLazyMiddleware<State>>,
   commands: Command<State>[],
   basePath: string,
+  effectRunner?: EffectRunner | null,
 ): { rootMiddlewares: MaybeLazyMiddleware<State>[] } {
   const root = newSegment<State>("", null);
 
-  applyCommandsInner(root, router, commands, basePath);
+  applyCommandsInner(root, router, commands, basePath, effectRunner);
 
-  return { rootMiddlewares: segmentToMiddlewares(root) };
+  return { rootMiddlewares: segmentToMiddlewares(root, effectRunner) };
 }
 
 function applyCommandsInner<State>(
@@ -218,6 +219,7 @@ function applyCommandsInner<State>(
   router: Router<MaybeLazyMiddleware<State>>,
   commands: Command<State>[],
   basePath: string,
+  effectRunner?: EffectRunner | null,
 ) {
   for (let i = 0; i < commands.length; i++) {
     const cmd = commands[i];
@@ -268,7 +270,7 @@ function applyCommandsInner<State>(
           pattern,
           cmd.includeLastSegment,
         );
-        const fns = segmentToMiddlewares(segment);
+        const fns = segmentToMiddlewares(segment, effectRunner);
 
         if (isLazy(route)) {
           const routePath = mergePath(
@@ -287,7 +289,7 @@ function applyCommandsInner<State>(
               setAdditionalStyles(ctx, def.css);
             }
 
-            return renderRoute(ctx, def);
+            return renderRoute(ctx, def, 200, effectRunner);
           });
 
           if (config === undefined || config.methods === "ALL") {
@@ -305,7 +307,7 @@ function applyCommandsInner<State>(
             }
           }
         } else {
-          fns.push((ctx) => renderRoute(ctx, route));
+          fns.push((ctx) => renderRoute(ctx, route, 200, effectRunner));
 
           const routePath = toRoutePath(mergePath(
             basePath,
@@ -336,7 +338,7 @@ function applyCommandsInner<State>(
           pattern,
           cmd.includeLastSegment,
         );
-        const result = segmentToMiddlewares(segment);
+        const result = segmentToMiddlewares(segment, effectRunner);
 
         result.push(...fns);
 
@@ -358,7 +360,7 @@ function applyCommandsInner<State>(
       case CommandType.FsRoute: {
         const items = cmd.getItems();
         const base = mergePath(basePath, cmd.pattern, true);
-        applyCommandsInner(root, router, items, base);
+        applyCommandsInner(root, router, items, base, effectRunner);
         break;
       }
       default:

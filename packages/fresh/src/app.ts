@@ -29,6 +29,7 @@ import {
   newRouteCmd,
 } from "./commands.ts";
 import { MockBuildCache } from "./test_utils.ts";
+import { type EffectRunner } from "./handlers.ts";
 
 // TODO: Completed type clashes in older Deno versions
 // deno-lint-ignore no-explicit-any
@@ -159,6 +160,9 @@ export let setErrorInterceptor: <State>(
   fn: (err: unknown) => void,
 ) => void;
 
+export let setEffectRunner: (app: App<unknown>, fn: EffectRunner) => void;
+export let getEffectRunner: (app: App<unknown>) => EffectRunner | null;
+
 const NOOP = () => {};
 
 /**
@@ -169,6 +173,7 @@ export class App<State> {
   #getBuildCache: () => BuildCache<State> | null = () => null;
   #commands: Command<State>[] = [];
   #onError: (err: unknown) => void = NOOP;
+  #effectRunner: EffectRunner | null = null;
 
   static {
     getBuildCache = (app) => app.#getBuildCache();
@@ -180,6 +185,10 @@ export class App<State> {
     setErrorInterceptor = (app, fn) => {
       app.#onError = fn;
     };
+    setEffectRunner = (app, fn) => {
+      app.#effectRunner = fn;
+    };
+    getEffectRunner = (app) => app.#effectRunner;
   }
 
   /**
@@ -387,10 +396,13 @@ export class App<State> {
 
     const router = new UrlPatternRouter<MaybeLazyMiddleware<State>>();
 
+    const effectRunner = this.#effectRunner;
+
     const { rootMiddlewares } = applyCommands(
       router,
       this.#commands,
       this.config.basePath,
+      effectRunner,
     );
 
     return async (
@@ -442,7 +454,7 @@ export class App<State> {
       try {
         if (handlers.length === 0) return await next();
 
-        const result = await runMiddlewares(handlers, ctx, this.#onError);
+        const result = await runMiddlewares(handlers, ctx, this.#onError, effectRunner);
         if (!(result instanceof Response)) {
           throw new Error(
             `Expected a "Response" instance to be returned, but got: ${result}`,

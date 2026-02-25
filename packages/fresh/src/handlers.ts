@@ -225,6 +225,18 @@ export type RouteData<
   : never;
 
 /**
+ * A function that accepts an Effect-like value and a request context, runs the
+ * Effect using the registered runtime, and resolves to the unwrapped result.
+ * Registered once per App instance via `setEffectRunner`.
+ *
+ * Defined here (in `handlers.ts`) rather than `app.ts` to avoid circular
+ * imports: `app.ts` → `commands.ts` → `segments.ts` would be circular if
+ * `segments.ts` imported from `app.ts`.
+ */
+// deno-lint-ignore no-explicit-any
+export type EffectRunner = (value: unknown, ctx: Context<any>) => Promise<unknown>;
+
+/**
  * Returns true if the value is an Effect-like value (duck-typed on the
  * Effect v4 TypeId string key `"~effect/Effect"`). Used internally to
  * detect when a handler returned an Effect that needs to be run via the

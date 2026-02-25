@@ -4,19 +4,18 @@ import { type Method, patternToSegments } from "./router.ts";
 import type { LayoutConfig, Route } from "./types.ts";
 import { type Context, getInternals } from "./context.ts";
 import { recordSpanError, tracer } from "./otel.ts";
-import { type HandlerFn, isHandlerByMethod } from "./handlers.ts";
+import {
+  type EffectRunner,
+  type HandlerFn,
+  isEffectLike,
+  isHandlerByMethod,
+} from "./handlers.ts";
 import {
   type AsyncAnyComponent,
   type PageProps,
   renderRouteComponent,
 } from "./render.ts";
 import { HttpError } from "./error.ts";
-
-// Effect resolver hook — null unless effectPlugin() registers one.
-// This keeps Fresh core free of any npm:effect dependency.
-let _effectResolver:
-  | ((value: unknown, ctx: Context<unknown>) => Promise<unknown>)
-  | null = null;
 
 // Atom hydration hook — null unless effectPlugin() registers one.
 // Returns a JSON string of atom hydration data for the current request,
@@ -42,21 +41,6 @@ export function getAtomHydrationHook():
   | ((ctx: Context<unknown>) => string | null)
   | null {
   return _atomHydrationHook;
-}
-
-/**
- * Register a resolver function that intercepts handler return values.
- * Called by effectPlugin() at setup time. The resolver receives the raw
- * handler return value and the request context; it should return the
- * value unchanged if it is not an Effect, or run the Effect and return
- * the unwrapped result.
- *
- * @internal Exported via `@fresh/core/internal` for plugin use only.
- */
-export function setEffectResolver(
-  fn: (value: unknown, ctx: Context<unknown>) => Promise<unknown>,
-): void {
-  _effectResolver = fn;
 }
 
 export type RouteComponent<State> =
@@ -121,6 +105,7 @@ export function getOrCreateSegment<State>(
 
 export function segmentToMiddlewares<State>(
   segment: Segment<State>,
+  effectRunner?: EffectRunner | null,
 ): MaybeLazyMiddleware<State>[] {
   const result: MaybeLazyMiddleware<State>[] = [];
 
@@ -169,7 +154,7 @@ export function segmentToMiddlewares<State>(
         }
 
         if (errorRoute !== null) {
-          return await renderRoute(ctx, errorRoute, status);
+          return await renderRoute(ctx, errorRoute, status, effectRunner);
         }
 
         throw err;
@@ -191,6 +176,7 @@ export async function renderRoute<State>(
   ctx: Context<State>,
   route: Route<State>,
   status = 200,
+  effectRunner?: EffectRunner | null,
 ): Promise<Response> {
   const internals = getInternals(ctx);
   if (route.config?.skipAppWrapper) {
@@ -228,8 +214,8 @@ export async function renderRoute<State>(
       if (fn === null) return await ctx.next();
 
       let result: unknown = await fn(ctx);
-      if (_effectResolver !== null) {
-        result = await _effectResolver(result, ctx as Context<unknown>);
+      if (effectRunner != null && isEffectLike(result)) {
+        result = await effectRunner(result, ctx as Context<unknown>);
       }
       return result;
     } catch (err) {

@@ -2,6 +2,7 @@ import { type Context, getInternals } from "../context.ts";
 import type { App as _App } from "../app.ts";
 import type { Define as _Define } from "../define.ts";
 import { recordSpanError, tracer } from "../otel.ts";
+import { type EffectRunner, isEffectLike } from "../handlers.ts";
 
 /**
  * A middleware function is the basic building block of Fresh. It allows you
@@ -92,6 +93,7 @@ export async function runMiddlewares<State>(
   middlewares: MaybeLazyMiddleware<State>[],
   ctx: Context<State>,
   onError?: (err: unknown) => void,
+  effectRunner?: EffectRunner | null,
 ): Promise<Response> {
   return await tracer.startActiveSpan("middlewares", {
     attributes: { "fresh.middleware.count": middlewares.length },
@@ -109,11 +111,18 @@ export async function runMiddlewares<State>(
 
           ctx.next = local;
           try {
-            const result = await next(ctx);
+            let result: Response | Middleware<State> = await next(ctx);
             if (typeof result === "function") {
               middlewares[idx] = result;
               next = result;
-              return await result(ctx);
+              result = await result(ctx);
+            }
+
+            if (effectRunner != null && isEffectLike(result)) {
+              return await effectRunner(
+                result,
+                ctx as Context<unknown>,
+              ) as Response;
             }
 
             return result;
