@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 6 complete, Phase 7 next)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 7 in progress — Plan 1 complete)
 
 ## Current Position
 
-Phase: 6 of 10 (Fresh Core Plumbing) — complete
-Plan: 2/2 in current phase
-Status: Phase complete — ready for Phase 7
-Last activity: 2026-02-25 — Completed 06-02-PLAN.md (plugin-effect updated to setEffectRunner)
+Phase: 7 of 10 (Fresh Effect Package) — in progress
+Plan: 1/TBD in current phase
+Status: In progress — Plan 1 complete, ready for Plan 02 (tests)
+Last activity: 2026-02-25 — Completed 07-01-PLAN.md (@fresh/effect package core API created)
 
-Progress: [█████░░░░░] 55% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans)
+Progress: [██████░░░░] 60% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 Plan 1 complete
 
 ## Performance Metrics
 
@@ -36,7 +36,7 @@ Progress: [█████░░░░░] 55% — v1 complete (9/9 plans); v2 P
 | 04-atom-hydration | 2/2 | 8 min | 4 min |
 | 05-example | 2/2 | 10 min | 5 min |
 | 06-fresh-core-plumbing | 2/2 | 12 min | 6 min |
-| 07-effect-package | 0/TBD | — | — |
+| 07-fresh-effect-package | 1/TBD | 3 min | 3 min |
 | 08-httpapi-integration | 0/TBD | — | — |
 | 09-rpc-integration | 0/TBD | — | — |
 | 10-migration-example | 0/TBD | — | — |
@@ -64,18 +64,29 @@ Recent decisions affecting current work:
 - [06-02]: effectPlugin signature changed to effectPlugin(app, opts?) — app-first enables per-app isolation without global state
 - [06-02]: createEffectDefine standalone path requires app as first arg when layer provided — throws descriptive error if called without app
 - [06-02]: Type casts used in SC-2/SC-3 tests for app.get()/app.use() Effect returns — type-level EffectLike support deferred to Phase 7
+- [07-01]: createEffectDefine in @fresh/effect is type-only (no app/layer args) — runtime is EffectApp's job
+- [07-01]: registerSignalDisposal uses Deno.addSignalListener (SIGINT/SIGTERM) not globalThis.addEventListener('unload')
+- [07-01]: setEffectRunner cast to App<any> needed due to State type variance in BuildCache — safe at runtime
+- [07-01]: EffectApp.mountApp accepts App<State> not EffectApp — plain App for micro-app composition
 
 ### Pending Todos
 
-- Run Phase 7: 07-effect-package (EffectApp wrapper, @fresh/effect package)
+- Run Phase 7 Plan 02: integration tests for createEffectApp
+- Run Phase 7 Plan 03+ (if any): additional @fresh/effect features
+- Plan Phase 11: micro-app architecture (mountApp issues + Module Federation research)
+
+### Roadmap Evolution
+
+- Phase 11 added (2026-02-25): Micro-App Architecture — research mountApp issues, evaluate Module Federation (https://github.com/module-federation/vite#readme), architectural decision for Freak app composition
 
 ### Blockers/Concerns
 
 - Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
-- Type gap: app.get()/app.use() types don't include EffectLike — runtime dispatch works but type casts needed until Phase 7 adds type support
+- Type gap RESOLVED: EffectApp proxies app.get()/app.use() with Effect-typed middleware signatures — no casts needed when using EffectApp (casts still needed if using raw App directly)
+- Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
 
 ## Session Continuity
 
-Last session: 2026-02-25T18:19:37Z
-Stopped at: Completed 06-02-PLAN.md — plugin-effect updated to setEffectRunner, per-app isolation tests written
+Last session: 2026-02-25T21:51:03Z
+Stopped at: Completed 07-01-PLAN.md — @fresh/effect package core API created (EffectApp, createEffectApp, createEffectDefine)
 Resume file: None
