@@ -4188,6 +4188,14 @@
           "jsr:@std/encoding@^1.0.10"
         ]
       },
+      "packages/effect": {
+        "dependencies": [
+          "jsr:@fresh/core@2",
+          "jsr:@std/assert@1",
+          "npm:effect@4.0.0-beta.0",
+          "npm:expect-type@^1.1.0"
+        ]
+      },
       "packages/examples": {
         "dependencies": [
           "jsr:@fresh/core@2",
