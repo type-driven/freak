@@ -223,3 +223,19 @@ export type RouteData<
   Handler extends RouteHandler<unknown, unknown>,
 > = Handler extends (RouteHandler<infer Data, unknown>) ? Data
   : never;
+
+/**
+ * Returns true if the value is an Effect-like value (duck-typed on the
+ * Effect v4 TypeId string key `"~effect/Effect"`). Used internally to
+ * detect when a handler returned an Effect that needs to be run via the
+ * registered `EffectRunner`.
+ *
+ * @internal Exported via `@fresh/core/internal` for plugin use.
+ */
+export function isEffectLike(value: unknown): value is EffectLike<unknown> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "~effect/Effect" in value
+  );
+}
