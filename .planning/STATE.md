@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 7 in progress — Plan 1 complete)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 7 complete, ready for Phase 8)
 
 ## Current Position
 
-Phase: 7 of 10 (Fresh Effect Package) — in progress
-Plan: 1/TBD in current phase
-Status: In progress — Plan 1 complete, ready for Plan 02 (tests)
-Last activity: 2026-02-25 — Completed 07-01-PLAN.md (@fresh/effect package core API created)
+Phase: 7 of 10 (Fresh Effect Package) — complete
+Plan: 2/2 in current phase
+Status: Phase 7 complete — all 4 success criteria verified, ready for Phase 8
+Last activity: 2026-02-25 — Completed 07-02-PLAN.md (@fresh/effect test suite + example app conversion)
 
-Progress: [██████░░░░] 60% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 Plan 1 complete
+Progress: [███████░░░] 70% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans)
 
 ## Performance Metrics
 
@@ -36,7 +36,7 @@ Progress: [██████░░░░] 60% — v1 complete (9/9 plans); v2 P
 | 04-atom-hydration | 2/2 | 8 min | 4 min |
 | 05-example | 2/2 | 10 min | 5 min |
 | 06-fresh-core-plumbing | 2/2 | 12 min | 6 min |
-| 07-fresh-effect-package | 1/TBD | 3 min | 3 min |
+| 07-fresh-effect-package | 2/2 | 7 min | 3.5 min |
 | 08-httpapi-integration | 0/TBD | — | — |
 | 09-rpc-integration | 0/TBD | — | — |
 | 10-migration-example | 0/TBD | — | — |
@@ -68,11 +68,15 @@ Recent decisions affecting current work:
 - [07-01]: registerSignalDisposal uses Deno.addSignalListener (SIGINT/SIGTERM) not globalThis.addEventListener('unload')
 - [07-01]: setEffectRunner cast to App<any> needed due to State type variance in BuildCache — safe at runtime
 - [07-01]: EffectApp.mountApp accepts App<State> not EffectApp — plain App for micro-app composition
+- [07-02]: @ts-expect-error for app.get() type rejection: use typed variable pattern (const x: Parameters<typeof app.get>[1] = ...) so directive aligns with error line
+- [07-02]: Deno ChildProcess streams must be cancelled after cp.status to avoid resource leak errors: await cp.stdout.cancel() + cp.stderr.cancel()
+- [07-02]: signal_server.ts uses port:0 + onListen callback for subprocess readiness handshake (READY:<port>)
 
 ### Pending Todos
 
-- Run Phase 7 Plan 02: integration tests for createEffectApp
-- Run Phase 7 Plan 03+ (if any): additional @fresh/effect features
+- Plan and execute Phase 8: HttpApi integration
+- Plan and execute Phase 9: RPC integration
+- Plan and execute Phase 10: Migration example
 - Plan Phase 11: micro-app architecture (mountApp issues + Module Federation research)
 
 ### Roadmap Evolution
@@ -82,11 +86,10 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
-- Type gap RESOLVED: EffectApp proxies app.get()/app.use() with Effect-typed middleware signatures — no casts needed when using EffectApp (casts still needed if using raw App directly)
-- Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
+- Phase 8 needs to define EffectApp.build() API — not yet implemented in @fresh/effect
 
 ## Session Continuity
 
-Last session: 2026-02-25T21:51:03Z
-Stopped at: Completed 07-01-PLAN.md — @fresh/effect package core API created (EffectApp, createEffectApp, createEffectDefine)
+Last session: 2026-02-25T21:59:32Z
+Stopped at: Completed 07-02-PLAN.md — @fresh/effect test suite + example app conversion (all 4 SC verified)
 Resume file: None
