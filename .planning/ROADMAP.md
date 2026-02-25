@@ -159,10 +159,162 @@ Plans:
 
 ---
 
+## Milestone: v2
+
+Effect-First Handlers, HttpApi & RPC — per-app Effect runner, `@fresh/effect`
+package with `EffectApp<State, AppR>`, schema-first `HttpApi` mounting, native
+Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
+
+## v2 Phases
+
+- [ ] **Phase 6: Fresh Core Plumbing** — Per-app Effect runner, `isEffectLike` export
+- [ ] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
+- [ ] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
+- [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcClient()` in islands
+- [ ] **Phase 10: Migration + Example** — `@fresh/plugin-effect` compat shim, updated example
+
+## v2 Phase Details
+
+### Phase 6: Fresh Core Plumbing
+
+**Goal**: Multiple `App` instances in the same process each own their Effect runner
+— the global `_effectResolver` singleton is replaced with a per-app hook, and
+Effect handlers work via `app.get()` / `app.post()` / `app.use()` with no
+observable behavior change for existing code.
+
+**Depends on**: Phase 5 (v1 complete — all existing integration tests must remain green)
+
+**Requirements**: CORE-01, CORE-02, CORE-03
+
+**Success Criteria** (what must be TRUE):
+1. Two `App` instances created in the same test process each run Effect handlers
+   through their own runner without interfering — verified by a test that registers
+   distinct Layers on two apps and asserts each handler sees only its own services.
+2. An Effect handler registered via `app.get()` or `app.post()` returns the correct
+   HTTP response — verified by the existing plugin-effect integration test suite
+   running without modification.
+3. An Effect-returning middleware registered via `app.use()` runs and its Effect is
+   resolved — verified by a test that uses a middleware Effect to inject a value
+   into `ctx.state` and asserts a downstream handler reads it.
+4. All existing plugin-effect integration tests pass unchanged after the refactor.
+
+**Plans**: TBD
+
+---
+
+### Phase 7: @fresh/effect Package
+
+**Goal**: Developers can replace `effectPlugin` with `createEffectApp({ layer })`
+and get a fully typed `EffectApp<State, AppR>` that proxies all `App<State>` builder
+methods, manages its `ManagedRuntime` per-app via `AbortController`, and shuts
+down cleanly on SIGTERM/SIGINT.
+
+**Depends on**: Phase 6 (`setEffectRunner` / `getEffectRunner` must exist in Fresh core)
+
+**Requirements**: EAPP-01, EAPP-02, EAPP-03, EAPP-04
+
+**Success Criteria** (what must be TRUE):
+1. `createEffectApp({ layer })` returns an `EffectApp` where calling `.get()`,
+   `.post()`, `.use()`, and `.route()` all work identically to `App` — verified by
+   running the existing example app converted to `createEffectApp` and observing
+   all routes respond correctly.
+2. TypeScript rejects an `EffectApp<State, AppR>` whose handler uses a service not
+   present in the provided `Layer` — verified by a `tsc --noEmit` check on a
+   deliberately misconfigured handler.
+3. Sending SIGTERM to a running `EffectApp` server causes `ManagedRuntime.dispose()`
+   to be called and the process to exit cleanly — verified by spawning the server
+   as a subprocess, sending SIGTERM, and asserting the exit code is 0.
+4. Two `EffectApp` instances in the same test process each own independent
+   `ManagedRuntime` instances — verified by a test that disposes one and asserts
+   the other continues to serve requests.
+
+**Plans**: TBD
+
+---
+
+### Phase 8: HttpApi Integration
+
+**Goal**: Calling `app.httpApi(api, groupImpls)` on an `EffectApp` mounts an Effect
+`HttpApi` definition within Fresh — requests routed to the API's declared path
+prefix are handled by the Effect HTTP stack with fully decoded params/query/payload
+and typed errors mapped to correct HTTP status codes.
+
+**Depends on**: Phase 7 (`EffectApp` must exist and `build()` must be callable)
+
+**Requirements**: HAPI-01, HAPI-02, HAPI-03
+
+**Success Criteria** (what must be TRUE):
+1. A GET request to a mounted `HttpApi` endpoint returns the response defined by
+   the group implementation — verified by hitting the endpoint in the running
+   example app and asserting the JSON body matches expectations.
+2. A request with invalid query parameters returns 422 with a schema-validation
+   error body — verified by sending a malformed request and inspecting the response
+   status and body.
+3. A handler that returns a typed `HttpApiError` produces the correct HTTP status
+   code (e.g., 404 for not-found) — verified by hitting a route that deliberately
+   returns the typed error and asserting the response status.
+
+**Plans**: TBD
+
+---
+
+### Phase 9: RPC Integration
+
+**Goal**: Calling `app.rpc({ group, path, protocol })` on an `EffectApp` mounts
+a native Effect RPC server, and Preact islands can call `useRpcClient(group)` to
+get a fully typed client that sends requests over HTTP or WebSocket — no manual
+fetch wiring.
+
+**Depends on**: Phase 8 (RPC layers are accumulated and dispatched alongside HttpApi
+layers in `EffectApp.build()`)
+
+**Requirements**: RPC-01, RPC-02, RPC-03
+
+**Success Criteria** (what must be TRUE):
+1. An island calling `useRpcClient(group)` can invoke an RPC procedure and receive
+   the typed response — verified in a browser by observing the island render data
+   returned from the RPC handler.
+2. The same RPC group works over both HTTP and WebSocket protocols — verified by
+   registering the group twice with different protocol options and sending a request
+   on each, asserting both return the correct response.
+3. TypeScript rejects a `useRpcClient` call that invokes a procedure not declared
+   in the group's schema — verified by a `tsc --noEmit` check on a deliberately
+   incorrect call site.
+
+**Plans**: TBD
+
+---
+
+### Phase 10: Migration + Example
+
+**Goal**: `@fresh/plugin-effect` users can migrate to `@fresh/effect` at their own
+pace — importing `effectPlugin` from the old package continues to work unchanged
+while the updated example demonstrates `createEffectApp` + `httpApi` + `rpc`
+end-to-end as the canonical v2 usage pattern.
+
+**Depends on**: Phase 9 (all v2 capabilities must be stable before the shim and
+example can demonstrate them together)
+
+**Requirements**: MIG-01, MIG-02
+
+**Success Criteria** (what must be TRUE):
+1. An existing project importing `effectPlugin` from `@fresh/plugin-effect` without
+   any code changes continues to start and handle Effect-returning handlers — verified
+   by running the original v1 example unmodified and asserting all routes respond.
+2. The updated `packages/examples/effect-integration/` starts with `deno task dev`,
+   serves a route via `createEffectApp`, returns data from a mounted `httpApi`
+   endpoint, and renders island data sourced from `useRpcClient` — all observable
+   in a browser without additional setup.
+
+**Plans**: TBD
+
+---
+
 ## Progress
 
-**Execution Order**: 1 -> 2 -> 3 -> 4 -> 5
-(Phase 2 and Phase 3 are independent after Phase 1; Phase 4 requires Phase 3)
+**Execution Order**: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+(v1: Phases 2 and 3 are independent after Phase 1; Phase 4 requires Phase 3)
+(v2: Each phase strictly requires the prior; Phase 10 requires all of 6–9)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -171,7 +323,12 @@ Plans:
 | 3. Preact Atom Hooks | 1/1 | Complete | 2026-02-21 |
 | 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
 | 5. Example | 2/2 | Complete | 2026-02-24 |
+| 6. Fresh Core Plumbing | 0/TBD | Not started | — |
+| 7. @fresh/effect Package | 0/TBD | Not started | — |
+| 8. HttpApi Integration | 0/TBD | Not started | — |
+| 9. RPC Integration | 0/TBD | Not started | — |
+| 10. Migration + Example | 0/TBD | Not started | — |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-24 — Phase 5 complete, milestone v1 complete*
+*Last updated: 2026-02-25 — Milestone v2 phases 6–10 added*

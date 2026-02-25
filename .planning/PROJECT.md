@@ -2,10 +2,10 @@
 
 ## What This Is
 
-Native Effect v4 support in Fresh, the Deno web framework. Route handlers can
-return `Effect<Response | PageResponse<Data>, E>` values that Fresh runs through
-a configured Effect runtime. Effect v4 atoms work as reactive state in Preact
-islands via a `useAtom` hook, with atom values hydrated from server to client.
+Native Effect v4 support in Fresh, the Deno web framework. Route handlers return
+`Effect<Response | PageResponse<Data>, E, R>` with full service-requirement typing.
+`EffectApp<State, AppR>` wraps `App<State>` with a typed Layer, per-app lifecycle,
+schema-first `HttpApi` mounting, and native Deno RPC via `platform-deno-smol`.
 
 ## Core Value
 
@@ -17,47 +17,68 @@ already write handlers.
 
 ### Validated
 
-- ✓ Fresh 2 route handler system (`HandlerFn`, `RouteHandler`, `page()`) — existing
+- ✓ Fresh 2 route handler system (`HandlerFn`, `RouteHandler`, `page()`) — v1 Phase 1
 - ✓ Preact island architecture with client hydration — existing
 - ✓ Fresh plugin API for third-party integrations — existing
+- ✓ Effect detection via `EffectLike` duck-type; no Effect import in `@fresh/core` — v1 Phase 1
+- ✓ `effectPlugin({ layer })` wires `ManagedRuntime` into Fresh via `app.use()` — v1 Phase 1
+- ✓ `createEffectDefine<State, R>()` carries service requirements through handler definitions — v1 Phase 2
+- ✓ `useAtom`, `useAtomValue`, `useAtomSet` native Preact hooks (no preact/compat) — v1 Phase 3
+- ✓ Server-to-client atom hydration via `setAtom()` + `<script>` injection — v1 Phase 4
+- ✓ End-to-end example in `packages/examples/effect-integration/` — v1 Phase 5
 
 ### Active
 
-- [ ] `HandlerFn` union type extended to accept `Effect<Response | PageResponse<Data>, E>`
-- [ ] Fresh core detects Effect return values and runs them through a runtime
-- [ ] A `plugin-effect` mechanism for configuring the Effect `Layer` / runtime
-- [ ] `useAtom`, `useAtomValue`, `useAtomSet` hooks for Preact (or reuse atom-react if Preact-compat works)
-- [ ] Atom values set server-side can be serialized and hydrated in Preact islands
-- [ ] Working example in `packages/examples` demonstrating Effect handler + atom in an island
+- [ ] Per-app Effect runner replaces global `_effectResolver` singleton — no last-writer-wins
+- [ ] Effect handlers work via `app.get()`/`app.post()` (not just `app.route()`)
+- [ ] Effect middlewares work via `app.use()` — not just route handlers
+- [ ] `createEffectApp<State, AppR>({ layer })` wraps App with typed Layer
+- [ ] Per-app ManagedRuntime lifecycle via AbortController (not Deno `unload` event)
+- [ ] `app.httpApi(api, groupImpls)` mounts schema-first Effect HttpApi routes
+- [ ] `app.rpc({ group, path, protocol })` mounts native Effect RPC server
+- [ ] `useRpcClient(group)` in islands returns a typed, schema-validated RPC client
+- [ ] `@fresh/plugin-effect` continues working unchanged (compat shim)
 
 ### Out of Scope
 
-- Effect v3 support — targeting v4 beta only; v3 would require a separate integration path
-- A standalone JSR library — this is a core Fresh change, not a reusable external package
-- React bindings — Preact is the Fresh target; `atom-react` may be leveraged but React support is not a goal
+- Effect v3 support — v4 is the target; separate integration path needed
+- React bindings — Preact is the Fresh target
+- Per-request Layer provisioning — performance overhead; `ManagedRuntime` created once at startup
+- Replacing `@preact/signals` — atoms are additive, not a replacement
+- Framework-level Schema validation at file-system routing layer — too opinionated
 
 ## Context
 
-- Repository: Fresh framework monorepo (`packages/fresh`, `packages/plugin-vite`, `packages/examples`, etc.)
-- Effect v4 beta (`effect@4.0.0-beta.0`) released with atoms as a new reactive primitive
-- `@effect-atom/atom` provides `Atom.make()`, `Atom.runtime(layer)`, and hooks; React bindings exist as `@effect-atom/atom-react`; Preact binding existence is unknown — needs research
-- Current `HandlerFn` returns `Response | PageResponse<Data> | Promise<...>` — Effect return types would extend this union
-- Fresh islands hydrate via serialized props; atom hydration will piggyback on this mechanism
-- Stack: Deno 2, TypeScript, Fresh 2, Preact, Effect v4 beta
+- Repository: Fresh framework monorepo (`packages/fresh`, `packages/plugin-effect`, `packages/examples`, etc.)
+- Companion repo: `/Users/davidpeter/workspace/type-driven.com/platform-deno-smol` — Effect-TS source (effect-smol beta)
+  - `packages/effect/src/unstable/http/` — HttpRouter, HttpApp, HttpEffect
+  - `packages/effect/src/unstable/httpapi/` — HttpApi, HttpApiGroup, HttpApiEndpoint, HttpApiBuilder
+  - `packages/effect/src/unstable/rpc/` — Rpc, RpcGroup, RpcServer, RpcClient, RpcMiddleware
+  - `packages/platform-deno/src/` — DenoRuntime, DenoWorker (no HttpServer — use `HttpRouter.toWebHandler`)
+- Deno integration: `HttpRouter.toWebHandler(appLayer)` → `{ handler, dispose }` → `Deno.serve`
+- `_effectResolver` in `segments.ts` is currently a module-level global — last writer wins
+- v2 strategy: `EffectApp<State, AppR>` wraps `App<State>`, delegates routing to Fresh, owns Effect lifecycle
+- Stack: Deno 2, TypeScript, Fresh 2, Preact, Effect v4 (effect-smol beta)
 
 ## Constraints
 
 - **Tech stack**: Deno 2, Fresh 2, Preact — no React, no Node-specific APIs
-- **Backwards compatibility**: Effect support must be opt-in; existing handlers must continue to work unchanged
-- **Effect v4 beta**: API may shift before stable release; integration should isolate Effect-specific code
-- **JSR publishing**: New packages must conform to JSR constraints (no `npm:` in public API types)
+- **Backwards compatibility**: `effectPlugin()` must keep working; zero breaking changes for v1 users
+- **Deno-native**: RPC uses `platform-deno-smol` — no Node adapters
+- **JSR publishing**: `@fresh/core` must never import `npm:effect` types in its public API
+- **Per-app isolation**: Multiple `App` instances in the same process (e.g., in tests) must not interfere
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Extend HandlerFn union rather than a new handler type | Least breaking, existing routes unaffected | — Pending |
-| Research Preact atom binding before building | Don't rebuild what exists; atom-react may work via Preact compat | — Pending |
+| Extend HandlerFn union rather than a new handler type | Least breaking, existing routes unaffected | ✓ Good |
+| Native Preact hooks (no preact/compat) | Avoids dual reconciler conflict (Fresh issue #1491) | ✓ Good |
+| `EffectLike` duck-type for Effect detection in core | Keeps `@fresh/core` free of npm:effect; JSR-safe | ✓ Good |
+| Global `_effectResolver` for v1 | Fastest path; only one runtime per process in v1 | ⚠️ Revisit — last-writer-wins bug, per-app isolation needed |
+| `EffectApp<State, AppR>` wraps `App<State>` | Fresh routing/segments/islands untouched; Effect owns lifecycle only | — Pending |
+| HttpApi/RPC via `HttpRouter.toWebHandler` sub-handler | Effect HTTP stack fully intact; Fresh dispatches by URL prefix | — Pending |
+| AbortController for runtime lifecycle | Replaces unreliable Deno `unload` event; wires to SIGTERM/SIGINT | — Pending |
 
 ---
-*Last updated: 2026-02-18 after initialization*
+*Last updated: 2026-02-25 after milestone v2 start*

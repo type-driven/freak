@@ -39,15 +39,35 @@
 
 ## v2 Requirements
 
-### Middleware Integration
+### Core Integration
 
-- **MDLW-01**: Effect middleware via `ctx.nextEffect()` — threads Effect into the core `Context` type
-- **MDLW-02**: Middleware can yield Effect values that compose in the request pipeline
+- [ ] **CORE-01**: Fresh core supports per-app Effect runner — `setEffectRunner(app, fn)` replaces global `_effectResolver`
+- [ ] **CORE-02**: Effect handlers work via `app.get()` / `app.post()` — not just `app.route()`
+- [ ] **CORE-03**: Effect middlewares work via `app.use()` — `runMiddlewares` resolves Effect returns using app runner
 
-### Publishing
+### Effect App
 
-- **PUB-01**: `@fresh/plugin-effect` published to JSR as a standalone package
-- **PUB-02**: `@fresh/preact-atom` published to JSR as a standalone Preact atom hooks package
+- [ ] **EAPP-01**: `createEffectApp<State, AppR>({ layer })` wraps `App<State>` with a typed Layer
+- [ ] **EAPP-02**: `EffectApp` proxies all `App<State>` builder methods (`use`, `route`, `get`, `post`, etc.)
+- [ ] **EAPP-03**: Per-app `ManagedRuntime` lifecycle via `AbortController` — disposed on SIGTERM/SIGINT, not Deno `unload`
+- [ ] **EAPP-04**: `createEffectDefine<State, R>()` in `@fresh/effect` carries R type through handler definitions
+
+### HTTP API Integration
+
+- [ ] **HAPI-01**: `app.httpApi(api, groupImpls)` mounts an Effect `HttpApi` at its declared path prefix
+- [ ] **HAPI-02**: HttpApi handlers receive fully decoded and typed `params`, `query`, `payload`, `headers`
+- [ ] **HAPI-03**: HttpApi typed errors are auto-encoded to HTTP responses with correct status codes (404, 422, etc.)
+
+### RPC Integration
+
+- [ ] **RPC-01**: `app.rpc({ group, path, protocol })` mounts an Effect `RpcServer` — Deno native via `platform-deno-smol`
+- [ ] **RPC-02**: RPC supports both HTTP and WebSocket protocols
+- [ ] **RPC-03**: `useRpcClient(group)` in Preact islands returns a fully typed RPC client
+
+### Migration
+
+- [ ] **MIG-01**: `@fresh/plugin-effect` re-exports from `@fresh/effect` — zero breaking changes for v1 users
+- [ ] **MIG-02**: Updated `packages/examples/effect-integration/` demonstrates `createEffectApp` + `httpApi` + `rpc`
 
 ## Out of Scope
 
@@ -83,11 +103,28 @@
 | EXAM-01 | Phase 5 — Example | Complete |
 | EXAM-02 | Phase 5 — Example | Complete |
 
+| CORE-01 | Phase 6 — Fresh Core Plumbing | Pending |
+| CORE-02 | Phase 6 — Fresh Core Plumbing | Pending |
+| CORE-03 | Phase 6 — Fresh Core Plumbing | Pending |
+| EAPP-01 | Phase 7 — @fresh/effect Package | Pending |
+| EAPP-02 | Phase 7 — @fresh/effect Package | Pending |
+| EAPP-03 | Phase 7 — @fresh/effect Package | Pending |
+| EAPP-04 | Phase 7 — @fresh/effect Package | Pending |
+| HAPI-01 | Phase 8 — HttpApi Integration | Pending |
+| HAPI-02 | Phase 8 — HttpApi Integration | Pending |
+| HAPI-03 | Phase 8 — HttpApi Integration | Pending |
+| RPC-01 | Phase 9 — RPC Integration | Pending |
+| RPC-02 | Phase 9 — RPC Integration | Pending |
+| RPC-03 | Phase 9 — RPC Integration | Pending |
+| MIG-01 | Phase 10 — Migration + Example | Pending |
+| MIG-02 | Phase 10 — Migration + Example | Pending |
+
 **Coverage:**
-- v1 requirements: 17 total
-- Mapped to phases: 17
+- v1 requirements: 17 total — all Complete ✓
+- v2 requirements: 15 total
+- v2 mapped to phases: 15
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-24 after Phase 5 execution — EXAM-01/02 marked Complete, all v1 requirements complete*
+*Last updated: 2026-02-25 after milestone v2 start — v2 requirements added (CORE, EAPP, HAPI, RPC, MIG)*
