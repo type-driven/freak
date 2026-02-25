@@ -31,12 +31,12 @@ Deno.test("integration: Effect.succeed(Response) produces same response as async
   const asyncRes = await asyncServer.get("/");
   const asyncText = await asyncRes.text();
 
-  // Effect handler — uses app.route() which calls renderRoute → _effectResolver
-  const effectApp = new App()
-    .use(effectPlugin())
-    .route("/", {
-      handler: () => Effect.succeed(new Response("hello from effect", { status: 200 })),
-    });
+  // Effect handler — uses app.route() which calls renderRoute → effectRunner
+  const effectApp = new App();
+  effectApp.use(effectPlugin(effectApp));
+  effectApp.route("/", {
+    handler: () => Effect.succeed(new Response("hello from effect", { status: 200 })),
+  });
 
   const effectServer = new FakeServer(effectApp.handler());
   const effectRes = await effectServer.get("/");
@@ -47,17 +47,17 @@ Deno.test("integration: Effect.succeed(Response) produces same response as async
 });
 
 Deno.test("integration: Effect handler with custom status and body", async () => {
-  const app = new App()
-    .use(effectPlugin())
-    .route("/api/data", {
-      handler: () =>
-        Effect.succeed(
-          new Response(JSON.stringify({ count: 42 }), {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          }),
-        ),
-    });
+  const app = new App();
+  app.use(effectPlugin(app));
+  app.route("/api/data", {
+    handler: () =>
+      Effect.succeed(
+        new Response(JSON.stringify({ count: 42 }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+  });
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/api/data");
@@ -71,21 +71,21 @@ Deno.test("integration: Effect handler with custom status and body", async () =>
 // --- SC-3: Effect.fail produces 500 response, not crash ---
 
 Deno.test("integration: Effect.fail produces 500 response (not crash)", async () => {
-  const app = new App()
-    .use(effectPlugin())
-    .route("/fail", { handler: () => Effect.fail("something went wrong") });
+  const app = new App();
+  app.use(effectPlugin(app));
+  app.route("/fail", { handler: () => Effect.fail("something went wrong") });
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/fail");
 
-  // Resolver throws HttpError(500), Fresh error handling returns 500
+  // Runner throws HttpError(500), Fresh error handling returns 500
   assertEquals(res.status, 500);
 });
 
 Deno.test("integration: Effect.die produces 500 response (not crash)", async () => {
-  const app = new App()
-    .use(effectPlugin())
-    .route("/die", { handler: () => Effect.die(new Error("unexpected defect")) });
+  const app = new App();
+  app.use(effectPlugin(app));
+  app.route("/die", { handler: () => Effect.die(new Error("unexpected defect")) });
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/die");
@@ -96,12 +96,12 @@ Deno.test("integration: Effect.die produces 500 response (not crash)", async () 
 // --- effectPlugin({ mapError }) custom error response ---
 
 Deno.test("integration: effectPlugin({ mapError }) returns custom error response", async () => {
-  const app = new App()
-    .use(effectPlugin({
-      mapError: (_cause) =>
-        new Response("custom error page", { status: 503 }),
-    }))
-    .route("/fail", { handler: () => Effect.fail("domain error") });
+  const app = new App();
+  app.use(effectPlugin(app, {
+    mapError: (_cause) =>
+      new Response("custom error page", { status: 503 }),
+  }));
+  app.route("/fail", { handler: () => Effect.fail("domain error") });
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/fail");
@@ -113,15 +113,15 @@ Deno.test("integration: effectPlugin({ mapError }) returns custom error response
 // --- Non-Effect handlers still work ---
 
 Deno.test("integration: non-Effect handlers work when effectPlugin is registered", async () => {
-  const app = new App()
-    .use(effectPlugin())
-    .route("/plain", { handler: () => new Response("plain response", { status: 200 }) })
-    .route("/async", {
-      handler: async () => {
-        await Promise.resolve();
-        return new Response("async response", { status: 201 });
-      },
-    });
+  const app = new App();
+  app.use(effectPlugin(app));
+  app.route("/plain", { handler: () => new Response("plain response", { status: 200 }) });
+  app.route("/async", {
+    handler: async () => {
+      await Promise.resolve();
+      return new Response("async response", { status: 201 });
+    },
+  });
 
   const server = new FakeServer(app.handler());
 
@@ -137,10 +137,10 @@ Deno.test("integration: non-Effect handlers work when effectPlugin is registered
 // --- Routing: mixed Effect and plain routes on same app ---
 
 Deno.test("integration: mixed Effect and plain routes on same app", async () => {
-  const app = new App()
-    .use(effectPlugin())
-    .route("/effect", { handler: () => Effect.succeed(new Response("from effect")) })
-    .route("/plain", { handler: () => new Response("from plain") });
+  const app = new App();
+  app.use(effectPlugin(app));
+  app.route("/effect", { handler: () => Effect.succeed(new Response("from effect")) });
+  app.route("/plain", { handler: () => new Response("from plain") });
 
   const server = new FakeServer(app.handler());
 

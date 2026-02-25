@@ -38,8 +38,8 @@ export interface ResolverOptions {
 }
 
 /**
- * Create the resolver callback that effectPlugin() registers via
- * setEffectResolver(). The resolver:
+ * Create the resolver callback that effectPlugin() wraps as an EffectRunner
+ * and registers via setEffectRunner(). The resolver:
  * 1. Checks if the handler return value is an Effect (via isEffect)
  * 2. If not, returns the value unchanged (pass-through)
  * 3. If yes, runs it via runtime.runPromiseExit

@@ -5,19 +5,22 @@
  * Usage:
  * ```typescript
  * import { effectPlugin } from "@fresh/plugin-effect";
+ * import { App } from "@fresh/core";
  * import { AppLayer } from "./layers.ts";
  *
- * app.use(effectPlugin({ layer: AppLayer }));
+ * const app = new App();
+ * app.use(effectPlugin(app, { layer: AppLayer }));
  * // or zero-config:
- * app.use(effectPlugin());
+ * app.use(effectPlugin(app));
  * ```
  */
 
 import { Layer } from "effect";
 import type { Layer as LayerType } from "effect";
 import type { ManagedRuntime as ManagedRuntimeType } from "effect";
-import type { Context } from "@fresh/core";
-import { setAtomHydrationHook, setEffectResolver } from "@fresh/core/internal";
+import type { App, Context } from "@fresh/core";
+import { setAtomHydrationHook, setEffectRunner } from "@fresh/core/internal";
+import type { EffectRunner } from "@fresh/core/internal";
 import { makeRuntime, registerDisposal } from "./runtime.ts";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { initAtomHydrationMap, serializeAtomHydration } from "./hydration.ts";
@@ -49,32 +52,37 @@ export interface EffectPluginOptions<R = never, E = never> {
  *
  * This function:
  * 1. Creates a ManagedRuntime singleton from the provided Layer (or Layer.empty)
- * 2. Registers the Effect resolver in Fresh core via setEffectResolver()
+ * 2. Registers the Effect runner on the given App instance via setEffectRunner()
  * 3. Returns a middleware that attaches the runtime to ctx.state.effectRuntime
  * 4. Registers disposal of the ManagedRuntime on Deno's unload event
  *
  * The ManagedRuntime is created ONCE at this call site. It is NOT created
  * per-request. Services from the Layer are cached after first use.
  *
+ * The `app` argument is required to register the runner per-app, enabling
+ * isolation between multiple App instances in the same process.
+ *
  * @example Zero-config (no services)
  * ```typescript
- * app.use(effectPlugin());
+ * app.use(effectPlugin(app));
  * ```
  *
  * @example With a service Layer
  * ```typescript
- * app.use(effectPlugin({ layer: AppLayer }));
+ * app.use(effectPlugin(app, { layer: AppLayer }));
  * ```
  *
  * @example With custom error mapping
  * ```typescript
- * app.use(effectPlugin({
+ * app.use(effectPlugin(app, {
  *   layer: AppLayer,
  *   mapError: (cause) => new Response("Something went wrong", { status: 500 }),
  * }));
  * ```
  */
 export function effectPlugin<R = never, E = never>(
+  // deno-lint-ignore no-explicit-any
+  app: App<any>,
   options: EffectPluginOptions<R, E> = {},
 ): (ctx: Context<unknown>) => Response | Promise<Response> {
   // 1. Create ManagedRuntime — singleton, called once here
@@ -82,24 +90,30 @@ export function effectPlugin<R = never, E = never>(
   // deno-lint-ignore no-explicit-any
   const runtime = makeRuntime(layer as LayerType.Layer<any, any, never>);
 
-  // 2. Register Effect resolver in Fresh core
+  // 2. Build resolver options and runner
   const resolverOptions: ResolverOptions = {};
   if (options.mapError) {
     resolverOptions.mapError = options.mapError;
   }
   const resolver = createResolver(runtime, resolverOptions);
-  setEffectResolver(resolver);
 
-  // 3. Register atom hydration hook — called by FreshRuntimeScript to get
+  // Wrap createResolver output as EffectRunner for setEffectRunner API.
+  // The resolver already handles the isEffect check and runs through ManagedRuntime.
+  const runner: EffectRunner = (value, ctx) => resolver(value, ctx) as Promise<unknown>;
+
+  // 3. Register Effect runner per-app instance (enables per-app isolation)
+  setEffectRunner(app, runner);
+
+  // 4. Register atom hydration hook — called by FreshRuntimeScript to get
   //    the JSON for the __FRSH_ATOM_STATE script tag
   setAtomHydrationHook((ctx) => serializeAtomHydration(ctx));
 
-  // 4. Register disposal on unload
+  // 5. Register disposal on unload
   registerDisposal(
     runtime as ManagedRuntimeType.ManagedRuntime<unknown, unknown>,
   );
 
-  // 5. Return middleware that attaches runtime to ctx.state and initializes
+  // 6. Return middleware that attaches runtime to ctx.state and initializes
   //    the per-request atom hydration map before the handler runs
   return (ctx: Context<unknown>): Response | Promise<Response> => {
     (ctx.state as Record<string, unknown>).effectRuntime = runtime;

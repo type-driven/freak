@@ -1,16 +1,19 @@
 import { assertEquals, assertExists } from "jsr:@std/assert@1";
 import { Effect, Exit, Layer, ServiceMap } from "effect";
+import { App } from "@fresh/core";
 import { effectPlugin } from "../src/mod.ts";
 
 // --- effectPlugin() zero-config ---
 
 Deno.test("effectPlugin() returns a middleware function", () => {
-  const middleware = effectPlugin();
+  const app = new App();
+  const middleware = effectPlugin(app);
   assertEquals(typeof middleware, "function");
 });
 
 Deno.test("effectPlugin() zero-config: middleware sets ctx.state.effectRuntime", async () => {
-  const middleware = effectPlugin();
+  const app = new App();
+  const middleware = effectPlugin(app);
 
   const state: Record<string, unknown> = {};
   const ctx = {
@@ -35,12 +38,14 @@ const TestLayer = Layer.succeed(GreetingService, {
 });
 
 Deno.test("effectPlugin({ layer }) accepts a typed Layer", () => {
-  const middleware = effectPlugin({ layer: TestLayer });
+  const app = new App();
+  const middleware = effectPlugin(app, { layer: TestLayer });
   assertEquals(typeof middleware, "function");
 });
 
 Deno.test("effectPlugin({ layer }) middleware sets ctx.state.effectRuntime", async () => {
-  const middleware = effectPlugin({ layer: TestLayer });
+  const app = new App();
+  const middleware = effectPlugin(app, { layer: TestLayer });
 
   const state: Record<string, unknown> = {};
   const ctx = {
@@ -53,15 +58,17 @@ Deno.test("effectPlugin({ layer }) middleware sets ctx.state.effectRuntime", asy
 });
 
 Deno.test("effectPlugin({ mapError }) passes mapError to resolver", () => {
+  const app = new App();
   const mapError = (_cause: unknown) => new Response("error", { status: 500 });
-  const middleware = effectPlugin({ mapError });
+  const middleware = effectPlugin(app, { mapError });
   assertEquals(typeof middleware, "function");
 });
 
 Deno.test("effectPlugin() runtime dispatches Effect.succeed correctly", async () => {
   // Test that an Effect.succeed is dispatched when routed through the resolver
   // that effectPlugin sets up. We verify via the runtime stored in ctx.state.
-  const middleware = effectPlugin();
+  const app = new App();
+  const middleware = effectPlugin(app);
 
   const state: Record<string, unknown> = {};
   const ctx = {

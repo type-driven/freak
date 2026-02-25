@@ -9,9 +9,11 @@
  * Usage:
  * ```typescript
  * import { createEffectDefine } from "@fresh/plugin-effect";
+ * import { App } from "@fresh/core";
  * import { DbLayer } from "./layers.ts";
  *
- * const define = createEffectDefine<AppState, typeof DbService>({ layer: DbLayer });
+ * const app = new App();
+ * const define = createEffectDefine<AppState, typeof DbService>(app, { layer: DbLayer });
  *
  * export const handler = define.handlers({
  *   GET: (ctx) => Effect.gen(function* () {
@@ -22,12 +24,13 @@
  * ```
  */
 
-import type { Context } from "@fresh/core";
+import type { App, Context } from "@fresh/core";
 import type { Method } from "@fresh/core";
 import type { PageResponse } from "@fresh/core";
 import type { Effect } from "effect";
 import type { Layer as LayerType } from "effect";
-import { setEffectResolver } from "@fresh/core/internal";
+import { setEffectRunner } from "@fresh/core/internal";
+import type { EffectRunner } from "@fresh/core/internal";
 import { makeRuntime, registerDisposal } from "./runtime.ts";
 import { createResolver } from "./resolver.ts";
 
@@ -77,7 +80,7 @@ export interface CreateEffectDefineOptions<R> {
  *
  * When `options.layer` is provided (standalone path), this function:
  * 1. Creates a ManagedRuntime from the Layer
- * 2. Registers the Effect resolver in Fresh core via setEffectResolver()
+ * 2. Registers the Effect runner on the given App instance via setEffectRunner()
  * 3. Registers disposal of the ManagedRuntime on Deno's unload event
  *
  * When no `layer` is provided (type-parameter-only path), the runtime setup is
@@ -89,9 +92,9 @@ export interface CreateEffectDefineOptions<R> {
  * @typeParam State The type of the Fresh context state object
  * @typeParam R The service requirements — must match what the Layer provides
  *
- * @example Standalone path (with Layer)
+ * @example Standalone path (with Layer) — app required for per-app isolation
  * ```typescript
- * const define = createEffectDefine<AppState, typeof DbService>({ layer: DbLayer });
+ * const define = createEffectDefine<AppState, typeof DbService>(app, { layer: DbLayer });
  * ```
  *
  * @example Type-parameter-only path (no Layer, relies on effectPlugin)
@@ -100,13 +103,43 @@ export interface CreateEffectDefineOptions<R> {
  * ```
  */
 export function createEffectDefine<State = unknown, R = never>(
+  // deno-lint-ignore no-explicit-any
+  appOrOptions?: App<any> | CreateEffectDefineOptions<R>,
   options: CreateEffectDefineOptions<R> = {},
 ): EffectDefine<State, R> {
-  if (options.layer !== undefined) {
+  // deno-lint-ignore no-explicit-any
+  let app: App<any> | undefined;
+  let opts: CreateEffectDefineOptions<R>;
+
+  // Disambiguate overload: first arg is App or options object
+  if (
+    appOrOptions !== undefined &&
+    typeof appOrOptions === "object" &&
+    "config" in (appOrOptions as object)
+  ) {
+    // First arg is an App instance
     // deno-lint-ignore no-explicit-any
-    const runtime = makeRuntime(options.layer as LayerType.Layer<any, any, never>);
+    app = appOrOptions as App<any>;
+    opts = options;
+  } else {
+    // First arg is options (or undefined) — no-app path
+    app = undefined;
+    opts = (appOrOptions as CreateEffectDefineOptions<R>) ?? {};
+  }
+
+  if (opts.layer !== undefined) {
+    if (app === undefined) {
+      throw new Error(
+        "createEffectDefine({ layer }) requires an App instance as the first argument. " +
+          "Use createEffectDefine(app, { layer }) to register the Effect runner per-app.",
+      );
+    }
+    // deno-lint-ignore no-explicit-any
+    const runtime = makeRuntime(opts.layer as LayerType.Layer<any, any, never>);
     const resolver = createResolver(runtime);
-    setEffectResolver(resolver);
+    const runner: EffectRunner = (value, ctx) =>
+      resolver(value, ctx) as Promise<unknown>;
+    setEffectRunner(app, runner);
     registerDisposal(
       runtime as import("effect").ManagedRuntime.ManagedRuntime<unknown, unknown>,
     );

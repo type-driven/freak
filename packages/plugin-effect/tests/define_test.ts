@@ -1,12 +1,12 @@
 /**
  * Runtime tests for createEffectDefine standalone path.
  *
- * These tests verify that createEffectDefine({ layer }) creates a ManagedRuntime,
- * registers the Effect resolver, and handlers run correctly through Fresh's
+ * These tests verify that createEffectDefine(app, { layer }) creates a ManagedRuntime,
+ * registers the Effect runner on the app, and handlers run correctly through Fresh's
  * App.route() + FakeServer path.
  *
  * IMPORTANT: Effect handlers must be registered via app.route() (not app.get()).
- * app.route() goes through renderRoute() which calls _effectResolver.
+ * app.route() goes through renderRoute() which calls the effectRunner.
  * app.get() registers raw middlewares that bypass renderRoute entirely.
  *
  * IMPORTANT: Pass handler method directly (.GET!, .POST!) to app.route() —
@@ -30,17 +30,17 @@ type MsgR = ServiceMap.Service.Identifier<typeof MsgService>;
 // --- Standalone path tests ---
 
 Deno.test("define: standalone path runs Effect handler with Layer services", async () => {
-  const define = createEffectDefine<unknown, MsgR>({ layer: MsgLayer });
-  const app = new App()
-    .route("/", {
-      handler: define.handlers({
-        GET: () =>
-          Effect.gen(function* () {
-            const svc = yield* MsgService;
-            return new Response(svc.msg());
-          }),
-      }).GET!,
-    });
+  const app = new App();
+  const define = createEffectDefine<unknown, MsgR>(app, { layer: MsgLayer });
+  app.route("/", {
+    handler: define.handlers({
+      GET: () =>
+        Effect.gen(function* () {
+          const svc = yield* MsgService;
+          return new Response(svc.msg());
+        }),
+    }).GET!,
+  });
   const server = new FakeServer(app.handler());
   const res = await server.get("/");
   assertEquals(res.status, 200);
@@ -48,7 +48,8 @@ Deno.test("define: standalone path runs Effect handler with Layer services", asy
 });
 
 Deno.test("define: standalone path works with POST handler", async () => {
-  const define = createEffectDefine<unknown, MsgR>({ layer: MsgLayer });
+  const app = new App();
+  const define = createEffectDefine<unknown, MsgR>(app, { layer: MsgLayer });
   const handlers = define.handlers({
     POST: () =>
       Effect.gen(function* () {
@@ -56,8 +57,7 @@ Deno.test("define: standalone path works with POST handler", async () => {
         return new Response(`posted: ${svc.msg()}`, { status: 201 });
       }),
   });
-  const app = new App()
-    .route("/submit", { handler: handlers.POST! });
+  app.route("/submit", { handler: handlers.POST! });
   const server = new FakeServer(app.handler());
   const res = await server.post("/submit");
   assertEquals(res.status, 201);
@@ -69,13 +69,13 @@ Deno.test("define: standalone path works with POST handler", async () => {
 Deno.test("define: service-free Effect.succeed works with effectPlugin", async () => {
   const { effectPlugin } = await import("../src/mod.ts");
   const define = createEffectDefine();
-  const app = new App()
-    .use(effectPlugin())
-    .route("/", {
-      handler: define.handlers({
-        GET: () => Effect.succeed(new Response("no services needed")),
-      }).GET!,
-    });
+  const app = new App();
+  app.use(effectPlugin(app));
+  app.route("/", {
+    handler: define.handlers({
+      GET: () => Effect.succeed(new Response("no services needed")),
+    }).GET!,
+  });
   const server = new FakeServer(app.handler());
   const res = await server.get("/");
   assertEquals(res.status, 200);
@@ -100,17 +100,17 @@ Deno.test("define: standalone path provides correct service implementation", asy
   const CountLayer = Layer.succeed(CountService, { count: () => 42 });
   type CountR = ServiceMap.Service.Identifier<typeof CountService>;
 
-  const define = createEffectDefine<unknown, CountR>({ layer: CountLayer });
-  const app = new App()
-    .route("/count", {
-      handler: define.handlers({
-        GET: () =>
-          Effect.gen(function* () {
-            const svc = yield* CountService;
-            return new Response(String(svc.count()));
-          }),
-      }).GET!,
-    });
+  const app = new App();
+  const define = createEffectDefine<unknown, CountR>(app, { layer: CountLayer });
+  app.route("/count", {
+    handler: define.handlers({
+      GET: () =>
+        Effect.gen(function* () {
+          const svc = yield* CountService;
+          return new Response(String(svc.count()));
+        }),
+    }).GET!,
+  });
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/count");
