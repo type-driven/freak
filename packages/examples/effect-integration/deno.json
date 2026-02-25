@@ -7,6 +7,7 @@
     "@fresh/core": "jsr:@fresh/core@^2.0.0",
     "@fresh/core/dev": "jsr:@fresh/core@^2.0.0/dev",
     "@fresh/core/runtime": "jsr:@fresh/core@^2.0.0/runtime",
+    "@fresh/effect": "../../effect/src/mod.ts",
     "@fresh/plugin-effect": "../../plugin-effect/src/mod.ts",
     "@fresh/plugin-effect/island": "../../plugin-effect/src/island.ts",
     "@fresh/plugin-tailwind": "../../plugin-tailwindcss/src/mod.ts",
