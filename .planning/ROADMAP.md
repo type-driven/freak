@@ -172,6 +172,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [ ] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
 - [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcClient()` in islands
 - [ ] **Phase 10: Migration + Example** — `@fresh/plugin-effect` compat shim, updated example
+- [ ] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
 
 ## v2 Phase Details
 
@@ -232,7 +233,11 @@ down cleanly on SIGTERM/SIGINT.
    `ManagedRuntime` instances — verified by a test that disposes one and asserts
    the other continues to serve requests.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Core @fresh/effect package: EffectApp class, createEffectApp factory, signal lifecycle, createEffectDefine, resolver/runtime
+- [ ] 07-02-PLAN.md — Tests for all 4 SCs (app_test, types_test, signal_test) + example app conversion to createEffectApp
 
 ---
 
@@ -314,11 +319,42 @@ example can demonstrate them together)
 
 ---
 
+### Phase 11: Micro-App Architecture
+
+**Goal**: Understand the right architectural direction for `mountApp` in Freak — research
+Module Federation patterns (Vite plugin, runtime sharing, dynamic remotes) and evaluate
+whether the current `mountApp` implementation can be fixed or whether a different
+composition model (sub-apps, programmatic route mounting, or Module Federation) better
+fits Freak's design. Produce a clear architectural decision and, if needed, implement
+the correct mounting primitive.
+
+**Depends on**: Can be planned independently of Phases 7-10 (parallel research track)
+
+**Requirements**: TBD (to be defined during planning)
+
+**Reference**: https://github.com/module-federation/vite#readme — Module Federation Vite plugin
+
+**Success Criteria** (what must be TRUE):
+1. The root cause of the current `mountApp` issues is documented — what breaks, why, and
+   under what conditions.
+2. An architectural decision is recorded: fix `mountApp`, replace with a sub-app pattern,
+   adopt Module Federation, or another approach — with rationale.
+3. If code changes are made: a working example demonstrates two Freak apps composing
+   correctly in the same process without interference.
+
+**Plans**: 0 plans
+
+Plans:
+- [ ] TBD (run `/gsd:plan-phase 11` to break down)
+
+---
+
 ## Progress
 
 **Execution Order**: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 (v1: Phases 2 and 3 are independent after Phase 1; Phase 4 requires Phase 3)
-(v2: Each phase strictly requires the prior; Phase 10 requires all of 6–9)
+(v2: Each phase strictly requires the prior; Phase 10 requires all of 6-9)
+(Phase 11 is an independent research + architecture track)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -328,11 +364,12 @@ example can demonstrate them together)
 | 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
 | 5. Example | 2/2 | Complete | 2026-02-24 |
 | 6. Fresh Core Plumbing | 2/2 | Complete | 2026-02-25 |
-| 7. @fresh/effect Package | 0/TBD | Not started | — |
-| 8. HttpApi Integration | 0/TBD | Not started | — |
-| 9. RPC Integration | 0/TBD | Not started | — |
-| 10. Migration + Example | 0/TBD | Not started | — |
+| 7. @fresh/effect Package | 0/2 | Not started | -- |
+| 8. HttpApi Integration | 0/TBD | Not started | -- |
+| 9. RPC Integration | 0/TBD | Not started | -- |
+| 10. Migration + Example | 0/TBD | Not started | -- |
+| 11. Micro-App Architecture | 0/TBD | Not started | -- |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-25 — Phase 6 complete (_effectResolver global removed, per-app #effectRunner, 21/21 tests passing)*
+*Last updated: 2026-02-25 -- Phase 7 planned: 2 plans in 2 waves*
