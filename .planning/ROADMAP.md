@@ -198,7 +198,11 @@ observable behavior change for existing code.
    into `ctx.state` and asserts a downstream handler reads it.
 4. All existing plugin-effect integration tests pass unchanged after the refactor.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Per-app Effect runner + thread through all dispatch paths
+- [ ] 06-02-PLAN.md — Update plugin-effect consumer + comprehensive tests
 
 ---
 
@@ -323,7 +327,7 @@ example can demonstrate them together)
 | 3. Preact Atom Hooks | 1/1 | Complete | 2026-02-21 |
 | 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
 | 5. Example | 2/2 | Complete | 2026-02-24 |
-| 6. Fresh Core Plumbing | 0/TBD | Not started | — |
+| 6. Fresh Core Plumbing | 0/2 | Not started | — |
 | 7. @fresh/effect Package | 0/TBD | Not started | — |
 | 8. HttpApi Integration | 0/TBD | Not started | — |
 | 9. RPC Integration | 0/TBD | Not started | — |
@@ -331,4 +335,4 @@ example can demonstrate them together)
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-25 — Milestone v2 phases 6–10 added*
+*Last updated: 2026-02-25 — Phase 6 plans created (2 plans, 2 waves)*
