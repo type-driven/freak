@@ -243,12 +243,12 @@ Plans:
 
 ### Phase 8: HttpApi Integration
 
-**Goal**: Calling `app.httpApi(api, groupImpls)` on an `EffectApp` mounts an Effect
-`HttpApi` definition within Fresh — requests routed to the API's declared path
-prefix are handled by the Effect HTTP stack with fully decoded params/query/payload
+**Goal**: Calling `app.httpApi(prefix, api, ...groupLayers)` on an `EffectApp` mounts
+an Effect `HttpApi` definition within Fresh — requests routed to the API's declared
+path prefix are handled by the Effect HTTP stack with fully decoded params/query/payload
 and typed errors mapped to correct HTTP status codes.
 
-**Depends on**: Phase 7 (`EffectApp` must exist and `build()` must be callable)
+**Depends on**: Phase 7 (`EffectApp` must exist)
 
 **Requirements**: HAPI-01, HAPI-02, HAPI-03
 
@@ -256,14 +256,18 @@ and typed errors mapped to correct HTTP status codes.
 1. A GET request to a mounted `HttpApi` endpoint returns the response defined by
    the group implementation — verified by hitting the endpoint in the running
    example app and asserting the JSON body matches expectations.
-2. A request with invalid query parameters returns 422 with a schema-validation
+2. A request with invalid query parameters returns 400 with a schema-validation
    error body — verified by sending a malformed request and inspecting the response
    status and body.
 3. A handler that returns a typed `HttpApiError` produces the correct HTTP status
    code (e.g., 404 for not-found) — verified by hitting a route that deliberately
    returns the typed error and asserting the response status.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — EffectApp.httpApi() method + deno.json import maps + dispose integration
+- [ ] 08-02-PLAN.md — Test suite (3 SCs) + example app HttpApi demo
 
 ---
 
@@ -365,11 +369,11 @@ Plans:
 | 5. Example | 2/2 | Complete | 2026-02-24 |
 | 6. Fresh Core Plumbing | 2/2 | Complete | 2026-02-25 |
 | 7. @fresh/effect Package | 2/2 | Complete | 2026-02-25 |
-| 8. HttpApi Integration | 0/TBD | Not started | -- |
+| 8. HttpApi Integration | 0/2 | Planned | -- |
 | 9. RPC Integration | 0/TBD | Not started | -- |
 | 10. Migration + Example | 0/TBD | Not started | -- |
 | 11. Micro-App Architecture | 0/TBD | Not started | -- |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-25 -- Phase 7 planned: 2 plans in 2 waves*
+*Last updated: 2026-02-26 -- Phase 8 planned: 2 plans in 2 waves*
