@@ -167,7 +167,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 
 ## v2 Phases
 
-- [ ] **Phase 6: Fresh Core Plumbing** — Per-app Effect runner, `isEffectLike` export
+- [x] **Phase 6: Fresh Core Plumbing** — Per-app Effect runner, `isEffectLike` export
 - [ ] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
 - [ ] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
 - [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcClient()` in islands
@@ -201,8 +201,8 @@ observable behavior change for existing code.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Per-app Effect runner + thread through all dispatch paths
-- [ ] 06-02-PLAN.md — Update plugin-effect consumer + comprehensive tests
+- [x] 06-01-PLAN.md — Per-app Effect runner + thread through all dispatch paths
+- [x] 06-02-PLAN.md — Update plugin-effect consumer + comprehensive tests
 
 ---
 
@@ -327,7 +327,7 @@ example can demonstrate them together)
 | 3. Preact Atom Hooks | 1/1 | Complete | 2026-02-21 |
 | 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
 | 5. Example | 2/2 | Complete | 2026-02-24 |
-| 6. Fresh Core Plumbing | 0/2 | Not started | — |
+| 6. Fresh Core Plumbing | 2/2 | Complete | 2026-02-25 |
 | 7. @fresh/effect Package | 0/TBD | Not started | — |
 | 8. HttpApi Integration | 0/TBD | Not started | — |
 | 9. RPC Integration | 0/TBD | Not started | — |
@@ -335,4 +335,4 @@ example can demonstrate them together)
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-25 — Phase 6 plans created (2 plans, 2 waves)*
+*Last updated: 2026-02-25 — Phase 6 complete (_effectResolver global removed, per-app #effectRunner, 21/21 tests passing)*

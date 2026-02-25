@@ -41,9 +41,9 @@
 
 ### Core Integration
 
-- [ ] **CORE-01**: Fresh core supports per-app Effect runner — `setEffectRunner(app, fn)` replaces global `_effectResolver`
-- [ ] **CORE-02**: Effect handlers work via `app.get()` / `app.post()` — not just `app.route()`
-- [ ] **CORE-03**: Effect middlewares work via `app.use()` — `runMiddlewares` resolves Effect returns using app runner
+- [x] **CORE-01**: Fresh core supports per-app Effect runner — `setEffectRunner(app, fn)` replaces global `_effectResolver`
+- [x] **CORE-02**: Effect handlers work via `app.get()` / `app.post()` — not just `app.route()`
+- [x] **CORE-03**: Effect middlewares work via `app.use()` — `runMiddlewares` resolves Effect returns using app runner
 
 ### Effect App
 
@@ -103,9 +103,9 @@
 | EXAM-01 | Phase 5 — Example | Complete |
 | EXAM-02 | Phase 5 — Example | Complete |
 
-| CORE-01 | Phase 6 — Fresh Core Plumbing | Pending |
-| CORE-02 | Phase 6 — Fresh Core Plumbing | Pending |
-| CORE-03 | Phase 6 — Fresh Core Plumbing | Pending |
+| CORE-01 | Phase 6 — Fresh Core Plumbing | Complete |
+| CORE-02 | Phase 6 — Fresh Core Plumbing | Complete |
+| CORE-03 | Phase 6 — Fresh Core Plumbing | Complete |
 | EAPP-01 | Phase 7 — @fresh/effect Package | Pending |
 | EAPP-02 | Phase 7 — @fresh/effect Package | Pending |
 | EAPP-03 | Phase 7 — @fresh/effect Package | Pending |
