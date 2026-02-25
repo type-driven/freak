@@ -168,7 +168,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 ## v2 Phases
 
 - [x] **Phase 6: Fresh Core Plumbing** — Per-app Effect runner, `isEffectLike` export
-- [ ] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
+- [x] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
 - [ ] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
 - [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcClient()` in islands
 - [ ] **Phase 10: Migration + Example** — `@fresh/plugin-effect` compat shim, updated example
@@ -236,8 +236,8 @@ down cleanly on SIGTERM/SIGINT.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Core @fresh/effect package: EffectApp class, createEffectApp factory, signal lifecycle, createEffectDefine, resolver/runtime
-- [ ] 07-02-PLAN.md — Tests for all 4 SCs (app_test, types_test, signal_test) + example app conversion to createEffectApp
+- [x] 07-01-PLAN.md — Core @fresh/effect package: EffectApp class, createEffectApp factory, signal lifecycle, createEffectDefine, resolver/runtime
+- [x] 07-02-PLAN.md — Tests for all 4 SCs (app_test, types_test, signal_test) + example app conversion to createEffectApp
 
 ---
 
@@ -364,7 +364,7 @@ Plans:
 | 4. Atom Hydration | 2/2 | Complete | 2026-02-23 |
 | 5. Example | 2/2 | Complete | 2026-02-24 |
 | 6. Fresh Core Plumbing | 2/2 | Complete | 2026-02-25 |
-| 7. @fresh/effect Package | 0/2 | Not started | -- |
+| 7. @fresh/effect Package | 2/2 | Complete | 2026-02-25 |
 | 8. HttpApi Integration | 0/TBD | Not started | -- |
 | 9. RPC Integration | 0/TBD | Not started | -- |
 | 10. Migration + Example | 0/TBD | Not started | -- |

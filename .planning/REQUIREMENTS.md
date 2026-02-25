@@ -47,10 +47,10 @@
 
 ### Effect App
 
-- [ ] **EAPP-01**: `createEffectApp<State, AppR>({ layer })` wraps `App<State>` with a typed Layer
-- [ ] **EAPP-02**: `EffectApp` proxies all `App<State>` builder methods (`use`, `route`, `get`, `post`, etc.)
-- [ ] **EAPP-03**: Per-app `ManagedRuntime` lifecycle via `AbortController` — disposed on SIGTERM/SIGINT, not Deno `unload`
-- [ ] **EAPP-04**: `createEffectDefine<State, R>()` in `@fresh/effect` carries R type through handler definitions
+- [x] **EAPP-01**: `createEffectApp<State, AppR>({ layer })` wraps `App<State>` with a typed Layer
+- [x] **EAPP-02**: `EffectApp` proxies all `App<State>` builder methods (`use`, `route`, `get`, `post`, etc.)
+- [x] **EAPP-03**: Per-app `ManagedRuntime` lifecycle via `AbortController` — disposed on SIGTERM/SIGINT, not Deno `unload`
+- [x] **EAPP-04**: `createEffectDefine<State, R>()` in `@fresh/effect` carries R type through handler definitions
 
 ### HTTP API Integration
 
@@ -106,10 +106,10 @@
 | CORE-01 | Phase 6 — Fresh Core Plumbing | Complete |
 | CORE-02 | Phase 6 — Fresh Core Plumbing | Complete |
 | CORE-03 | Phase 6 — Fresh Core Plumbing | Complete |
-| EAPP-01 | Phase 7 — @fresh/effect Package | Pending |
-| EAPP-02 | Phase 7 — @fresh/effect Package | Pending |
-| EAPP-03 | Phase 7 — @fresh/effect Package | Pending |
-| EAPP-04 | Phase 7 — @fresh/effect Package | Pending |
+| EAPP-01 | Phase 7 — @fresh/effect Package | Complete |
+| EAPP-02 | Phase 7 — @fresh/effect Package | Complete |
+| EAPP-03 | Phase 7 — @fresh/effect Package | Complete |
+| EAPP-04 | Phase 7 — @fresh/effect Package | Complete |
 | HAPI-01 | Phase 8 — HttpApi Integration | Pending |
 | HAPI-02 | Phase 8 — HttpApi Integration | Pending |
 | HAPI-03 | Phase 8 — HttpApi Integration | Pending |
