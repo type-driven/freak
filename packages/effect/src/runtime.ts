@@ -12,14 +12,14 @@ export function makeRuntime<R, E>(
 }
 
 /**
- * Register ManagedRuntime disposal on SIGINT and SIGTERM signals.
+ * Register a dispose function to run on SIGINT and SIGTERM signals.
  * Returns a cleanup function that removes the signal listeners (for testing).
  *
  * Uses signal handlers instead of the `unload` event — signals fire reliably
  * on Deno.serve shutdown and are the idiomatic lifecycle mechanism for v2.
  */
 export function registerSignalDisposal(
-  runtime: ManagedRuntime.ManagedRuntime<unknown, unknown>,
+  disposeFn: () => Promise<void>,
 ): () => void {
   function onSignal(): void {
     Deno.removeSignalListener("SIGINT", onSignal);
@@ -28,7 +28,7 @@ export function registerSignalDisposal(
     }
     void (async () => {
       try {
-        await runtime.dispose();
+        await disposeFn();
       } catch (_) {
         // best-effort
       } finally {

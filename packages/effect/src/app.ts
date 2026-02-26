@@ -21,6 +21,8 @@ import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
 import { setEffectRunner } from "@fresh/core/internal";
 import type { EffectRunner } from "@fresh/core/internal";
 import { ManagedRuntime, Layer, type Effect } from "effect";
+import { HttpRouter, HttpServer } from "effect/unstable/http";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
 
@@ -68,16 +70,20 @@ export interface CreateEffectAppOptions<AppR, E = never> {
 export class EffectApp<State, AppR> {
   #app: App<State>;
   #runtime: ManagedRuntime.ManagedRuntime<AppR, unknown>;
-  #cleanupSignals: () => void;
+  #cleanupSignals: () => void = () => {};
+  #httpApiDisposers: Array<() => Promise<void>> = [];
 
   constructor(
     app: App<State>,
     runtime: ManagedRuntime.ManagedRuntime<AppR, unknown>,
-    cleanupSignals: () => void,
   ) {
     this.#app = app;
     this.#runtime = runtime;
-    this.#cleanupSignals = cleanupSignals;
+  }
+
+  /** @internal */
+  _setCleanupSignals(fn: () => void): void {
+    this.#cleanupSignals = fn;
   }
 
   /**
@@ -189,6 +195,71 @@ export class EffectApp<State, AppR> {
   }
 
   /**
+   * Mount an Effect HttpApi at the given path prefix.
+   *
+   * Builds the HttpApi layer with group implementations, converts it to a web
+   * handler via `HttpRouter.toWebHandler()`, and registers a Fresh middleware
+   * at `prefix` that delegates matching requests to the Effect HTTP stack.
+   *
+   * The Effect sub-handler shares the app's `ManagedRuntime.memoMap`, so group
+   * implementations can access services from the app's Layer if explicitly
+   * composed into the group layer.
+   *
+   * The sub-handler's `dispose()` is called automatically when `EffectApp.dispose()`
+   * is invoked.
+   *
+   * @param prefix - URL path prefix (e.g., "/api"). Requests matching this prefix
+   *   are forwarded to the Effect handler. Must start with "/".
+   * @param api - The HttpApi definition (created with `HttpApi.make(...).add(...)`)
+   * @param groupLayers - One or more Layer values providing group implementations
+   *   (created with `HttpApiBuilder.group(api, name, build)`)
+   *
+   * @example
+   * ```typescript
+   * const Api = HttpApi.make("myApi").add(
+   *   HttpApiGroup.make("users").prefix("/users").add(
+   *     HttpApiEndpoint.get("list", "/", { success: Schema.Array(UserSchema) })
+   *   )
+   * );
+   * const UsersLive = HttpApiBuilder.group(Api, "users", (h) =>
+   *   h.handle("list", () => Effect.succeed([]))
+   * );
+   * app.httpApi("/api", Api, UsersLive);
+   * ```
+   */
+  // deno-lint-ignore no-explicit-any
+  httpApi(prefix: string, api: any, ...groupLayers: any[]): this {
+    // Build the complete API layer: HttpApiBuilder.layer(api) + group impls + infra services
+    // deno-lint-ignore no-explicit-any
+    const groupLayer = Layer.mergeAll(...(groupLayers as [any, ...any[]]));
+    const apiLayer = HttpApiBuilder.layer(api).pipe(
+      Layer.provide(groupLayer),
+      Layer.provide(HttpServer.layerServices),
+    );
+
+    // Convert to a web handler. Share the app's memoMap so that service instances
+    // built by the main ManagedRuntime can be reused in group implementations
+    // (when the user explicitly composes AppLayer into their group layer).
+    // deno-lint-ignore no-explicit-any
+    const { handler, dispose } = HttpRouter.toWebHandler(apiLayer as any, {
+      memoMap: this.#runtime.memoMap,
+    });
+
+    // Store disposer for cleanup
+    this.#httpApiDisposers.push(dispose);
+
+    // Register a Fresh middleware at the prefix. The Effect handler owns all
+    // requests at this prefix -- a 404 from the Effect handler is intentional
+    // (the route matched the prefix but the handler returned NotFound).
+    this.#app.use(prefix, async (ctx) => {
+      // deno-lint-ignore no-explicit-any
+      return await (handler as any)(ctx.req);
+    });
+
+    return this;
+  }
+
+  /**
    * Add Effect-aware middlewares for GET requests at the given path.
    */
   get(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
@@ -268,12 +339,21 @@ export class EffectApp<State, AppR> {
   }
 
   /**
-   * Dispose the ManagedRuntime and remove signal listeners.
+   * Dispose all resources: signal listeners, HttpApi sub-handler runtimes,
+   * and the main ManagedRuntime.
+   *
    * Call this if you want to tear down the app programmatically
    * (e.g., in tests) rather than relying on signal handlers.
+   *
+   * This is the canonical dispose path — SIGINT/SIGTERM also routes through
+   * this method so that HttpApi sub-handlers are always cleaned up.
    */
   async dispose(): Promise<void> {
     this.#cleanupSignals();
+    // Dispose all HttpApi sub-handler runtimes
+    for (const disposer of this.#httpApiDisposers) {
+      await disposer();
+    }
     await this.#runtime.dispose();
   }
 }
@@ -323,12 +403,14 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
   const runner: EffectRunner = (value, ctx) => resolver(value, ctx) as Promise<unknown>;
   // deno-lint-ignore no-explicit-any
   setEffectRunner(app as App<any>, runner);
-  const cleanupSignals = registerSignalDisposal(
-    runtime as ManagedRuntime.ManagedRuntime<unknown, unknown>,
-  );
-  return new EffectApp<State, AppR>(
+  const effectApp = new EffectApp<State, AppR>(
     app,
     runtime as ManagedRuntime.ManagedRuntime<AppR, unknown>,
-    cleanupSignals,
   );
+  // Register signal disposal AFTER creating EffectApp so that SIGINT/SIGTERM
+  // calls effectApp.dispose() — which disposes ALL resources (httpApi sub-handlers
+  // + main runtime) rather than only the main runtime.
+  const cleanupSignals = registerSignalDisposal(() => effectApp.dispose());
+  effectApp._setCleanupSignals(cleanupSignals);
+  return effectApp;
 }
