@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 8 in progress)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 8 complete, Phase 9 next)
 
 ## Current Position
 
-Phase: 8 of 10 (HttpApi Integration) — in progress
-Plan: 1/2 complete in current phase
-Status: Plan 08-01 complete — EffectApp.httpApi() implemented with full dispose integration
-Last activity: 2026-02-26 — Completed 08-01-PLAN.md (EffectApp.httpApi() + signal disposal fix)
+Phase: 8 of 10 (HttpApi Integration) — complete
+Plan: 2/2 complete in Phase 8
+Status: Phase 8 complete — all 3 success criteria verified, example app demonstrates httpApi() end-to-end
+Last activity: 2026-02-26 — Completed 08-02-PLAN.md (httpapi tests + example app + httpApi() bug fixes)
 
-Progress: [████████░░] 75% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8: 1/2
+Progress: [████████░░] 80% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans)
 
 ## Performance Metrics
 
@@ -37,7 +37,7 @@ Progress: [████████░░] 75% — v1 complete (9/9 plans); v2 P
 | 05-example | 2/2 | 10 min | 5 min |
 | 06-fresh-core-plumbing | 2/2 | 12 min | 6 min |
 | 07-fresh-effect-package | 2/2 | 7 min | 3.5 min |
-| 08-httpapi-integration | 1/2 | 3 min | 3 min |
+| 08-httpapi-integration | 2/2 | 13 min | 6.5 min |
 | 09-rpc-integration | 0/TBD | — | — |
 | 10-migration-example | 0/TBD | — | — |
 
@@ -75,10 +75,13 @@ Recent decisions affecting current work:
 - [08-01]: createEffectApp creates EffectApp first then registers signal disposal through effectApp.dispose() — _setCleanupSignals internal setter used for two-phase init
 - [08-01]: httpApi() uses any casts throughout — groupLayers spread, apiLayer for toWebHandler, handler call — consistent with method signature's no-explicit-any
 - [08-01]: No mod.ts re-exports for HttpApi types — users import from effect/unstable/httpapi directly; deno.json import map enables this
+- [08-02]: httpApi() uses app.all(prefix + "/*") not app.use(prefix) — Fresh use() middleware only fires when UrlPatternRouter matches a Route; all() registers an actual route
+- [08-02]: httpApi() strips prefix from request URL before forwarding to Effect handler — Effect HttpRouter knows paths relative to group root, not mount prefix
+- [08-02]: Schema.FiniteFromString over Schema.NumberFromString for integer query params — NumberFromString accepts NaN (Getter.Number coercion, never fails); FiniteFromString decodes to Finite and rejects NaN
+- [08-02]: Layer.provide(GroupLive, AppLayer) pre-composition needed before passing to httpApi() — ensures service dependencies are available when group builds handlers
 
 ### Pending Todos
 
-- Execute Phase 8 Plan 2: HttpApi integration tests
 - Plan and execute Phase 9: RPC integration
 - Plan and execute Phase 10: Migration example
 - Plan Phase 11: micro-app architecture (mountApp issues + Module Federation research)
@@ -90,10 +93,10 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
-- Phase 8 Plan 2 (integration tests) is the remaining work before Phase 9
+- Phase 9 (RPC integration) is next — if RPC uses a similar prefix-mounting pattern as httpApi(), the prefix stripping fix discovered in 08-02 will apply
 
 ## Session Continuity
 
-Last session: 2026-02-26T13:48:22Z
-Stopped at: Completed 08-01-PLAN.md — EffectApp.httpApi() with dispose integration and signal handler fix (all 6 tests passing)
+Last session: 2026-02-26T14:02:22Z
+Stopped at: Completed 08-02-PLAN.md — httpapi_test.ts + example app HttpApi integration (all 16 tests passing)
 Resume file: None
