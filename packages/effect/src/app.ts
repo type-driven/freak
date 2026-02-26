@@ -248,12 +248,24 @@ export class EffectApp<State, AppR> {
     // Store disposer for cleanup
     this.#httpApiDisposers.push(dispose);
 
-    // Register a Fresh middleware at the prefix. The Effect handler owns all
-    // requests at this prefix -- a 404 from the Effect handler is intentional
-    // (the route matched the prefix but the handler returned NotFound).
-    this.#app.use(prefix, async (ctx) => {
+    // Register a Fresh route for all HTTP methods at the prefix. The Effect
+    // handler owns all requests at this prefix -- a 404 from the Effect handler
+    // is intentional (route matched prefix but the handler returned NotFound).
+    //
+    // We use app.all(prefix + "/*", ...) so that Fresh's UrlPatternRouter
+    // matches any request under the prefix and invokes the middleware. Without
+    // a Route registration, app.use(prefix, ...) middleware only runs when
+    // another route under the prefix matches -- which never happens here.
+    //
+    // The prefix must be stripped from the request URL before forwarding to the
+    // Effect handler, because the HttpApiEndpoint paths are defined relative to
+    // the group root (e.g. "/items/"), not to the mount prefix (e.g. "/api").
+    this.#app.all(prefix + "/*", async (ctx) => {
+      const url = new URL(ctx.req.url);
+      url.pathname = url.pathname.slice(prefix.length) || "/";
+      const rewritten = new Request(url.toString(), ctx.req);
       // deno-lint-ignore no-explicit-any
-      return await (handler as any)(ctx.req);
+      return await (handler as any)(rewritten);
     });
 
     return this;
