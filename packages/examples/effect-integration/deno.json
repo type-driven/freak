@@ -13,6 +13,8 @@
     "@fresh/plugin-tailwind": "../../plugin-tailwindcss/src/mod.ts",
     "effect": "npm:effect@4.0.0-beta.0",
     "effect/Schema": "npm:effect@4.0.0-beta.0/Schema",
+    "effect/unstable/http": "npm:effect@4.0.0-beta.0/unstable/http",
+    "effect/unstable/httpapi": "npm:effect@4.0.0-beta.0/unstable/httpapi",
     "effect/Cause": "npm:effect@4.0.0-beta.0/Cause",
     "effect/unstable/reactivity/Atom": "npm:effect@4.0.0-beta.0/unstable/reactivity/Atom",
     "preact": "npm:preact@^10.28.3",
