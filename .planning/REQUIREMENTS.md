@@ -54,9 +54,9 @@
 
 ### HTTP API Integration
 
-- [ ] **HAPI-01**: `app.httpApi(api, groupImpls)` mounts an Effect `HttpApi` at its declared path prefix
-- [ ] **HAPI-02**: HttpApi handlers receive fully decoded and typed `params`, `query`, `payload`, `headers`
-- [ ] **HAPI-03**: HttpApi typed errors are auto-encoded to HTTP responses with correct status codes (404, 422, etc.)
+- [x] **HAPI-01**: `app.httpApi(api, groupImpls)` mounts an Effect `HttpApi` at its declared path prefix
+- [x] **HAPI-02**: HttpApi handlers receive fully decoded and typed `params`, `query`, `payload`, `headers`
+- [x] **HAPI-03**: HttpApi typed errors are auto-encoded to HTTP responses with correct status codes (404, 422, etc.)
 
 ### RPC Integration
 
@@ -110,9 +110,9 @@
 | EAPP-02 | Phase 7 — @fresh/effect Package | Complete |
 | EAPP-03 | Phase 7 — @fresh/effect Package | Complete |
 | EAPP-04 | Phase 7 — @fresh/effect Package | Complete |
-| HAPI-01 | Phase 8 — HttpApi Integration | Pending |
-| HAPI-02 | Phase 8 — HttpApi Integration | Pending |
-| HAPI-03 | Phase 8 — HttpApi Integration | Pending |
+| HAPI-01 | Phase 8 — HttpApi Integration | Complete |
+| HAPI-02 | Phase 8 — HttpApi Integration | Complete |
+| HAPI-03 | Phase 8 — HttpApi Integration | Complete |
 | RPC-01 | Phase 9 — RPC Integration | Pending |
 | RPC-02 | Phase 9 — RPC Integration | Pending |
 | RPC-03 | Phase 9 — RPC Integration | Pending |

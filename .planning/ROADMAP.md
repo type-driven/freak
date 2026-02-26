@@ -169,7 +169,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 
 - [x] **Phase 6: Fresh Core Plumbing** — Per-app Effect runner, `isEffectLike` export
 - [x] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
-- [ ] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
+- [x] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
 - [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcClient()` in islands
 - [ ] **Phase 10: Migration + Example** — `@fresh/plugin-effect` compat shim, updated example
 - [ ] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
@@ -369,11 +369,11 @@ Plans:
 | 5. Example | 2/2 | Complete | 2026-02-24 |
 | 6. Fresh Core Plumbing | 2/2 | Complete | 2026-02-25 |
 | 7. @fresh/effect Package | 2/2 | Complete | 2026-02-25 |
-| 8. HttpApi Integration | 0/2 | Planned | -- |
+| 8. HttpApi Integration | 2/2 | Complete | 2026-02-26 |
 | 9. RPC Integration | 0/TBD | Not started | -- |
 | 10. Migration + Example | 0/TBD | Not started | -- |
 | 11. Micro-App Architecture | 0/TBD | Not started | -- |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-26 -- Phase 8 planned: 2 plans in 2 waves*
+*Last updated: 2026-02-26 -- Phase 8 complete: all 3 SCs verified*
