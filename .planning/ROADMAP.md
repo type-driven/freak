@@ -170,7 +170,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [x] **Phase 6: Fresh Core Plumbing** — Per-app Effect runner, `isEffectLike` export
 - [x] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
 - [x] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
-- [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcClient()` in islands
+- [ ] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcResult()` / `useRpcStream()` in islands
 - [ ] **Phase 10: Migration + Example** — `@fresh/plugin-effect` compat shim, updated example
 - [ ] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
 
@@ -266,17 +266,17 @@ and typed errors mapped to correct HTTP status codes.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — EffectApp.httpApi() method + deno.json import maps + dispose integration
-- [ ] 08-02-PLAN.md — Test suite (3 SCs) + example app HttpApi demo
+- [x] 08-01-PLAN.md — EffectApp.httpApi() method + deno.json import maps + dispose integration
+- [x] 08-02-PLAN.md — Test suite (3 SCs) + example app HttpApi demo
 
 ---
 
 ### Phase 9: RPC Integration
 
 **Goal**: Calling `app.rpc({ group, path, protocol })` on an `EffectApp` mounts
-a native Effect RPC server, and Preact islands can call `useRpcClient(group)` to
-get a fully typed client that sends requests over HTTP or WebSocket — no manual
-fetch wiring.
+a native Effect RPC server, and Preact islands can call `useRpcResult(group)` and
+`useRpcStream(group)` to get fully typed clients that send requests over HTTP or
+WebSocket — no manual fetch wiring.
 
 **Depends on**: Phase 8 (RPC layers are accumulated and dispatched alongside HttpApi
 layers in `EffectApp.build()`)
@@ -284,17 +284,19 @@ layers in `EffectApp.build()`)
 **Requirements**: RPC-01, RPC-02, RPC-03
 
 **Success Criteria** (what must be TRUE):
-1. An island calling `useRpcClient(group)` can invoke an RPC procedure and receive
-   the typed response — verified in a browser by observing the island render data
-   returned from the RPC handler.
-2. The same RPC group works over both HTTP and WebSocket protocols — verified by
-   registering the group twice with different protocol options and sending a request
-   on each, asserting both return the correct response.
-3. TypeScript rejects a `useRpcClient` call that invokes a procedure not declared
+1. An island calling `useRpcResult(group)` can invoke an RPC procedure and receive
+   the typed response — verified by automated integration test using RpcTest.makeClient pattern.
+2. The same RPC group works over both HTTP and WebSocket protocols — verified in-browser
+   (real WS connection observable in devtools) with example app.
+3. TypeScript rejects a `useRpcResult` call that invokes a procedure not declared
    in the group's schema — verified by a `tsc --noEmit` check on a deliberately
    incorrect call site.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — EffectApp.rpc() method + useRpcResult/useRpcStream island hooks + deno.json imports
+- [ ] 09-02-PLAN.md — Test suite (3 SCs) + example app RPC demo with live WS updates
 
 ---
 
@@ -370,10 +372,10 @@ Plans:
 | 6. Fresh Core Plumbing | 2/2 | Complete | 2026-02-25 |
 | 7. @fresh/effect Package | 2/2 | Complete | 2026-02-25 |
 | 8. HttpApi Integration | 2/2 | Complete | 2026-02-26 |
-| 9. RPC Integration | 0/TBD | Not started | -- |
+| 9. RPC Integration | 0/2 | Not started | -- |
 | 10. Migration + Example | 0/TBD | Not started | -- |
 | 11. Micro-App Architecture | 0/TBD | Not started | -- |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-26 -- Phase 8 complete: all 3 SCs verified*
+*Last updated: 2026-02-26 -- Phase 9 planned: 2 plans in 2 waves*
