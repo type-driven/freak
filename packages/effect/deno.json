@@ -7,6 +7,9 @@
   },
   "imports": {
     "effect": "npm:effect@4.0.0-beta.0",
+    "effect/unstable/http": "npm:effect@4.0.0-beta.0/unstable/http",
+    "effect/unstable/httpapi": "npm:effect@4.0.0-beta.0/unstable/httpapi",
+    "effect/Schema": "npm:effect@4.0.0-beta.0/Schema",
     "@fresh/core": "jsr:@fresh/core@^2.0.0",
     "@fresh/core/internal": "jsr:@fresh/core@^2.0.0/internal",
     "expect-type": "npm:expect-type@^1.1.0",
