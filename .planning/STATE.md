@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 8 complete, Phase 9 next)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 in progress, Plan 1/2 complete)
 
 ## Current Position
 
-Phase: 8 of 10 (HttpApi Integration) — complete
-Plan: 2/2 complete in Phase 8
-Status: Phase 8 complete — all 3 success criteria verified, example app demonstrates httpApi() end-to-end
-Last activity: 2026-02-26 — Completed 08-02-PLAN.md (httpapi tests + example app + httpApi() bug fixes)
+Phase: 9 of 10 (RPC Integration) — in progress
+Plan: 1/TBD complete in Phase 9 (09-01 complete, 09-02 next)
+Status: In progress — 09-01 complete (app.rpc() + island hooks), 09-02 (tests + example app) next
+Last activity: 2026-02-27 — Completed 09-01-PLAN.md (EffectApp.rpc(), useRpcResult, useRpcStream)
 
-Progress: [████████░░] 80% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans)
+Progress: [████████░░] 80% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans); Phase 9 plan 1 complete
 
 ## Performance Metrics
 
@@ -38,7 +38,7 @@ Progress: [████████░░] 80% — v1 complete (9/9 plans); v2 P
 | 06-fresh-core-plumbing | 2/2 | 12 min | 6 min |
 | 07-fresh-effect-package | 2/2 | 7 min | 3.5 min |
 | 08-httpapi-integration | 2/2 | 13 min | 6.5 min |
-| 09-rpc-integration | 0/TBD | — | — |
+| 09-rpc-integration | 1/TBD | 7 min (plan 1) | — |
 | 10-migration-example | 0/TBD | — | — |
 
 *Updated after each plan completion*
@@ -79,10 +79,15 @@ Recent decisions affecting current work:
 - [08-02]: httpApi() strips prefix from request URL before forwarding to Effect handler — Effect HttpRouter knows paths relative to group root, not mount prefix
 - [08-02]: Schema.FiniteFromString over Schema.NumberFromString for integer query params — NumberFromString accepts NaN (Getter.Number coercion, never fails); FiniteFromString decodes to Finite and rejects NaN
 - [08-02]: Layer.provide(GroupLive, AppLayer) pre-composition needed before passing to httpApi() — ensures service dependencies are available when group builds handlers
+- [09-01]: rpc() with protocol param ('http' | 'websocket') mirrors httpApi() — same Layer → toWebHandler → mount flow; RpcServer.layerHttp called with path '/' (prefix stripped in Fresh route)
+- [09-01]: WebSocket dual-route registration: exact path for WS upgrade GET + path/* for sub-paths; both rewrite pathname to '/' for inner Effect router
+- [09-01]: FetchHttpClient imported as namespace (import * as FetchHttpClient) — module exports layer/Fetch/RequestInit directly, not as namespace re-export
+- [09-01]: Island hooks use Layer-as-any coercions for ManagedRuntime.make and Effect.runPromise — TypeScript leaves residual requirements in mergeAll result type; runtime is correct
+- [09-01]: @effect/platform-browser@4.0.0-beta.13 added — BrowserSocket.layerWebSocket wraps globalThis.WebSocket for browser island WS support
 
 ### Pending Todos
 
-- Plan and execute Phase 9: RPC integration
+- Execute Phase 9 Plan 02: RPC tests + example app demo (rpc_test.ts + /rpc-demo page)
 - Plan and execute Phase 10: Migration example
 - Plan Phase 11: micro-app architecture (mountApp issues + Module Federation research)
 
@@ -93,10 +98,10 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 - Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
-- Phase 9 (RPC integration) is next — if RPC uses a similar prefix-mounting pattern as httpApi(), the prefix stripping fix discovered in 08-02 will apply
+- WS routing behavior (exact-path vs path/* dual registration) is based on research analysis — Plan 09-02's integration tests will be the first runtime verification of this strategy
 
 ## Session Continuity
 
-Last session: 2026-02-26T14:02:22Z
-Stopped at: Completed 08-02-PLAN.md — httpapi_test.ts + example app HttpApi integration (all 16 tests passing)
+Last session: 2026-02-27T00:28:11Z
+Stopped at: Completed 09-01-PLAN.md — EffectApp.rpc() + useRpcResult/useRpcStream island hooks
 Resume file: None
