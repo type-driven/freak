@@ -76,7 +76,7 @@ export class EffectApp<State, AppR> {
   #httpApiDisposers: Array<() => Promise<void>> = [];
   #rpcDisposers: Array<() => Promise<void>> = [];
   // deno-lint-ignore no-explicit-any
-  #activeWsRuntimes: Set<ManagedRuntime.ManagedRuntime<any, any>> = new Set();
+  #activeWsRuntimes: Map<ManagedRuntime.ManagedRuntime<any, any>, WebSocket> = new Map();
 
   constructor(
     app: App<State>,
@@ -468,7 +468,8 @@ export class EffectApp<State, AppR> {
           });
 
           // Block until the stream ends (Exit/Defect received) or the client disconnects.
-          yield* Effect.async<void>((resume) => {
+          // deno-lint-ignore no-explicit-any
+          yield* (Effect as any).callback((resume: any) => {
             done.then(() => resume(Effect.void));
             ctx.req.signal?.addEventListener("abort", () => resume(Effect.void), { once: true });
             if (ctx.req.signal?.aborted) resume(Effect.void);
@@ -559,7 +560,8 @@ export class EffectApp<State, AppR> {
           });
 
           // Block until the client disconnects (AbortSignal fires on connection close).
-          yield* Effect.async<void>((resume) => {
+          // deno-lint-ignore no-explicit-any
+          yield* (Effect as any).callback((resume: any) => {
             ctx.req.signal?.addEventListener(
               "abort",
               () => resume(Effect.void),
@@ -673,17 +675,21 @@ export class EffectApp<State, AppR> {
         // Running Effect.never causes the runtime to eagerly build connectionLayer
         // (starting the SocketServer + RPC background fibers) and stay alive until
         // the connection is torn down.
-        this.#activeWsRuntimes.add(connectionRuntime);
+        this.#activeWsRuntimes.set(connectionRuntime, denoWs as unknown as WebSocket);
         connectionRuntime.runFork(Effect.never as any);
 
         // Dispose the runtime when the WebSocket closes, which closes the scope and
         // interrupts all background fibers (SocketServer run loop, RPC fiber).
+        // wasActive is false when dispose() already cleared the map and is handling
+        // disposal itself — skip the redundant second dispose() in that case.
         // deno-lint-ignore no-explicit-any
         denoWs.addEventListener("close", () => {
-          this.#activeWsRuntimes.delete(connectionRuntime);
-          connectionRuntime.dispose().catch((err) => {
-            console.error("[EffectApp] WS connection runtime dispose error:", err);
-          });
+          const wasActive = this.#activeWsRuntimes.delete(connectionRuntime);
+          if (wasActive) {
+            connectionRuntime.dispose().catch((err) => {
+              console.error("[EffectApp] WS connection runtime dispose error:", err);
+            });
+          }
         });
 
         return response;
@@ -786,17 +792,20 @@ export class EffectApp<State, AppR> {
     // This ensures WS connection finalizers can still access shared services
     // (e.g. TodoService) that live in the main runtime's memoMap.
     //
-    // We snapshot the set, clear it, then await all disposes in parallel so
-    // that close event handlers for these connections find an empty set and
-    // skip the redundant second dispose.
-    const activeRuntimes = [...this.#activeWsRuntimes];
+    // We snapshot the map, clear it, then for each entry:
+    //   1. Close the WebSocket so the client receives a close frame (fires close event)
+    //   2. Dispose the runtime (interrupts Effect.never + scope finalizers)
+    // The close event handler checks wasActive via .delete() — since the map is already
+    // cleared, it gets false and skips the redundant second dispose().
+    const activeEntries = [...this.#activeWsRuntimes.entries()];
     this.#activeWsRuntimes.clear();
     await Promise.all(
-      activeRuntimes.map((rt) =>
-        rt.dispose().catch((err) => {
+      activeEntries.map(async ([rt, ws]) => {
+        try { ws.close(); } catch { /* ignore if already closed */ }
+        await rt.dispose().catch((err) => {
           console.error("[EffectApp] WS connection runtime dispose error during shutdown:", err);
-        })
-      ),
+        });
+      }),
     );
     // Dispose all HttpApi sub-handler runtimes
     for (const disposer of this.#httpApiDisposers) {
