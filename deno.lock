@@ -4215,6 +4215,7 @@
       "packages/examples/effect-integration": {
         "dependencies": [
           "jsr:@fresh/core@2",
+          "npm:@effect/platform-browser@4.0.0-beta.13",
           "npm:@tailwindcss/postcss@^4.1.10",
           "npm:effect@4.0.0-beta.0",
           "npm:postcss@8.5.6",
