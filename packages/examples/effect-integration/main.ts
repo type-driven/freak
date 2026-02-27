@@ -11,7 +11,7 @@ import { TodoRpc, TodoRpcHandlers } from "./services/rpc.ts";
 const TodosWithDeps = Layer.provide(TodosLive, AppLayer);
 const RpcWithDeps = Layer.provide(TodoRpcHandlers, AppLayer);
 
-const app = createEffectApp({
+const effectApp = createEffectApp({
   layer: AppLayer,
   mapError: (cause) => {
     const defect = Cause.squash(cause as never);
@@ -22,12 +22,11 @@ const app = createEffectApp({
   },
 });
 
-// Mount HttpApi — app.httpApi() returns this, but we call it as a statement
-// since rpc() returns void and can't be chained.
-app.httpApi("/api", TodoApi, TodosWithDeps);
+// Mount HttpApi — returns this but called as a statement since rpc() returns void
+effectApp.httpApi("/api", TodoApi, TodosWithDeps);
 
 // Mount RPC — HTTP protocol for request/response (ListTodos, CreateTodo, DeleteTodo)
-app.rpc({
+effectApp.rpc({
   group: TodoRpc,
   path: "/rpc/todos",
   protocol: "http",
@@ -35,15 +34,15 @@ app.rpc({
 });
 
 // Mount RPC — WebSocket protocol for streaming (WatchTodos)
-app.rpc({
+effectApp.rpc({
   group: TodoRpc,
   path: "/rpc/todos/ws",
   protocol: "websocket",
   handlerLayer: RpcWithDeps,
 });
 
-// Continue with Fresh middleware and file-system routes
-app.use(staticFiles()).fsRoutes();
-
-// Re-export as named export for Fresh's dev server (same shape as before)
-export { app };
+// Export the underlying App<State> — Fresh's Builder.listen() calls setBuildCache()
+// on the exported app, which requires an App instance (not EffectApp wrapper).
+// EffectApp wires the Effect runner into the inner App at construction time,
+// so the inner App already handles Effect-returning handlers correctly.
+export const app = effectApp.use(staticFiles()).fsRoutes().app;
