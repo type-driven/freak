@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 in progress, Plan 1/2 complete)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 complete, Phase 10 next)
 
 ## Current Position
 
-Phase: 9 of 10 (RPC Integration) — in progress
-Plan: 1/TBD complete in Phase 9 (09-01 complete, 09-02 next)
-Status: In progress — 09-01 complete (app.rpc() + island hooks), 09-02 (tests + example app) next
-Last activity: 2026-02-27 — Completed 09-01-PLAN.md (EffectApp.rpc(), useRpcResult, useRpcStream)
+Phase: 9 of 10 (RPC Integration) — complete
+Plan: 2/2 complete in Phase 9
+Status: Phase 9 complete — all 3 success criteria verified, example app demonstrates app.rpc() + /rpc-demo
+Last activity: 2026-02-27 — Completed 09-02-PLAN.md (RPC tests + example app demo)
 
-Progress: [████████░░] 80% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans); Phase 9 plan 1 complete
+Progress: [█████████░] 90% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans); Phase 9 complete (2/2 plans)
 
 ## Performance Metrics
 
@@ -38,7 +38,7 @@ Progress: [████████░░] 80% — v1 complete (9/9 plans); v2 P
 | 06-fresh-core-plumbing | 2/2 | 12 min | 6 min |
 | 07-fresh-effect-package | 2/2 | 7 min | 3.5 min |
 | 08-httpapi-integration | 2/2 | 13 min | 6.5 min |
-| 09-rpc-integration | 1/TBD | 7 min (plan 1) | — |
+| 09-rpc-integration | 2/2 | 15 min | 7.5 min |
 | 10-migration-example | 0/TBD | — | — |
 
 *Updated after each plan completion*
@@ -84,10 +84,15 @@ Recent decisions affecting current work:
 - [09-01]: FetchHttpClient imported as namespace (import * as FetchHttpClient) — module exports layer/Fetch/RequestInit directly, not as namespace re-export
 - [09-01]: Island hooks use Layer-as-any coercions for ManagedRuntime.make and Effect.runPromise — TypeScript leaves residual requirements in mergeAll result type; runtime is correct
 - [09-01]: @effect/platform-browser@4.0.0-beta.13 added — BrowserSocket.layerWebSocket wraps globalThis.WebSocket for browser island WS support
+- [09-02]: RpcTest.makeClient for unit tests — in-process, no FakeServer, no HTTP/WS setup needed
+- [09-02]: ListItems() takes no args (not ListItems({})) — procedures without payload declared use zero-argument call
+- [09-02]: RpcSchema.Stream(success, error) not stream:true — two-arg constructor for correct TS handler typing (handler returns Stream<A,E,R> directly)
+- [09-02]: Stream.fromEffectSchedule(effect, schedule) — correct API in effect@4.0.0-beta.0 (repeatEffectWithSchedule doesn't exist)
+- [09-02]: Effect.ignore not Effect.catchAll — correct API for swallowing all errors in this beta version
+- [09-02]: main.ts restructured: const app captures createEffectApp(); rpc() called as standalone statement
 
 ### Pending Todos
 
-- Execute Phase 9 Plan 02: RPC tests + example app demo (rpc_test.ts + /rpc-demo page)
 - Plan and execute Phase 10: Migration example
 - Plan Phase 11: micro-app architecture (mountApp issues + Module Federation research)
 
@@ -97,11 +102,11 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- Pre-existing test failures (51/~83 tests) due to missing `--allow-env` Deno permissions (not caused by v2 work)
-- WS routing behavior (exact-path vs path/* dual registration) is based on research analysis — Plan 09-02's integration tests will be the first runtime verification of this strategy
+- Pre-existing test failures due to missing `--allow-env` and `--allow-run` Deno permissions (not caused by v2 work)
+- SC-2 browser verification still requires manual check: run `deno task dev` in example app, visit /rpc-demo, observe WS in devtools
 
 ## Session Continuity
 
-Last session: 2026-02-27T00:28:11Z
-Stopped at: Completed 09-01-PLAN.md — EffectApp.rpc() + useRpcResult/useRpcStream island hooks
+Last session: 2026-02-27T00:42:00Z
+Stopped at: Completed 09-02-PLAN.md — RPC tests + example app demo, Phase 9 complete
 Resume file: None
