@@ -90,6 +90,7 @@ Recent decisions affecting current work:
 - [09-02]: Stream.fromEffectSchedule(effect, schedule) — correct API in effect@4.0.0-beta.0 (repeatEffectWithSchedule doesn't exist)
 - [09-02]: Effect.ignore not Effect.catchAll — correct API for swallowing all errors in this beta version
 - [09-02]: main.ts restructured: const app captures createEffectApp(); rpc() called as standalone statement
+- [09-02]: export const app = effectApp.use(...).fsRoutes().app — Builder.listen() calls setBuildCache() which uses JS private fields; EffectApp wrapper is not an App instance so setBuildCache fails; must export inner App<State> via .app getter
 
 ### Pending Todos
 
@@ -107,6 +108,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-27T00:42:00Z
-Stopped at: Completed 09-02-PLAN.md — RPC tests + example app demo, Phase 9 complete
+Last session: 2026-02-27T00:50:00Z
+Stopped at: Phase 9 complete — Builder.listen export fix applied (effectApp.app), ROADMAP+STATE+REQUIREMENTS updated
 Resume file: None

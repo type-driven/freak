@@ -60,9 +60,9 @@
 
 ### RPC Integration
 
-- [ ] **RPC-01**: `app.rpc({ group, path, protocol })` mounts an Effect `RpcServer` — Deno native via `platform-deno-smol`
-- [ ] **RPC-02**: RPC supports both HTTP and WebSocket protocols
-- [ ] **RPC-03**: `useRpcClient(group)` in Preact islands returns a fully typed RPC client
+- [x] **RPC-01**: `app.rpc({ group, path, protocol })` mounts an Effect `RpcServer` — Deno native via `platform-deno-smol`
+- [x] **RPC-02**: RPC supports both HTTP and WebSocket protocols
+- [x] **RPC-03**: `useRpcClient(group)` in Preact islands returns a fully typed RPC client
 
 ### Migration
 
@@ -113,9 +113,9 @@
 | HAPI-01 | Phase 8 — HttpApi Integration | Complete |
 | HAPI-02 | Phase 8 — HttpApi Integration | Complete |
 | HAPI-03 | Phase 8 — HttpApi Integration | Complete |
-| RPC-01 | Phase 9 — RPC Integration | Pending |
-| RPC-02 | Phase 9 — RPC Integration | Pending |
-| RPC-03 | Phase 9 — RPC Integration | Pending |
+| RPC-01 | Phase 9 — RPC Integration | Complete |
+| RPC-02 | Phase 9 — RPC Integration | Complete |
+| RPC-03 | Phase 9 — RPC Integration | Complete |
 | MIG-01 | Phase 10 — Migration + Example | Pending |
 | MIG-02 | Phase 10 — Migration + Example | Pending |
 
