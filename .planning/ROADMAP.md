@@ -295,8 +295,8 @@ layers in `EffectApp.build()`)
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — EffectApp.rpc() method + useRpcResult/useRpcStream island hooks + deno.json imports
-- [ ] 09-02-PLAN.md — Test suite (3 SCs) + example app RPC demo with live WS updates
+- [x] 09-01-PLAN.md — EffectApp.rpc() method + useRpcResult/useRpcStream island hooks + deno.json imports
+- [x] 09-02-PLAN.md — Test suite (3 SCs) + example app RPC demo with live WS updates
 
 ---
 
@@ -327,12 +327,10 @@ example can demonstrate them together)
 
 ### Phase 11: Micro-App Architecture
 
-**Goal**: Understand the right architectural direction for `mountApp` in Freak — research
-Module Federation patterns (Vite plugin, runtime sharing, dynamic remotes) and evaluate
-whether the current `mountApp` implementation can be fixed or whether a different
-composition model (sub-apps, programmatic route mounting, or Module Federation) better
-fits Freak's design. Produce a clear architectural decision and, if needed, implement
-the correct mounting primitive.
+**Goal**: Produce an architectural decision document for `mountApp` composition in Freak
+— documenting root causes of current failures, evaluating three composition models (fix
+mountApp, programmatic plugin pattern, Module Federation), and recording the decision
+to adopt the programmatic plugin pattern with rationale.
 
 **Depends on**: Can be planned independently of Phases 7-10 (parallel research track)
 
@@ -348,10 +346,10 @@ the correct mounting primitive.
 3. If code changes are made: a working example demonstrates two Freak apps composing
    correctly in the same process without interference.
 
-**Plans**: 0 plans
+**Plans**: 1 plan
 
 Plans:
-- [ ] TBD (run `/gsd:plan-phase 11` to break down)
+- [ ] 11-01-PLAN.md — Synthesize research into 11-DECISION.md (root causes, options evaluation, decision)
 
 ---
 
@@ -374,8 +372,8 @@ Plans:
 | 8. HttpApi Integration | 2/2 | Complete | 2026-02-26 |
 | 9. RPC Integration | 2/2 | Complete | 2026-02-27 |
 | 10. Migration + Example | N/A | Skipped | 2026-02-27 |
-| 11. Micro-App Architecture | 0/TBD | Not started | -- |
+| 11. Micro-App Architecture | 0/1 | In progress | -- |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-27 -- Phase 9 complete: app.rpc() + useRpcResult/useRpcStream hooks*
+*Last updated: 2026-02-27 -- Phase 11 planned: 1 plan for architectural decision document*
