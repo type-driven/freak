@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 complete, Phase 10 skipped, Phase 11 next)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 complete, Phase 10 skipped, Phase 11 in progress)
 
 ## Current Position
 
-Phase: 9 of 10 (RPC Integration) — complete
-Plan: 2/2 complete in Phase 9
-Status: Phase 9 complete — all 3 success criteria verified, example app demonstrates app.rpc() + /rpc-demo
-Last activity: 2026-02-27 — Completed 09-02-PLAN.md (RPC tests + example app demo)
+Phase: 11 of 11 (Micro-App Architecture) — plan 1/1 complete
+Plan: 1/1 complete in Phase 11
+Status: Phase 11 plan 01 complete — 11-DECISION.md created; programmatic plugin pattern accepted as composition model
+Last activity: 2026-02-27 — Completed 11-01-PLAN.md (architectural decision document)
 
-Progress: [█████████░] 90% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans); Phase 9 complete (2/2 plans)
+Progress: [██████████] 100% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans); Phase 9 complete (2/2 plans); Phase 11 complete (1/1 plans)
 
 ## Performance Metrics
 
@@ -91,11 +91,14 @@ Recent decisions affecting current work:
 - [09-02]: Effect.ignore not Effect.catchAll — correct API for swallowing all errors in this beta version
 - [09-02]: main.ts restructured: const app captures createEffectApp(); rpc() called as standalone statement
 - [09-02]: export const app = effectApp.use(...).fsRoutes().app — Builder.listen() calls setBuildCache() which uses JS private fields; EffectApp wrapper is not an App instance so setBuildCache fails; must export inner App<State> via .app getter
+- [11-01]: Adopt programmatic plugin pattern (pluginName(config)(app)) as supported sub-app composition model — production-validated by workflowPlugin + authPlugin; mountApp limited to static prefix / no islands / no appWrapper / no fsRoutes
+- [11-01]: Module Federation ruled inapplicable — browser-side mechanism, requires Vite, wrong problem layer for server-side route composition
+- [11-01]: Fix mountApp deferred indefinitely — HIGH complexity (BuildCache aggregation, path-scoped appWrapper, dynamic prefix redesign) vs. LOW complexity plugin pattern already in production
 
 ### Pending Todos
 
 - Phase 10 skipped (MIG-02 done in Phase 9; no external users need MIG-01 compat shim)
-- Plan and execute Phase 11: micro-app architecture (mountApp issues + Module Federation research)
+- Phase 11 complete — follow-on candidates: Plugin<Config> formal type in @fresh/core, islands in plugins (BuildCache aggregation), ctx.state namespacing, plugin authoring DX
 
 ### Roadmap Evolution
 
@@ -108,6 +111,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-27T00:50:00Z
-Stopped at: Phase 9 complete — Builder.listen export fix applied (effectApp.app), ROADMAP+STATE+REQUIREMENTS updated
+Last session: 2026-02-27T15:59:09Z
+Stopped at: Phase 11 plan 01 complete — 11-DECISION.md written and committed (5cc73977)
 Resume file: None
