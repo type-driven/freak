@@ -28,11 +28,19 @@ export default function IndexPage(_props: PageProps<{ todos: Todo[] }>) {
         atom hydration, and Preact island hooks.
       </p>
       <TodoApp />
-      <footer class="mt-12 pt-4 border-t border-gray-200 text-sm text-gray-500">
+      <footer class="mt-12 pt-4 border-t border-gray-200 text-sm text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+        <a href="/query-demo" class="text-blue-600 hover:underline">
+          useQuery + useMutation demo
+        </a>
+        <a href="/rpc-demo" class="text-blue-600 hover:underline">
+          RPC demo
+        </a>
+        <a href="/streaming-modes" class="text-blue-600 hover:underline">
+          Streaming modes
+        </a>
         <a href="/errors/demo" class="text-blue-600 hover:underline">
           Error demo
         </a>
-        {" "}&mdash; see typed error dispatch in action
       </footer>
     </div>
   );

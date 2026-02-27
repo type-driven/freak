@@ -42,7 +42,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useReducer,
   useRef,
   useState,
 } from "preact/hooks";
@@ -218,8 +217,10 @@ export function useQuery<A, E>(
   effect: Effect.Effect<A, E, never>,
   options?: { enabled?: boolean; staleTime?: number },
 ): { data: A | undefined; error: E | undefined; isLoading: boolean; refetch: () => void } {
-  // `rerender` is stable; incrementing `renderCount` triggers the fetch effect.
-  const [renderCount, rerender] = useReducer((n: number) => n + 1, 0);
+  // Incrementing this counter is how subscribers notify this component to
+  // re-check the cache and potentially start a new fetch.
+  const [renderCount, setRenderCount] = useState(0);
+  const rerender = useCallback(() => setRenderCount((n) => n + 1), []);
 
   // Store latest effect in ref so `fetch` callback doesn't become stale.
   const effectRef = useRef(effect);
@@ -238,7 +239,7 @@ export function useQuery<A, E>(
     for (const sub of e.subscribers) sub();
     // deno-lint-ignore no-explicit-any
     const p = getBrowserRuntime().runPromise(effectRef.current as any).then(
-      (data: A) => {
+      (data: unknown) => {
         const ent = getOrCreateEntry(key);
         ent.data = data;
         ent.status = "success";
@@ -264,7 +265,7 @@ export function useQuery<A, E>(
     return () => {
       entry.subscribers.delete(rerender);
     };
-  }, [key]);
+  }, [key, rerender]);
 
   // After every re-render (triggered by rerender()), check if a fetch is needed.
   // This covers both the initial mount and post-invalidation refetches.
@@ -339,9 +340,9 @@ export function useMutation<A, E, Payload, Ctx = void>(
     setState((prev) => ({ ...prev, isPending: true }));
     // deno-lint-ignore no-explicit-any
     getBrowserRuntime().runPromise(fnRef.current(payload) as any).then(
-      (data: A) => {
-        setState({ isPending: false, error: undefined, data });
-        optionsRef.current?.onSuccess?.(data, payload, ctx);
+      (data: unknown) => {
+        setState({ isPending: false, error: undefined, data: data as A });
+        optionsRef.current?.onSuccess?.(data as A, payload, ctx);
         for (const k of optionsRef.current?.invalidates ?? []) {
           invalidateQuery(k);
         }
@@ -554,7 +555,7 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
     // browser runtime's memoMap so already-built services aren't duplicated.
     // Disposed on unmount to close the WebSocket connection.
     // deno-lint-ignore no-explicit-any
-    const runtime = ManagedRuntime.make(layer as any, getBrowserRuntime().memoMap);
+    const runtime = ManagedRuntime.make(layer as any, { memoMap: getBrowserRuntime().memoMap });
 
     // Run the streaming procedure. Stream.runForEach updates state on each push.
     // deno-lint-ignore no-explicit-any
@@ -632,7 +633,7 @@ export function useRpcHttpStream<Rpcs extends Rpc.Any>(
 
     // Share the browser runtime's memoMap so FetchHttpClient isn't duplicated.
     // deno-lint-ignore no-explicit-any
-    const runtime = ManagedRuntime.make(layer as any, getBrowserRuntime().memoMap);
+    const runtime = ManagedRuntime.make(layer as any, { memoMap: getBrowserRuntime().memoMap });
 
     // deno-lint-ignore no-explicit-any
     const effect: Effect.Effect<void, unknown, never> = Effect.scoped(
