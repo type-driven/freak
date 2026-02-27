@@ -8,7 +8,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 complete, Phase 10 skipped, Phase 11 in progress)
+**Current focus:** Milestone v2 — complete (Phase 11 done; all phases finished)
 
 ## Current Position
 

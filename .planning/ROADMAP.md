@@ -172,7 +172,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [x] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
 - [x] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcResult()` / `useRpcStream()` in islands
 - [~] **Phase 10: Migration + Example** — skipped (MIG-02 satisfied by Phase 9; no external users require MIG-01 compat shim)
-- [ ] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
+- [x] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
 
 ## v2 Phase Details
 
@@ -349,7 +349,7 @@ to adopt the programmatic plugin pattern with rationale.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 11-01-PLAN.md — Synthesize research into 11-DECISION.md (root causes, options evaluation, decision)
+- [x] 11-01-PLAN.md — Synthesize research into 11-DECISION.md (root causes, options evaluation, decision)
 
 ---
 
@@ -372,8 +372,8 @@ Plans:
 | 8. HttpApi Integration | 2/2 | Complete | 2026-02-26 |
 | 9. RPC Integration | 2/2 | Complete | 2026-02-27 |
 | 10. Migration + Example | N/A | Skipped | 2026-02-27 |
-| 11. Micro-App Architecture | 0/1 | In progress | -- |
+| 11. Micro-App Architecture | 1/1 | Complete | 2026-02-27 |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-27 -- Phase 11 planned: 1 plan for architectural decision document*
+*Last updated: 2026-02-27 -- Phase 11 complete: 11-DECISION.md written; programmatic plugin pattern adopted as sub-app composition model*
