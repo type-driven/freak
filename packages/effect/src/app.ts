@@ -20,10 +20,11 @@ import type { Middleware, MiddlewareFn } from "@fresh/core";
 import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
 import { setEffectRunner } from "@fresh/core/internal";
 import type { EffectRunner } from "@fresh/core/internal";
-import { ManagedRuntime, Layer, type Effect } from "effect";
+import { ManagedRuntime, Layer, Effect } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { RpcServer, RpcSerialization } from "effect/unstable/rpc";
+import { Socket, SocketServer } from "effect/unstable/socket";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
 
@@ -74,6 +75,8 @@ export class EffectApp<State, AppR> {
   #cleanupSignals: () => void = () => {};
   #httpApiDisposers: Array<() => Promise<void>> = [];
   #rpcDisposers: Array<() => Promise<void>> = [];
+  // deno-lint-ignore no-explicit-any
+  #activeWsRuntimes: Set<ManagedRuntime.ManagedRuntime<any, any>> = new Set();
 
   constructor(
     app: App<State>,
@@ -329,59 +332,361 @@ export class EffectApp<State, AppR> {
   rpc(options: {
     group: any;
     path: string;
-    protocol: "http" | "websocket";
+    protocol: "http" | "http-stream" | "sse" | "websocket";
     handlerLayer: any;
+    /**
+     * Optional list of allowed origins for WebSocket connections.
+     * When provided, the `Origin` request header must match one of the listed
+     * origins exactly (e.g. `["https://example.com"]`). Requests from unlisted
+     * origins receive a 403. If omitted, all origins are accepted.
+     *
+     * Only applies to `protocol: "websocket"`. Ignored for other protocols.
+     */
+    allowedOrigins?: ReadonlyArray<string>;
   }): void {
-    // Build the complete RPC server layer: RpcServer + handlers + serialization + infra
-    // deno-lint-ignore no-explicit-any
-    const serverLayer = (RpcServer.layerHttp({
-      group: options.group,
-      path: "/", // Routes are relative to the mount prefix; Fresh handles the outer path
-      protocol: options.protocol,
-    }) as any).pipe(
-      Layer.provide(options.handlerLayer),
-      Layer.provide(
-        options.protocol === "http"
-          ? RpcSerialization.layerJson
-          : RpcSerialization.layerNdjson,
-      ),
-      Layer.provide(HttpServer.layerServices),
-    );
-
-    // Convert to a web handler. Share the app's memoMap so that service instances
-    // built by the main ManagedRuntime can be reused in handler implementations
-    // (when the user explicitly composes AppLayer into their handler layer).
-    // deno-lint-ignore no-explicit-any
-    const { handler, dispose } = HttpRouter.toWebHandler(serverLayer as any, {
-      memoMap: this.#runtime.memoMap,
-    });
-
-    // Store disposer for cleanup
-    this.#rpcDisposers.push(dispose);
-
-    // Mount at path + "/*" with prefix stripping for HTTP sub-path requests.
-    // Effect's RpcServer registers routes relative to path "/" (the inner root),
-    // so we strip the outer mount prefix before forwarding.
-    this.#app.all(options.path + "/*", async (ctx) => {
-      const url = new URL(ctx.req.url);
-      url.pathname = url.pathname.slice(options.path.length) || "/";
-      const rewritten = new Request(url.toString(), ctx.req);
+    if (options.protocol === "http") {
+      // HTTP protocol: layerHttp + HttpRouter.toWebHandler (request/response)
       // deno-lint-ignore no-explicit-any
-      return await (handler as any)(rewritten);
-    });
+      const serverLayer = (RpcServer.layerHttp({
+        group: options.group,
+        path: "/", // Routes are relative to the mount prefix; Fresh handles the outer path
+        protocol: "http",
+      }) as any).pipe(
+        Layer.provide(options.handlerLayer),
+        Layer.provide(RpcSerialization.layerJson),
+        Layer.provide(HttpServer.layerServices),
+      );
 
-    // For WebSocket protocol, also mount at the EXACT path (no trailing /*).
-    // The WS upgrade handshake arrives as a GET request at the exact path.
-    // Fresh's path + "/*" glob does NOT match the exact path itself.
-    // We rewrite the pathname to "/" to match the internal registration in Effect's
-    // HttpRouter (which was given path: "/" above).
-    if (options.protocol === "websocket") {
-      this.#app.all(options.path, async (ctx) => {
+      // Convert to a web handler. Share the app's memoMap so that service instances
+      // built by the main ManagedRuntime can be reused in handler implementations.
+      //
+      // Pass routerConfig: {} so that toWebHandler creates a unique RouterLayer per call
+      // (Layer.provide(HttpRouter.layer, configLayer) vs the bare HttpRouter.layer constant).
+      // Without this, multiple HTTP-protocol mounts would share the same HttpRouter via
+      // memoMap and the second mount's router.add("POST", "/") would fail.
+      // deno-lint-ignore no-explicit-any
+      const { handler, dispose } = HttpRouter.toWebHandler(serverLayer as any, {
+        memoMap: this.#runtime.memoMap,
+        routerConfig: {},
+      });
+
+      this.#rpcDisposers.push(dispose);
+
+      // Register the exact path only. RpcClient.layerProtocolHttp posts to the
+      // base URL directly (empty relative path), so only the exact mount point is needed.
+      // A "/*" wildcard registration is intentionally omitted: in Fresh's router,
+      // "path/*" matches both the exact path AND sub-paths, which would cause every
+      // request to run the handler twice (producing duplicate RPC responses).
+      const httpHandler = async (ctx: Context<State>) => {
         const url = new URL(ctx.req.url);
-        url.pathname = "/";
+        url.pathname = url.pathname.slice(options.path.length) || "/";
         const rewritten = new Request(url.toString(), ctx.req);
         // deno-lint-ignore no-explicit-any
         return await (handler as any)(rewritten);
+      };
+      // deno-lint-ignore no-explicit-any
+      this.#app.all(options.path, httpHandler as any);
+    } else if (options.protocol === "http-stream") {
+      // HTTP-stream protocol: POST endpoint streaming responses as NDJSON.
+      //
+      // Uses makeNoSerialization to bypass the HttpRouter.toWebHandler path, which
+      // avoids a shared-memoMap conflict when both "http" and "http-stream" protocols
+      // are mounted (both would register POST / on the same cached HttpRouter).
+      //
+      // The client (useRpcHttpStream) posts a JSON-encoded FromClient message and
+      // reads the streaming response body as NDJSON lines. Each line is a JSON-encoded
+      // FromServer message: Chunk messages carry stream values, Exit signals completion.
+      //
+      // BigInt fields (requestId) are serialized as strings; the client's parser.decode
+      // accepts string requestIds (as produced by RpcSerialization.layerNdjson).
+      const appRuntime = this.#runtime;
+      this.#app.all(options.path, async (ctx) => {
+        if (ctx.req.method !== "POST") {
+          return new Response("Method Not Allowed — HTTP-stream endpoints require POST", {
+            status: 405,
+          });
+        }
+
+        // Parse the request body (one JSON line from layerNdjson client).
+        // deno-lint-ignore no-explicit-any
+        let request: any;
+        try {
+          const text = await ctx.req.text();
+          request = JSON.parse(text.trim().split("\n")[0]);
+        } catch {
+          return new Response("Bad Request — expected JSON body", { status: 400 });
+        }
+
+        const procedure = request.tag ?? "";
+        // deno-lint-ignore no-explicit-any
+        const payload: any = request.payload ?? null;
+        // RequestId is a branded bigint — encoded as string "1" by layerNdjson.
+        const requestId = BigInt(request.id ?? "1");
+
+        const { readable, writable } = new TransformStream<Uint8Array>();
+        const writer = writable.getWriter();
+        const enc = new TextEncoder();
+        let closed = false;
+        let resolveDone: (() => void) | undefined;
+        const done = new Promise<void>((resolve) => { resolveDone = resolve; });
+
+        const close = () => {
+          if (!closed) {
+            closed = true;
+            writer.close().catch(() => {});
+            resolveDone?.();
+          }
+        };
+
+        // deno-lint-ignore no-explicit-any
+        const effect = Effect.scoped(Effect.gen(function* () {
+          // deno-lint-ignore no-explicit-any
+          const server = yield* (RpcServer.makeNoSerialization as any)(options.group, {
+            // deno-lint-ignore no-explicit-any
+            onFromServer: (response: any) =>
+              Effect.sync(() => {
+                if (closed) return;
+                // Serialize with BigInt-safe replacer.
+                const line = JSON.stringify(
+                  response,
+                  (_k, v) => typeof v === "bigint" ? String(v) : v,
+                );
+                writer.write(enc.encode(line + "\n")).catch(() => { closed = true; });
+                // Non-streaming procedures complete with a single Exit response.
+                if (response._tag === "Exit" || response._tag === "Defect") close();
+              }),
+          });
+
+          // Send the request to the server. requestId was parsed from the request body.
+          // deno-lint-ignore no-explicit-any
+          yield* (server as any).write(0, {
+            _tag: "Request",
+            id: requestId,
+            tag: procedure,
+            payload,
+            headers: [],
+          });
+
+          // Block until the stream ends (Exit/Defect received) or the client disconnects.
+          yield* Effect.async<void>((resume) => {
+            done.then(() => resume(Effect.void));
+            ctx.req.signal?.addEventListener("abort", () => resume(Effect.void), { once: true });
+            if (ctx.req.signal?.aborted) resume(Effect.void);
+          });
+        })).pipe(
+          // deno-lint-ignore no-explicit-any
+          Effect.provide(options.handlerLayer as any),
+        );
+
+        appRuntime.runFork(effect as any);
+
+        return new Response(readable, {
+          headers: {
+            "Content-Type": "application/x-ndjson",
+            "Cache-Control": "no-cache",
+          },
+        });
+      });
+    } else if (options.protocol === "sse") {
+      // SSE protocol: GET endpoint streaming responses as Server-Sent Events.
+      //
+      // Uses makeNoSerialization to run the RPC handler without going through the
+      // HTTP protocol machinery (which only supports POST). Each SSE connection:
+      // 1. Reads the procedure name from ?p=ProcedureName query param
+      // 2. Reads optional JSON payload from ?payload=... query param
+      // 3. Starts the RPC handler via makeNoSerialization
+      // 4. Streams each FromServer response as "data: {json}\n\n" in SSE format
+      // 5. Closes the stream when the client disconnects (req.signal abort)
+      //
+      // BigInt fields (requestId) are serialized as strings in the SSE data.
+      // Compatible with browser EventSource API (GET-only).
+      const appRuntime = this.#runtime;
+      this.#app.all(options.path, async (ctx) => {
+        if (ctx.req.method !== "GET") {
+          return new Response("Method Not Allowed — SSE endpoints require GET", {
+            status: 405,
+          });
+        }
+
+        const url = new URL(ctx.req.url);
+        const procedure = url.searchParams.get("p") ?? "";
+        const payloadStr = url.searchParams.get("payload");
+        // deno-lint-ignore no-explicit-any
+        const payload: any = payloadStr ? JSON.parse(payloadStr) : null;
+
+        const { readable, writable } = new TransformStream<Uint8Array>();
+        const writer = writable.getWriter();
+        const enc = new TextEncoder();
+        let closed = false;
+
+        const close = () => {
+          if (!closed) {
+            closed = true;
+            writer.close().catch(() => {});
+          }
+        };
+
+        // deno-lint-ignore no-explicit-any
+        const effect = Effect.scoped(Effect.gen(function* () {
+          // deno-lint-ignore no-explicit-any
+          const server = yield* (RpcServer.makeNoSerialization as any)(options.group, {
+            // deno-lint-ignore no-explicit-any
+            onFromServer: (response: any) =>
+              Effect.sync(() => {
+                if (closed) return;
+                // Serialize with BigInt-safe replacer (requestId is a branded bigint).
+                const data = JSON.stringify(
+                  response,
+                  (_k, v) => typeof v === "bigint" ? String(v) : v,
+                );
+                writer.write(enc.encode(`data: ${data}\n\n`)).catch(() => {
+                  closed = true;
+                });
+                // Stream over for non-streaming procedures (single Exit response).
+                if (response._tag === "Exit" || response._tag === "Defect") close();
+              }),
+          });
+
+          // Send the initial RPC request to the server.
+          // id is a RequestId (branded bigint) — BigInt(1) satisfies the brand at runtime.
+          // deno-lint-ignore no-explicit-any
+          yield* (server as any).write(0, {
+            _tag: "Request",
+            id: BigInt(1),
+            tag: procedure,
+            payload,
+            headers: [],
+          });
+
+          // Block until the client disconnects (AbortSignal fires on connection close).
+          yield* Effect.async<void>((resume) => {
+            ctx.req.signal?.addEventListener(
+              "abort",
+              () => resume(Effect.void),
+              { once: true },
+            );
+            // If signal already aborted, resume immediately.
+            if (ctx.req.signal?.aborted) resume(Effect.void);
+          });
+        })).pipe(
+          // deno-lint-ignore no-explicit-any
+          Effect.provide(options.handlerLayer as any),
+        );
+
+        // Run in background using the app runtime (shares memoMap → shared TodoService).
+        // deno-lint-ignore no-explicit-any
+        appRuntime.runFork(effect as any);
+
+        return new Response(readable, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            // Disable proxy/nginx buffering so chunks flush immediately.
+            "X-Accel-Buffering": "no",
+          },
+        });
+      });
+    } else {
+      // WebSocket protocol: use Deno.upgradeWebSocket + per-connection SocketServer.
+      //
+      // HttpRouter.toWebHandler wraps requests in a ServerRequestImpl whose `.upgrade`
+      // getter always returns Effect.fail — so RpcServer.layerHttp({ protocol: "websocket" })
+      // can never upgrade. Instead, we upgrade directly with Deno.upgradeWebSocket and
+      // create a one-shot SocketServer from the resulting socket, then use
+      // RpcServer.layerProtocolSocketServer to bypass the HttpRequest upgrade path.
+      //
+      // Registered as GET-only: WS upgrades always arrive as GET requests. Registering
+      // with app.get() means non-GET requests naturally receive a 405 from Fresh's router
+      // instead of hitting Deno.upgradeWebSocket (which would throw a 500).
+      const allowedOrigins = options.allowedOrigins;
+      // deno-lint-ignore no-explicit-any
+      this.#app.get(options.path, async (ctx) => {
+        // Optional Origin validation — prevents cross-origin WebSocket connections.
+        // Any site can open a WS to a permissive server, bypassing CORS. When
+        // allowedOrigins is provided, enforce an exact match on the Origin header.
+        if (allowedOrigins !== undefined && allowedOrigins.length > 0) {
+          const origin = ctx.req.headers.get("Origin");
+          if (origin === null || !allowedOrigins.includes(origin)) {
+            return new Response("Forbidden — origin not allowed", { status: 403 });
+          }
+        }
+
+        // Upgrade the HTTP request to a WebSocket. Returns the 101 response
+        // and the server-side WebSocket instance.
+        const { response, socket: denoWs } = Deno.upgradeWebSocket(ctx.req);
+
+        // Build rpcBaseLayer FRESH per connection so each gets a new object identity.
+        // A shared identity would cause the memoMap to return stale cached state from
+        // a prior connection after its runtime disposes.
+        //
+        // Wrap layerProtocolSocketServer in Layer.fresh so it bypasses the memoMap
+        // entirely (neither lookup nor insertion). Without this, even a new rpcBaseLayer
+        // object would find the stale constant layerProtocolSocketServer entry in the
+        // shared memoMap after connection 1 closed — giving connection 2 a protocol
+        // with a dead clients map and no Pong responses.
+        //
+        // options.handlerLayer (e.g. TodoService) is the same reference so it is
+        // still memoized and shared across HTTP and WebSocket handlers.
+        // deno-lint-ignore no-explicit-any
+        const rpcBaseLayer = (RpcServer.layer(options.group) as any).pipe(
+          // deno-lint-ignore no-explicit-any
+          Layer.provide(Layer.fresh(RpcServer.layerProtocolSocketServer as any)),
+          Layer.provide(options.handlerLayer),
+          Layer.provide(RpcSerialization.layerNdjson),
+        );
+
+        // Wrap the Deno WebSocket in a one-shot Effect SocketServer.
+        // When run(handler) is called by layerProtocolSocketServer, the handler
+        // receives our single socket and runs the RPC session to completion.
+        // Effect.never blocks until the connection runtime's scope is closed.
+        const socketServerLayer = Layer.effect(
+          SocketServer.SocketServer,
+          Effect.map(
+            Socket.fromWebSocket(
+              Effect.succeed(denoWs as unknown as globalThis.WebSocket),
+            ),
+            (sock) =>
+              SocketServer.SocketServer.of({
+                address: { _tag: "TcpAddress" as const, hostname: "localhost", port: 0 },
+                // deno-lint-ignore no-explicit-any
+                run: (handler: any): any =>
+                  Effect.flatMap(handler(sock), () => Effect.never),
+              }),
+          ),
+        );
+
+        // Full layer for this connection
+        // deno-lint-ignore no-explicit-any
+        const connectionLayer = (rpcBaseLayer as any).pipe(
+          Layer.provide(socketServerLayer),
+        );
+
+        // Create a per-connection ManagedRuntime. Share the app's memoMap so that
+        // service instances from the app layer (e.g. in-memory stores, DB pools) are
+        // reused across HTTP and WebSocket handlers rather than duplicated per-connection.
+        // deno-lint-ignore no-explicit-any
+        const connectionRuntime = ManagedRuntime.make(connectionLayer as any, {
+          memoMap: this.#runtime.memoMap,
+        });
+
+        // Running Effect.never causes the runtime to eagerly build connectionLayer
+        // (starting the SocketServer + RPC background fibers) and stay alive until
+        // the connection is torn down.
+        this.#activeWsRuntimes.add(connectionRuntime);
+        connectionRuntime.runFork(Effect.never as any);
+
+        // Dispose the runtime when the WebSocket closes, which closes the scope and
+        // interrupts all background fibers (SocketServer run loop, RPC fiber).
+        // deno-lint-ignore no-explicit-any
+        denoWs.addEventListener("close", () => {
+          this.#activeWsRuntimes.delete(connectionRuntime);
+          connectionRuntime.dispose().catch((err) => {
+            console.error("[EffectApp] WS connection runtime dispose error:", err);
+          });
+        });
+
+        return response;
       });
     }
   }
@@ -477,6 +782,22 @@ export class EffectApp<State, AppR> {
    */
   async dispose(): Promise<void> {
     this.#cleanupSignals();
+    // Drain active WebSocket connections BEFORE disposing the main runtime.
+    // This ensures WS connection finalizers can still access shared services
+    // (e.g. TodoService) that live in the main runtime's memoMap.
+    //
+    // We snapshot the set, clear it, then await all disposes in parallel so
+    // that close event handlers for these connections find an empty set and
+    // skip the redundant second dispose.
+    const activeRuntimes = [...this.#activeWsRuntimes];
+    this.#activeWsRuntimes.clear();
+    await Promise.all(
+      activeRuntimes.map((rt) =>
+        rt.dispose().catch((err) => {
+          console.error("[EffectApp] WS connection runtime dispose error during shutdown:", err);
+        })
+      ),
+    );
     // Dispose all HttpApi sub-handler runtimes
     for (const disposer of this.#httpApiDisposers) {
       await disposer();

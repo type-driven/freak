@@ -1,10 +1,24 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
+import { useRpcStream } from "@fresh/effect/island";
 import { useAtom } from "@fresh/plugin-effect/island";
+import { TodoRpc } from "../services/rpc.ts";
 import { todoListAtom } from "../atoms.ts";
 import type { Todo } from "../types.ts";
 
 export default function TodoApp() {
   const [todos, setTodos] = useAtom(todoListAtom);
+
+  // Subscribe to WatchTodos stream — keeps all windows in sync every 2 seconds.
+  const streamState = useRpcStream(TodoRpc, {
+    url: `${typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws"}://${typeof window !== "undefined" ? window.location.host : "localhost:8000"}/rpc/todos/ws`,
+    procedure: "WatchTodos",
+  });
+
+  useEffect(() => {
+    if (streamState._tag === "connected" && streamState.latest !== null) {
+      setTodos(streamState.latest as Todo[]);
+    }
+  }, [streamState]);
   const [newText, setNewText] = useState("");
 
   async function handleAdd(e: Event) {

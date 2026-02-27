@@ -11,6 +11,7 @@
     "effect/unstable/http": "npm:effect@4.0.0-beta.0/unstable/http",
     "effect/unstable/httpapi": "npm:effect@4.0.0-beta.0/unstable/httpapi",
     "effect/unstable/rpc": "npm:effect@4.0.0-beta.0/unstable/rpc",
+    "effect/unstable/socket": "npm:effect@4.0.0-beta.0/unstable/socket",
     "effect/unstable/http/FetchHttpClient": "npm:effect@4.0.0-beta.0/unstable/http/FetchHttpClient",
     "effect/Schema": "npm:effect@4.0.0-beta.0/Schema",
     "@fresh/core": "jsr:@fresh/core@^2.0.0",

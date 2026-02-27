@@ -1,15 +1,24 @@
 import { HttpError, staticFiles } from "@fresh/core";
+import { setAtomHydrationHook } from "@fresh/core/internal";
 import { createEffectApp } from "@fresh/effect";
 import { Cause, Layer } from "effect";
 import { AppLayer } from "./services/layers.ts";
 import { NotFoundError } from "./services/errors.ts";
 import { TodoApi, TodosLive } from "./services/api.ts";
 import { TodoRpc, TodoRpcHandlers } from "./services/rpc.ts";
+import {
+  initAtomHydrationMap,
+  serializeAtomHydration,
+} from "@fresh/plugin-effect";
 
 // Pre-compose handler layers with AppLayer so service dependencies are available
 // when group/handler builds run inside the Effect sub-handler.
 const TodosWithDeps = Layer.provide(TodosLive, AppLayer);
 const RpcWithDeps = Layer.provide(TodoRpcHandlers, AppLayer);
+
+// Register the global hook that serializes atom state into the HTML response.
+// Required by routes that call setAtom() from @fresh/plugin-effect.
+setAtomHydrationHook((ctx) => serializeAtomHydration(ctx));
 
 const effectApp = createEffectApp({
   layer: AppLayer,
@@ -41,8 +50,28 @@ effectApp.rpc({
   handlerLayer: RpcWithDeps,
 });
 
+// Mount RPC — HTTP-stream protocol (WatchTodos over framed NDJSON POST)
+effectApp.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos/stream",
+  protocol: "http-stream",
+  handlerLayer: RpcWithDeps,
+});
+
+// Mount RPC — SSE protocol (WatchTodos via Server-Sent Events)
+effectApp.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos/sse",
+  protocol: "sse",
+  handlerLayer: RpcWithDeps,
+});
+
 // Export the underlying App<State> — Fresh's Builder.listen() calls setBuildCache()
 // on the exported app, which requires an App instance (not EffectApp wrapper).
 // EffectApp wires the Effect runner into the inner App at construction time,
 // so the inner App already handles Effect-returning handlers correctly.
-export const app = effectApp.use(staticFiles()).fsRoutes().app;
+export const app = effectApp
+  .use((ctx) => { initAtomHydrationMap(ctx); return ctx.next(); })
+  .use(staticFiles())
+  .fsRoutes()
+  .app;
