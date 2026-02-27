@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "license": "MIT",
   "exports": {
-    ".": "./src/mod.ts"
+    ".": "./src/mod.ts",
+    "./island": "./src/island.ts"
   },
   "imports": {
     "effect": "npm:effect@4.0.0-beta.0",
     "effect/unstable/http": "npm:effect@4.0.0-beta.0/unstable/http",
     "effect/unstable/httpapi": "npm:effect@4.0.0-beta.0/unstable/httpapi",
+    "effect/unstable/rpc": "npm:effect@4.0.0-beta.0/unstable/rpc",
+    "effect/unstable/http/FetchHttpClient": "npm:effect@4.0.0-beta.0/unstable/http/FetchHttpClient",
     "effect/Schema": "npm:effect@4.0.0-beta.0/Schema",
     "@fresh/core": "jsr:@fresh/core@^2.0.0",
     "@fresh/core/internal": "jsr:@fresh/core@^2.0.0/internal",
+    "@effect/platform-browser": "npm:@effect/platform-browser@4.0.0-beta.13",
     "expect-type": "npm:expect-type@^1.1.0",
     "@std/assert": "jsr:@std/assert@1"
   }

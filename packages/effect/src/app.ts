@@ -23,6 +23,7 @@ import type { EffectRunner } from "@fresh/core/internal";
 import { ManagedRuntime, Layer, type Effect } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { RpcServer, RpcSerialization } from "effect/unstable/rpc";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
 
@@ -72,6 +73,7 @@ export class EffectApp<State, AppR> {
   #runtime: ManagedRuntime.ManagedRuntime<AppR, unknown>;
   #cleanupSignals: () => void = () => {};
   #httpApiDisposers: Array<() => Promise<void>> = [];
+  #rpcDisposers: Array<() => Promise<void>> = [];
 
   constructor(
     app: App<State>,
@@ -272,6 +274,119 @@ export class EffectApp<State, AppR> {
   }
 
   /**
+   * Mount an Effect RPC group at the given path prefix.
+   *
+   * Builds the RpcServer layer with the given handler implementations, converts it
+   * to a web handler via `HttpRouter.toWebHandler()`, and registers Fresh routes at
+   * `path` (and `path + "/*"`) that delegate matching requests to the Effect RPC stack.
+   *
+   * Two protocols are supported:
+   * - `"http"` — request/response RPC via HTTP POST, serialized as JSON.
+   * - `"websocket"` — server-push streaming via WebSocket, serialized as NDJSON.
+   *
+   * For WebSocket protocol, two Fresh routes are registered:
+   * - `path` — handles the WS upgrade handshake (GET at the exact path)
+   * - `path + "/*"` — handles any sub-path requests (forwarded with prefix stripped)
+   *
+   * The sub-handler shares the app's `ManagedRuntime.memoMap` so handler services
+   * can be composed from the app's Layer via `Layer.provide(handlerLayer, AppLayer)`.
+   *
+   * The sub-handler's `dispose()` is called automatically when `EffectApp.dispose()`
+   * is invoked.
+   *
+   * Returns `void` — called for its side effect, not for chaining.
+   *
+   * @param options.group - The RpcGroup definition (created with `RpcGroup.make(...)`)
+   * @param options.path - URL path prefix (e.g., "/rpc/todos"). Must start with "/".
+   * @param options.protocol - `"http"` for request/response, `"websocket"` for streaming
+   * @param options.handlerLayer - Layer providing handler implementations (from `group.toLayer(...)`)
+   *
+   * @example
+   * ```typescript
+   * const TodoHandlers = TodoRpc.toLayer({
+   *   ListTodos: () => Effect.succeed([]),
+   *   CreateTodo: ({ text }) => Effect.succeed({ id: "1", text }),
+   * });
+   *
+   * // HTTP request/response
+   * app.rpc({
+   *   group: TodoRpc,
+   *   path: "/rpc/todos",
+   *   protocol: "http",
+   *   handlerLayer: Layer.provide(TodoHandlers, AppLayer),
+   * });
+   *
+   * // WebSocket streaming
+   * app.rpc({
+   *   group: TodoRpc,
+   *   path: "/rpc/todos/ws",
+   *   protocol: "websocket",
+   *   handlerLayer: Layer.provide(TodoHandlers, AppLayer),
+   * });
+   * ```
+   */
+  // deno-lint-ignore no-explicit-any
+  rpc(options: {
+    group: any;
+    path: string;
+    protocol: "http" | "websocket";
+    handlerLayer: any;
+  }): void {
+    // Build the complete RPC server layer: RpcServer + handlers + serialization + infra
+    // deno-lint-ignore no-explicit-any
+    const serverLayer = (RpcServer.layerHttp({
+      group: options.group,
+      path: "/", // Routes are relative to the mount prefix; Fresh handles the outer path
+      protocol: options.protocol,
+    }) as any).pipe(
+      Layer.provide(options.handlerLayer),
+      Layer.provide(
+        options.protocol === "http"
+          ? RpcSerialization.layerJson
+          : RpcSerialization.layerNdjson,
+      ),
+      Layer.provide(HttpServer.layerServices),
+    );
+
+    // Convert to a web handler. Share the app's memoMap so that service instances
+    // built by the main ManagedRuntime can be reused in handler implementations
+    // (when the user explicitly composes AppLayer into their handler layer).
+    // deno-lint-ignore no-explicit-any
+    const { handler, dispose } = HttpRouter.toWebHandler(serverLayer as any, {
+      memoMap: this.#runtime.memoMap,
+    });
+
+    // Store disposer for cleanup
+    this.#rpcDisposers.push(dispose);
+
+    // Mount at path + "/*" with prefix stripping for HTTP sub-path requests.
+    // Effect's RpcServer registers routes relative to path "/" (the inner root),
+    // so we strip the outer mount prefix before forwarding.
+    this.#app.all(options.path + "/*", async (ctx) => {
+      const url = new URL(ctx.req.url);
+      url.pathname = url.pathname.slice(options.path.length) || "/";
+      const rewritten = new Request(url.toString(), ctx.req);
+      // deno-lint-ignore no-explicit-any
+      return await (handler as any)(rewritten);
+    });
+
+    // For WebSocket protocol, also mount at the EXACT path (no trailing /*).
+    // The WS upgrade handshake arrives as a GET request at the exact path.
+    // Fresh's path + "/*" glob does NOT match the exact path itself.
+    // We rewrite the pathname to "/" to match the internal registration in Effect's
+    // HttpRouter (which was given path: "/" above).
+    if (options.protocol === "websocket") {
+      this.#app.all(options.path, async (ctx) => {
+        const url = new URL(ctx.req.url);
+        url.pathname = "/";
+        const rewritten = new Request(url.toString(), ctx.req);
+        // deno-lint-ignore no-explicit-any
+        return await (handler as any)(rewritten);
+      });
+    }
+  }
+
+  /**
    * Add Effect-aware middlewares for GET requests at the given path.
    */
   get(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
@@ -364,6 +479,10 @@ export class EffectApp<State, AppR> {
     this.#cleanupSignals();
     // Dispose all HttpApi sub-handler runtimes
     for (const disposer of this.#httpApiDisposers) {
+      await disposer();
+    }
+    // Dispose all RPC sub-handler runtimes
+    for (const disposer of this.#rpcDisposers) {
       await disposer();
     }
     await this.#runtime.dispose();
