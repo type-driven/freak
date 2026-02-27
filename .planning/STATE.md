@@ -8,7 +8,7 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 complete, Phase 10 next)
+**Current focus:** Milestone v2 — Effect-First Handlers, HttpApi & RPC (Phase 9 complete, Phase 10 skipped, Phase 11 next)
 
 ## Current Position
 
@@ -94,8 +94,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Plan and execute Phase 10: Migration example
-- Plan Phase 11: micro-app architecture (mountApp issues + Module Federation research)
+- Phase 10 skipped (MIG-02 done in Phase 9; no external users need MIG-01 compat shim)
+- Plan and execute Phase 11: micro-app architecture (mountApp issues + Module Federation research)
 
 ### Roadmap Evolution
 

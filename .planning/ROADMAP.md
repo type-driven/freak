@@ -171,7 +171,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [x] **Phase 7: @fresh/effect Package** — `EffectApp`, `createEffectApp`, per-app lifecycle
 - [x] **Phase 8: HttpApi Integration** — `app.httpApi()` mounts Effect HttpApi
 - [x] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcResult()` / `useRpcStream()` in islands
-- [ ] **Phase 10: Migration + Example** — `@fresh/plugin-effect` compat shim, updated example
+- [~] **Phase 10: Migration + Example** — skipped (MIG-02 satisfied by Phase 9; no external users require MIG-01 compat shim)
 - [ ] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
 
 ## v2 Phase Details
@@ -373,7 +373,7 @@ Plans:
 | 7. @fresh/effect Package | 2/2 | Complete | 2026-02-25 |
 | 8. HttpApi Integration | 2/2 | Complete | 2026-02-26 |
 | 9. RPC Integration | 2/2 | Complete | 2026-02-27 |
-| 10. Migration + Example | 0/TBD | Not started | -- |
+| 10. Migration + Example | N/A | Skipped | 2026-02-27 |
 | 11. Micro-App Architecture | 0/TBD | Not started | -- |
 
 ---

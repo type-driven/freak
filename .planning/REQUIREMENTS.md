@@ -66,8 +66,8 @@
 
 ### Migration
 
-- [ ] **MIG-01**: `@fresh/plugin-effect` re-exports from `@fresh/effect` — zero breaking changes for v1 users
-- [ ] **MIG-02**: Updated `packages/examples/effect-integration/` demonstrates `createEffectApp` + `httpApi` + `rpc`
+- [~] **MIG-01**: `@fresh/plugin-effect` re-exports from `@fresh/effect` — skipped (no external users)
+- [x] **MIG-02**: Updated `packages/examples/effect-integration/` demonstrates `createEffectApp` + `httpApi` + `rpc`
 
 ## Out of Scope
 
@@ -116,8 +116,8 @@
 | RPC-01 | Phase 9 — RPC Integration | Complete |
 | RPC-02 | Phase 9 — RPC Integration | Complete |
 | RPC-03 | Phase 9 — RPC Integration | Complete |
-| MIG-01 | Phase 10 — Migration + Example | Pending |
-| MIG-02 | Phase 10 — Migration + Example | Pending |
+| MIG-01 | Phase 10 — Migration + Example | Skipped |
+| MIG-02 | Phase 10 — Migration + Example | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total — all Complete ✓
