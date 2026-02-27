@@ -6,9 +6,19 @@
  * Do NOT import from this module in server-side code — it depends on
  * `preact/hooks` and browser APIs.
  *
- * Two hooks are provided:
+ * Hooks provided:
+ * - `useQuery(key, effect, opts?)` — react-query style data fetching with cache
+ * - `useMutation(fn, opts?)` — mutations with optimistic update support
+ * - `useRpcQuery(group, opts)` — RPC data fetching built on useQuery
  * - `useRpcResult(group, { url })` — request/response over HTTP, returns `[state, client]`
- * - `useRpcStream(group, { url, procedure })` — server-push streaming over WebSocket
+ * - `useRpcStream(group, { url })` — server-push streaming over WebSocket
+ * - `useRpcHttpStream(group, { url })` — server-push streaming over HTTP NDJSON
+ * - `useRpcSse(group, { url })` — server-push streaming over SSE
+ * - `useRpcPolled(group, { url })` — repeated HTTP polling on a schedule
+ *
+ * A shared `ManagedRuntime` (browser singleton) is created on first use and
+ * disposed on page unload. All hooks share its memoMap so services are only
+ * built once per page.
  *
  * Usage:
  * ```typescript
@@ -28,7 +38,14 @@
  * ```
  */
 
-import { useEffect, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "preact/hooks";
 import { Effect, Layer, ManagedRuntime, Stream } from "effect";
 import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
 import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
@@ -76,6 +93,327 @@ export type RpcStreamState<A, E> =
   | { readonly _tag: "closed" };
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Shared Browser Runtime
+// ──────────────────────────────────────────────────────────────────────────────
+
+// deno-lint-ignore no-explicit-any
+let _browserRuntime: ManagedRuntime.ManagedRuntime<any, never> | null = null;
+
+/**
+ * Returns the module-level shared `ManagedRuntime` backed by `FetchHttpClient`.
+ * Creates it on first call; disposed on page unload.
+ *
+ * All hooks share this runtime's `memoMap` so services are built only once.
+ */
+// deno-lint-ignore no-explicit-any
+function getBrowserRuntime(): ManagedRuntime.ManagedRuntime<any, never> {
+  if (!_browserRuntime) {
+    _browserRuntime = ManagedRuntime.make(FetchHttpClient.layer);
+    globalThis.addEventListener?.("unload", () => {
+      _browserRuntime?.dispose();
+      _browserRuntime = null;
+    }, { once: true });
+  }
+  return _browserRuntime;
+}
+
+/**
+ * Hook that returns the shared browser `ManagedRuntime`.
+ * Useful for island authors who want to run arbitrary effects using
+ * the same runtime (and memoMap) as the built-in hooks.
+ */
+export function useBrowserRuntime() {
+  return getBrowserRuntime();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Query Cache
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface QueryCacheEntry {
+  data: unknown;
+  error: unknown;
+  status: "idle" | "loading" | "success" | "error";
+  /** Each subscriber is the `rerender` function from a `useQuery` instance. */
+  subscribers: Set<() => void>;
+  /** Non-null while a fetch is in-flight; used for request deduplication. */
+  inFlight: Promise<void> | null;
+}
+
+const queryCache = new Map<string, QueryCacheEntry>();
+
+function getOrCreateEntry(key: string): QueryCacheEntry {
+  let entry = queryCache.get(key);
+  if (!entry) {
+    entry = {
+      data: undefined,
+      error: undefined,
+      status: "idle",
+      subscribers: new Set(),
+      inFlight: null,
+    };
+    queryCache.set(key, entry);
+  }
+  return entry;
+}
+
+/**
+ * Read the current cached value for a query key.
+ * Useful in `useMutation.onMutate` for optimistic updates.
+ */
+export function getCacheData<A>(key: string): A | undefined {
+  return queryCache.get(key)?.data as A | undefined;
+}
+
+/**
+ * Write a value directly into the cache and notify all subscribers.
+ * Useful for optimistic updates — set the expected result immediately,
+ * then roll back in `onError` if the mutation fails.
+ */
+export function setCacheData<A>(key: string, data: A): void {
+  const entry = getOrCreateEntry(key);
+  entry.data = data;
+  entry.status = "success";
+  entry.error = undefined;
+  for (const sub of entry.subscribers) sub();
+}
+
+/**
+ * Mark a cache entry as stale (status → "idle") and notify subscribers.
+ * Any mounted `useQuery` instance watching `key` will automatically refetch.
+ */
+export function invalidateQuery(key: string): void {
+  const entry = queryCache.get(key);
+  if (entry) {
+    entry.status = "idle";
+    entry.inFlight = null;
+    for (const sub of entry.subscribers) sub();
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// useQuery
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Preact hook for data fetching with a shared module-level cache.
+ *
+ * `effect` must be fully satisfied (`R = never`). The shared browser runtime
+ * (backed by `FetchHttpClient`) executes it. Use `useRpcQuery` when you need
+ * an RPC client — it wires up the protocol and serialization layers for you.
+ *
+ * Features:
+ * - Cache keyed by `key` — multiple components sharing the same key share data
+ * - Request deduplication — concurrent fetches for the same key coalesce
+ * - `invalidateQuery(key)` triggers a refetch in all mounted consumers
+ * - `setCacheData(key, data)` / `getCacheData(key)` for optimistic updates
+ *
+ * @param key - Cache key (string); determines which cache entry is used
+ * @param effect - A fully-satisfied Effect to run on fetch
+ * @param options.enabled - If false, never fetch automatically (default: true)
+ * @param options.staleTime - Not yet implemented; reserved for future use
+ */
+export function useQuery<A, E>(
+  key: string,
+  effect: Effect.Effect<A, E, never>,
+  options?: { enabled?: boolean; staleTime?: number },
+): { data: A | undefined; error: E | undefined; isLoading: boolean; refetch: () => void } {
+  // `rerender` is stable; incrementing `renderCount` triggers the fetch effect.
+  const [renderCount, rerender] = useReducer((n: number) => n + 1, 0);
+
+  // Store latest effect in ref so `fetch` callback doesn't become stale.
+  const effectRef = useRef(effect);
+  effectRef.current = effect;
+
+  const enabled = options?.enabled ?? true;
+
+  // `fetch` is stable as long as `key` doesn't change. It:
+  //   1. Guards against concurrent in-flight requests for the same key
+  //   2. Updates the cache entry and notifies all subscribers on settle
+  const fetch = useCallback(() => {
+    const e = getOrCreateEntry(key);
+    if (e.inFlight) return; // deduplicate
+    e.status = "loading";
+    // Notify subscribers so they can show a loading indicator.
+    for (const sub of e.subscribers) sub();
+    // deno-lint-ignore no-explicit-any
+    const p = getBrowserRuntime().runPromise(effectRef.current as any).then(
+      (data: A) => {
+        const ent = getOrCreateEntry(key);
+        ent.data = data;
+        ent.status = "success";
+        ent.error = undefined;
+        ent.inFlight = null;
+        for (const sub of ent.subscribers) sub();
+      },
+      (error: unknown) => {
+        const ent = getOrCreateEntry(key);
+        ent.error = error;
+        ent.status = "error";
+        ent.inFlight = null;
+        for (const sub of ent.subscribers) sub();
+      },
+    );
+    e.inFlight = p as Promise<void>;
+  }, [key]);
+
+  // Register as a subscriber so cache writes/invalidations cause re-renders.
+  useEffect(() => {
+    const entry = getOrCreateEntry(key);
+    entry.subscribers.add(rerender);
+    return () => {
+      entry.subscribers.delete(rerender);
+    };
+  }, [key]);
+
+  // After every re-render (triggered by rerender()), check if a fetch is needed.
+  // This covers both the initial mount and post-invalidation refetches.
+  useEffect(() => {
+    const entry = getOrCreateEntry(key);
+    if (enabled && entry.status === "idle" && !entry.inFlight) {
+      fetch();
+    }
+  }, [renderCount, key, fetch, enabled]);
+
+  const entry = queryCache.get(key) ?? getOrCreateEntry(key);
+  return {
+    data: entry.data as A | undefined,
+    error: entry.error as E | undefined,
+    isLoading: entry.status === "loading",
+    refetch: fetch,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// useMutation
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Preact hook for executing mutations with optional optimistic update support.
+ *
+ * `fn` must return a fully-satisfied Effect (`R = never`). It is run via the
+ * shared browser runtime.
+ *
+ * Optimistic update pattern:
+ * ```typescript
+ * useMutation(createTodo, {
+ *   onMutate: (text) => {
+ *     const prev = getCacheData<Todo[]>("todos");
+ *     setCacheData("todos", [...(prev ?? []), { id: "temp", text }]);
+ *     return { rollback: () => setCacheData("todos", prev) };
+ *   },
+ *   onError: (_err, _payload, ctx) => ctx.rollback(),
+ *   invalidates: ["todos"],
+ * });
+ * ```
+ *
+ * @param fn - Function that takes a payload and returns an Effect to run
+ * @param options.onMutate - Called synchronously before the mutation; return value is `ctx`
+ * @param options.onSuccess - Called on success with data, payload, and ctx
+ * @param options.onError - Called on failure; ctx holds rollback info from onMutate
+ * @param options.invalidates - Cache keys to invalidate (triggering refetch) on success
+ */
+export function useMutation<A, E, Payload, Ctx = void>(
+  fn: (payload: Payload) => Effect.Effect<A, E, never>,
+  options?: {
+    onMutate?: (payload: Payload) => Ctx;
+    onSuccess?: (data: A, payload: Payload, ctx: Ctx) => void;
+    onError?: (error: unknown, payload: Payload, ctx: Ctx) => void;
+    invalidates?: string[];
+  },
+): { mutate: (payload: Payload) => void; isPending: boolean; error: unknown; data: A | undefined } {
+  const [state, setState] = useState<{
+    isPending: boolean;
+    error: unknown;
+    data: A | undefined;
+  }>({ isPending: false, error: undefined, data: undefined });
+
+  // Refs avoid stale closures in the stable `mutate` callback.
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const mutate = useCallback((payload: Payload) => {
+    const ctx = (optionsRef.current?.onMutate?.(payload) ?? undefined) as Ctx;
+    setState((prev) => ({ ...prev, isPending: true }));
+    // deno-lint-ignore no-explicit-any
+    getBrowserRuntime().runPromise(fnRef.current(payload) as any).then(
+      (data: A) => {
+        setState({ isPending: false, error: undefined, data });
+        optionsRef.current?.onSuccess?.(data, payload, ctx);
+        for (const k of optionsRef.current?.invalidates ?? []) {
+          invalidateQuery(k);
+        }
+      },
+      (error: unknown) => {
+        setState((prev) => ({ ...prev, isPending: false, error }));
+        optionsRef.current?.onError?.(error, payload, ctx);
+      },
+    );
+  }, []); // stable: fn/options accessed via refs
+
+  return { mutate, ...state };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// useRpcQuery
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Preact hook for typed RPC data fetching, built on `useQuery`.
+ *
+ * Constructs the HTTP protocol + JSON serialization layer from `options.url`
+ * (memoized so the layer is only rebuilt when the URL changes) and wraps the
+ * RPC call in a fully-satisfied Effect that is passed to `useQuery`.
+ *
+ * @param group - The RpcGroup definition
+ * @param options.key - Cache key for this query
+ * @param options.url - The server-side RPC mount path (e.g., "/rpc/todos")
+ * @param options.procedure - The RPC procedure name (e.g., "ListTodos")
+ * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
+ * @param options.enabled - If false, skip automatic fetching (default: true)
+ */
+// deno-lint-ignore no-explicit-any
+export function useRpcQuery<Rpcs extends Rpc.Any>(
+  group: RpcGroup.RpcGroup<Rpcs>,
+  options: {
+    key: string;
+    url: string;
+    procedure: string;
+    payload?: unknown;
+    enabled?: boolean;
+  },
+) {
+  // deno-lint-ignore no-explicit-any
+  const protocolLayer = useMemo(() =>
+    RpcClient.layerProtocolHttp({ url: options.url }).pipe(
+      Layer.provide(RpcSerialization.layerJson),
+      Layer.provide(FetchHttpClient.layer),
+    // deno-lint-ignore no-explicit-any
+    ) as any as Layer.Layer<never, never, never>,
+    [options.url],
+  );
+
+  // deno-lint-ignore no-explicit-any
+  const effect = useMemo(() =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        // deno-lint-ignore no-explicit-any
+        const client = yield* RpcClient.make(group as any);
+        // deno-lint-ignore no-explicit-any
+        return yield* (client as any)[options.procedure](options.payload);
+      }),
+    // deno-lint-ignore no-explicit-any
+    ).pipe(Effect.provide(protocolLayer as any)) as Effect.Effect<any, any, never>,
+    // protocolLayer is derived from options.url; include it to satisfy exhaustive-deps.
+    [group, protocolLayer, options.procedure, options.payload],
+  );
+
+  return useQuery(options.key, effect, { enabled: options.enabled });
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // useRpcResult
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -120,15 +458,18 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
     };
   }, []);
 
-  // Build the HTTP protocol layer.
+  // Build the HTTP protocol layer once per URL change (not on every render).
   // Layer.provide chains deps: layerProtocolHttp requires HttpClient + RpcSerialization;
   // provide each in turn so all requirements are satisfied before runtime creation.
   // deno-lint-ignore no-explicit-any
-  const layer = RpcClient.layerProtocolHttp({ url: options.url }).pipe(
-    Layer.provide(RpcSerialization.layerJson),
-    Layer.provide(FetchHttpClient.layer),
+  const layer = useMemo(() =>
+    RpcClient.layerProtocolHttp({ url: options.url }).pipe(
+      Layer.provide(RpcSerialization.layerJson),
+      Layer.provide(FetchHttpClient.layer),
     // deno-lint-ignore no-explicit-any
-  ) as any as Layer.Layer<never, never, never>;
+    ) as any as Layer.Layer<never, never, never>,
+    [options.url],
+  );
 
   // deno-lint-ignore no-explicit-any
   const client = new Proxy({} as any, {
@@ -209,10 +550,11 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
       // deno-lint-ignore no-explicit-any
     ) as any as Layer.Layer<never, never, never>;
 
-    // Create a ManagedRuntime per hook instance for the WS lifecycle.
+    // Create a ManagedRuntime per hook instance for the WS lifecycle, sharing the
+    // browser runtime's memoMap so already-built services aren't duplicated.
     // Disposed on unmount to close the WebSocket connection.
     // deno-lint-ignore no-explicit-any
-    const runtime = ManagedRuntime.make(layer as any);
+    const runtime = ManagedRuntime.make(layer as any, getBrowserRuntime().memoMap);
 
     // Run the streaming procedure. Stream.runForEach updates state on each push.
     // deno-lint-ignore no-explicit-any
@@ -288,8 +630,9 @@ export function useRpcHttpStream<Rpcs extends Rpc.Any>(
       // deno-lint-ignore no-explicit-any
     ) as any as Layer.Layer<never, never, never>;
 
+    // Share the browser runtime's memoMap so FetchHttpClient isn't duplicated.
     // deno-lint-ignore no-explicit-any
-    const runtime = ManagedRuntime.make(layer as any);
+    const runtime = ManagedRuntime.make(layer as any, getBrowserRuntime().memoMap);
 
     // deno-lint-ignore no-explicit-any
     const effect: Effect.Effect<void, unknown, never> = Effect.scoped(
@@ -439,16 +782,20 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
   });
   const unmountedRef = useRef(false);
 
+  // Build the HTTP protocol layer once per URL change.
+  // deno-lint-ignore no-explicit-any
+  const layer = useMemo(() =>
+    RpcClient.layerProtocolHttp({ url: options.url }).pipe(
+      Layer.provide(RpcSerialization.layerJson),
+      Layer.provide(FetchHttpClient.layer),
+    // deno-lint-ignore no-explicit-any
+    ) as any as Layer.Layer<never, never, never>,
+    [options.url],
+  );
+
   useEffect(() => {
     unmountedRef.current = false;
     const intervalMs = options.interval ?? 2000;
-
-    // deno-lint-ignore no-explicit-any
-    const layer = RpcClient.layerProtocolHttp({ url: options.url }).pipe(
-      Layer.provide(RpcSerialization.layerJson),
-      Layer.provide(FetchHttpClient.layer),
-      // deno-lint-ignore no-explicit-any
-    ) as any as Layer.Layer<never, never, never>;
 
     const runPoll = () => {
       // deno-lint-ignore no-explicit-any
@@ -484,7 +831,7 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
       unmountedRef.current = true;
       clearInterval(id);
     };
-  }, [options.url, options.procedure, options.payload, options.interval]);
+  }, [options.url, options.procedure, options.payload, options.interval, layer]);
 
   return state;
 }
