@@ -12,12 +12,12 @@ where you already write handlers.
 
 ## Current Position
 
-Phase: 11 of 11 (Micro-App Architecture) — plan 1/1 complete
-Plan: 1/1 complete in Phase 11
-Status: Phase 11 plan 01 complete — 11-DECISION.md created; programmatic plugin pattern accepted as composition model
-Last activity: 2026-02-27 — Completed 11-01-PLAN.md (architectural decision document)
+Phase: 13 of 13 (Benchmarks — Freak vs Fresh) — plan 1/2 complete
+Plan: 1/2 complete in Phase 13
+Status: Phase 13 plan 01 complete — three benchmark apps scaffold created and verified building
+Last activity: 2026-02-28 — Completed 13-01-PLAN.md (benchmark app scaffold)
 
-Progress: [██████████] 100% — v1 complete (9/9 plans); v2 Phase 6 complete (2/2 plans); Phase 7 complete (2/2 plans); Phase 8 complete (2/2 plans); Phase 9 complete (2/2 plans); Phase 11 complete (1/1 plans)
+Progress: [██████████] v1+v2 complete; Phase 13 in progress (1/2 plans)
 
 ## Performance Metrics
 
@@ -94,6 +94,9 @@ Recent decisions affecting current work:
 - [11-01]: Adopt programmatic plugin pattern (pluginName(config)(app)) as supported sub-app composition model — production-validated by workflowPlugin + authPlugin; mountApp limited to static prefix / no islands / no appWrapper / no fsRoutes
 - [11-01]: Module Federation ruled inapplicable — browser-side mechanism, requires Vite, wrong problem layer for server-side route composition
 - [11-01]: Fix mountApp deferred indefinitely — HIGH complexity (BuildCache aggregation, path-scoped appWrapper, dynamic prefix redesign) vs. LOW complexity plugin pattern already in production
+- [13-01]: Builder({ root: import.meta.dirname }) required in dev.ts when running from outside the app directory — prevents _fresh/ being written to repo root
+- [13-01]: Benchmark apps added as explicit workspace members in root deno.json — ./packages/* glob does not recursively cover nested apps/*/deno.json
+- [13-01]: upstream-app pins jsr:@fresh/core@2.2.0 exactly (not range) — reproducible comparisons against known upstream baseline
 
 ### Pending Todos
 
@@ -103,6 +106,8 @@ Recent decisions affecting current work:
 ### Roadmap Evolution
 
 - Phase 11 added (2026-02-25): Micro-App Architecture — research mountApp issues, evaluate Module Federation (https://github.com/module-federation/vite#readme), architectural decision for Freak app composition
+- Phase 12 added (2026-02-28): Atom-Based Island Hydration — research replacing signal-based island hydration with atom-based hydration (Effect v4 atoms vs Preact signals mismatch)
+- Phase 13 added (2026-02-28): Benchmarks — Freak vs Fresh — repeatable benchmark suite comparing handler throughput, hydration latency, build time, bundle size; results published to packages/benchmarks/
 
 ### Blockers/Concerns
 
@@ -111,6 +116,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-27T15:59:09Z
-Stopped at: Phase 11 plan 01 complete — 11-DECISION.md written and committed (5cc73977)
+Last session: 2026-02-28T15:08:26Z
+Stopped at: Phase 13 plan 01 complete — benchmark app scaffold committed (4d2312bb)
 Resume file: None
