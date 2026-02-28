@@ -66,7 +66,11 @@ import type { Rpc } from "effect/unstable/rpc";
 type RpcProxyCall = Record<
   string,
   // deno-lint-ignore no-explicit-any
-  (payload?: unknown) => Effect.Effect<unknown, unknown, any> | Stream.Stream<unknown, unknown, any>
+  (
+    payload?: unknown,
+  ) =>
+    | Effect.Effect<unknown, unknown, any>
+    | Stream.Stream<unknown, unknown, any>
 >;
 
 /**
@@ -256,7 +260,12 @@ export function useQuery<A, E>(
      */
     runner?: (e: Effect.Effect<A, E, never>) => Promise<A>;
   },
-): { data: A | undefined; error: E | undefined; isLoading: boolean; refetch: () => void } {
+): {
+  data: A | undefined;
+  error: E | undefined;
+  isLoading: boolean;
+  refetch: () => void;
+} {
   const [renderCount, setRenderCount] = useState(0);
   const rerender = useCallback(() => setRenderCount((n) => n + 1), []);
 
@@ -358,7 +367,12 @@ export function useMutation<A, E, Payload, Ctx = void>(
     onError?: (error: unknown, payload: Payload, ctx: Ctx) => void;
     invalidates?: string[];
   },
-): { mutate: (payload: Payload) => void; isPending: boolean; error: unknown; data: A | undefined } {
+): {
+  mutate: (payload: Payload) => void;
+  isPending: boolean;
+  error: unknown;
+  data: A | undefined;
+} {
   const [state, setState] = useState<{
     isPending: boolean;
     error: unknown;
@@ -375,7 +389,9 @@ export function useMutation<A, E, Payload, Ctx = void>(
     setState((prev) => ({ ...prev, isPending: true }));
     // Run through the shared browser runtime so its memoMap is used when
     // building any RPC or HTTP layers inside the effect.
-    getBrowserRuntime().runPromise(fnRef.current(payload) as Effect.Effect<A, E, never>).then(
+    getBrowserRuntime().runPromise(
+      fnRef.current(payload) as Effect.Effect<A, E, never>,
+    ).then(
       (data: A) => {
         setState({ isPending: false, error: undefined, data });
         optionsRef.current?.onSuccess?.(data, payload, ctx);
@@ -429,7 +445,9 @@ export function useRpcQuery<Rpcs extends Rpc.Any>(
   // memoMap so the already-live FetchHttpClient instance is reused.
   // This is the same pattern as useRpcStream and is critical for HTTP hooks.
   // deno-lint-ignore no-explicit-any
-  const runtimeRef = useRef<ManagedRuntime.ManagedRuntime<any, never> | null>(null);
+  const runtimeRef = useRef<ManagedRuntime.ManagedRuntime<any, never> | null>(
+    null,
+  );
   useEffect(() => {
     runtimeRef.current = ManagedRuntime.make(layer, {
       memoMap: getBrowserRuntime().memoMap,
@@ -452,9 +470,13 @@ export function useRpcQuery<Rpcs extends Rpc.Any>(
           // deno-lint-ignore no-explicit-any
           const client = yield* RpcClient.make(group as any);
           const result = yield* (
-            (client as unknown as RpcProxyCall)[options.procedure](options.payload) as Effect.Effect<unknown, unknown, never>
+            (client as unknown as RpcProxyCall)[options.procedure](
+              options.payload,
+            ) as Effect.Effect<unknown, unknown, never>
           );
-          yield* Effect.logDebug("[useRpcQuery] got result for: " + options.procedure);
+          yield* Effect.logDebug(
+            "[useRpcQuery] got result for: " + options.procedure,
+          );
           return result;
         }),
         // deno-lint-ignore no-explicit-any
@@ -523,7 +545,9 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
   // memoMap. The runtime lives for the component's mounted lifetime and is
   // shared across all calls on the returned client proxy.
   // deno-lint-ignore no-explicit-any
-  const runtimeRef = useRef<ManagedRuntime.ManagedRuntime<any, never> | null>(null);
+  const runtimeRef = useRef<ManagedRuntime.ManagedRuntime<any, never> | null>(
+    null,
+  );
   useEffect(() => {
     runtimeRef.current = ManagedRuntime.make(layer, {
       memoMap: getBrowserRuntime().memoMap,
@@ -547,7 +571,11 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
             // deno-lint-ignore no-explicit-any
             const c = yield* RpcClient.make(group as any);
             return yield* (
-              (c as unknown as RpcProxyCall)[prop](payload) as Effect.Effect<unknown, unknown, never>
+              (c as unknown as RpcProxyCall)[prop](payload) as Effect.Effect<
+                unknown,
+                unknown,
+                never
+              >
             );
           }),
           // deno-lint-ignore no-explicit-any
@@ -617,8 +645,10 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
           payload,
         ) as Stream.Stream<unknown, unknown, never>;
         setState({ _tag: "connected", latest: null });
-        yield* Stream.runForEach(stream, (value) =>
-          Effect.sync(() => setState({ _tag: "connected", latest: value })),
+        yield* Stream.runForEach(
+          stream,
+          (value) =>
+            Effect.sync(() => setState({ _tag: "connected", latest: value })),
         );
       }),
       // deno-lint-ignore no-explicit-any
@@ -653,8 +683,9 @@ function resolveWsUrl(url: string): string {
     typeof window !== "undefined" && window.location.protocol === "https:"
       ? "wss:"
       : "ws:";
-  const host =
-    typeof window !== "undefined" ? window.location.host : "localhost";
+  const host = typeof window !== "undefined"
+    ? window.location.host
+    : "localhost";
   return `${protocol}//${host}${url}`;
 }
 
@@ -820,9 +851,15 @@ export function useRpcSse(
         const msg = JSON.parse(event.data);
         // FromServer Chunk messages carry stream values.
         // values is NonEmptyReadonlyArray<SuccessChunk> — for WatchTodos, each is Todo[].
-        if (msg._tag === "Chunk" && Array.isArray(msg.values) && msg.values.length > 0) {
+        if (
+          msg._tag === "Chunk" && Array.isArray(msg.values) &&
+          msg.values.length > 0
+        ) {
           // Emit the last value in the batch (most recent state).
-          setState({ _tag: "connected", latest: msg.values[msg.values.length - 1] });
+          setState({
+            _tag: "connected",
+            latest: msg.values[msg.values.length - 1],
+          });
         } else if (msg._tag === "Exit" || msg._tag === "Defect") {
           source.close();
           setState({ _tag: "closed" });
@@ -873,7 +910,12 @@ export function useRpcSse(
 // deno-lint-ignore no-explicit-any
 export function useRpcPolled<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
-  options: { url: string; procedure: string; interval?: number; payload?: unknown },
+  options: {
+    url: string;
+    procedure: string;
+    interval?: number;
+    payload?: unknown;
+  },
   // deno-lint-ignore no-explicit-any
 ): RpcStreamState<any, any> {
   const [state, setState] = useState<RpcStreamState<unknown, unknown>>({
@@ -898,7 +940,9 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
           // deno-lint-ignore no-explicit-any
           const client = yield* RpcClient.make(group as any);
           return yield* (
-            (client as unknown as RpcProxyCall)[options.procedure](options.payload) as Effect.Effect<unknown, unknown, never>
+            (client as unknown as RpcProxyCall)[options.procedure](
+              options.payload,
+            ) as Effect.Effect<unknown, unknown, never>
           );
         }),
         // deno-lint-ignore no-explicit-any
@@ -929,5 +973,11 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
   return state;
 }
 
-// Re-export atom hooks from island-atoms.ts
-export { useAtom, useAtomValue, useAtomSet } from "./island-atoms.ts";
+// Re-export atom hooks and hydration utilities from island-atoms.ts
+export {
+  _checkOrphanedKeys,
+  initAtomHydration,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from "./island-atoms.ts";

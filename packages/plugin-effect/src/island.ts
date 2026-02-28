@@ -6,4 +6,10 @@
  * Prefer importing from @fresh/effect/island directly.
  */
 
-export { useAtom, useAtomValue, useAtomSet } from "@fresh/effect/island";
+export {
+  _checkOrphanedKeys,
+  initAtomHydration,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from "@fresh/effect/island";
