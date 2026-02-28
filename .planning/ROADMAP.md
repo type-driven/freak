@@ -173,6 +173,8 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [x] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcResult()` / `useRpcStream()` in islands
 - [~] **Phase 10: Migration + Example** — skipped (MIG-02 satisfied by Phase 9; no external users require MIG-01 compat shim)
 - [x] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
+- [ ] **Phase 12: Atom-Based Island Hydration** — Research replacing signal hydration with atom hydration, decision document
+- [ ] **Phase 13: Benchmarks — Freak vs Fresh** — Repeatable benchmark suite, published results report
 
 ## v2 Phase Details
 
@@ -353,6 +355,59 @@ Plans:
 
 ---
 
+### Phase 12: Atom-Based Island Hydration
+
+**Goal**: Research replacing Fresh's signal-based island hydration with atom-based
+hydration — since Freak uses Effect v4 atoms instead of Preact signals, the existing
+serialization/reviver pipeline may have a mismatch. Produce a decision document covering
+what needs to change, what the new hydration contract looks like, and whether a phased
+migration or full replacement is preferred.
+
+**Depends on**: Phase 11 (v2 complete)
+
+**Requirements**: TBD (to be defined during planning)
+
+**Success Criteria** (what must be TRUE):
+1. The current hydration path (stringify.ts / reviver.ts / island props) is fully
+   documented — how atoms are serialized server-side and rehydrated client-side today.
+2. A decision document records whether atom-based hydration replaces signal hydration
+   entirely, layers on top, or requires a new protocol — with rationale.
+3. Any breaking changes to the existing `initAtomHydration()` / `setAtom()` API surface
+   are identified and a migration path is proposed.
+
+**Plans**: 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
+
+---
+
+### Phase 13: Benchmarks — Freak vs Fresh
+
+**Goal**: Establish a repeatable benchmark suite comparing Freak against upstream Fresh 2
+across key performance dimensions (handler throughput, build time, bundle size, startup
+time) — results published as `packages/benchmarks/RESULTS.md`.
+
+**Depends on**: Phase 11 (v2 complete; can run in parallel with Phase 12)
+
+**Requirements**: BENCH-01, BENCH-02, BENCH-03
+
+**Success Criteria** (what must be TRUE):
+1. A benchmark harness in `packages/benchmarks/` runs against both Freak and upstream
+   Fresh 2 and produces consistent, reproducible numbers.
+2. Results are published as `packages/benchmarks/RESULTS.md` with methodology, raw
+   numbers, and a summary table.
+3. Any performance regressions introduced by Freak's Effect integration are identified
+   and documented with root-cause notes.
+
+**Plans**: 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Scaffold three benchmark apps (freak-app, freak-plain-app, upstream-app) with parity routes
+- [ ] 13-02-PLAN.md — Benchmark scripts, orchestrator, run suite, publish RESULTS.md
+
+---
+
 ## Progress
 
 **Execution Order**: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
@@ -373,7 +428,9 @@ Plans:
 | 9. RPC Integration | 2/2 | Complete | 2026-02-27 |
 | 10. Migration + Example | N/A | Skipped | 2026-02-27 |
 | 11. Micro-App Architecture | 1/1 | Complete | 2026-02-27 |
+| 12. Atom-Based Island Hydration | 0/TBD | Not Started | — |
+| 13. Benchmarks — Freak vs Fresh | 0/2 | Not Started | — |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-27 -- Phase 11 complete: 11-DECISION.md written; programmatic plugin pattern adopted as sub-app composition model*
+*Last updated: 2026-02-28 -- Phase 13 planned: 2 plans in 2 waves*
