@@ -89,7 +89,7 @@ export async function runStartupBench(
       }).spawn();
 
       try {
-        const ready = await waitForServer(`http://localhost:${app.port}/`);
+        const ready = await waitForServer(`http://127.0.0.1:${app.port}/`);
         const end = performance.now();
 
         if (!ready) {

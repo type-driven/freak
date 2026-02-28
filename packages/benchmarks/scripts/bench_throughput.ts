@@ -85,8 +85,8 @@ export async function runThroughputBench(
     }).spawn();
 
     try {
-      // Poll until ready
-      const ready = await waitForServer(`http://localhost:${app.port}/`);
+      // Poll until ready (use 127.0.0.1 to avoid IPv6 issues)
+      const ready = await waitForServer(`http://127.0.0.1:${app.port}/`);
       if (!ready) {
         throw new Error(`Server for ${app.name} did not start in time`);
       }
@@ -99,7 +99,8 @@ export async function runThroughputBench(
           "-n", "2000",
           "-c", "10",
           "--no-tui",
-          `http://localhost:${app.port}/api/todos`,
+          "--ipv4",
+          `http://127.0.0.1:${app.port}/api/todos`,
         ],
         stdout: "null",
         stderr: "null",
@@ -114,8 +115,9 @@ export async function runThroughputBench(
           "-n", "10000",
           "-c", "50",
           "--no-tui",
+          "--ipv4",
           "--output-format", "json",
-          `http://localhost:${app.port}/api/todos`,
+          `http://127.0.0.1:${app.port}/api/todos`,
         ],
         stdout: "piped",
         stderr: "null",
