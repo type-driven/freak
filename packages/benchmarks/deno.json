@@ -1,0 +1,15 @@
+{
+  "name": "@fresh/benchmarks",
+  "version": "0.1.0",
+  "tasks": {
+    "bench": "deno run -A scripts/bench.ts",
+    "bench:throughput": "deno run -A scripts/bench_throughput.ts",
+    "bench:build": "deno run -A scripts/bench_build.ts",
+    "bench:bundle": "deno run -A scripts/bench_bundle.ts",
+    "bench:startup": "deno run -A scripts/bench_startup.ts",
+    "build:all": "deno task build:freak && deno task build:freak-plain && deno task build:upstream",
+    "build:freak": "deno run -A apps/freak-app/dev.ts build",
+    "build:freak-plain": "deno run -A apps/freak-plain-app/dev.ts build",
+    "build:upstream": "deno run -A apps/upstream-app/dev.ts build"
+  }
+}

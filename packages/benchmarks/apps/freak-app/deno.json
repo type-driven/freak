@@ -1,0 +1,27 @@
+{
+  "name": "@fresh/benchmark-freak-app",
+  "version": "0.1.0",
+  "imports": {
+    "@fresh/core": "../../../fresh/src/mod.ts",
+    "@fresh/core/dev": "../../../fresh/src/dev/mod.ts",
+    "@fresh/core/runtime": "../../../fresh/src/runtime/shared.ts",
+    "@fresh/effect": "../../../effect/src/mod.ts",
+    "effect": "npm:effect@^4.0.0-beta.20",
+    "preact": "npm:preact@^10.28.3",
+    "preact/hooks": "npm:preact@^10.28.3/hooks"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "dom.asynciterable", "deno.ns", "deno.unstable"],
+    "jsx": "precompile",
+    "jsxImportSource": "preact",
+    "jsxPrecompileSkipElements": [
+      "a", "img", "source", "body", "html", "head", "title",
+      "meta", "script", "link", "style", "base", "noscript", "template"
+    ]
+  },
+  "tasks": {
+    "dev": "deno run -A --watch dev.ts",
+    "build": "deno run -A dev.ts build",
+    "start": "deno serve -A _fresh/server.js"
+  }
+}
