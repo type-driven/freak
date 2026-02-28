@@ -152,7 +152,7 @@ export class Builder<State = any> {
   }
 
   async listen(
-    importApp: () => Promise<{ app: App<State> } | App<State>>,
+    importApp: () => Promise<App<State> | { app: unknown }>,
     options: ListenOptions = {},
   ): Promise<void> {
     // Run update check in background
@@ -162,10 +162,15 @@ export class Builder<State = any> {
 
     await this.#crawlFsItems();
 
-    let app = await importApp();
-    if (!(app instanceof App) && "app" in app) {
-      app = app.app;
+    // Unwrap any number of wrapper objects that expose an `.app` property.
+    // This supports both plain `App<State>` exports and wrapper classes like
+    // EffectApp that compose App<State> rather than extending it.
+    // deno-lint-ignore no-explicit-any
+    let rawApp: any = await importApp();
+    while (!(rawApp instanceof App) && rawApp != null && "app" in rawApp) {
+      rawApp = rawApp.app;
     }
+    const app: App<State> = rawApp;
 
     const buildCache = new MemoryBuildCache<State>(
       this.config,

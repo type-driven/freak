@@ -93,8 +93,11 @@ export class EffectApp<State, AppR> {
   }
 
   /**
-   * Access the underlying App instance. Useful for passing to
-   * setBuildCache() and other @fresh/core/internal functions.
+   * Access the underlying `App<State>` instance.
+   *
+   * Not needed for normal use — `Builder.listen()` unwraps EffectApp
+   * automatically. Only necessary when calling `@fresh/core/internal`
+   * functions (e.g. `setBuildCache`) that require a bare `App<State>`.
    */
   get app(): App<State> {
     return this.#app;

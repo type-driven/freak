@@ -57,13 +57,6 @@ effectApp.rpc({
   handlerLayer: RpcWithDeps,
 });
 
-// Export the underlying App<State> — Fresh's Builder.listen() calls setBuildCache()
-// on the exported app, which requires an App instance (not EffectApp wrapper).
-// EffectApp wires the Effect runner into the inner App at construction time,
-// so the inner App already handles Effect-returning handlers correctly.
-// Atom hydration (initAtomHydrationMap + setAtomHydrationHook) is wired
-// automatically by createEffectApp().
 export const app = effectApp
   .use(staticFiles())
-  .fsRoutes()
-  .app;
+  .fsRoutes();

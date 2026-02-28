@@ -110,25 +110,26 @@ in the browser.
 Create a new file at `islands/Countdown.tsx`
 
 ```tsx islands/Countdown.tsx
-import { useSignal } from "@preact/signals";
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
-export function Countdown(props: { target: string }) {
-  const count = useSignal(10);
+export function Countdown(_props: { target: string }) {
+  const [count, setCount] = useState(10);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (count.value <= 0) {
-        clearInterval(timer);
-      }
-
-      count.value -= 1;
+      setCount((n) => {
+        if (n <= 0) {
+          clearInterval(timer);
+          return 0;
+        }
+        return n - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
-  if (count.value <= 0) {
+  if (count <= 0) {
     return <p>Countdown: 🎉</p>;
   }
 

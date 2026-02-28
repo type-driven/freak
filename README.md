@@ -34,8 +34,7 @@ const app = createEffectApp({ layer: AppLayer });
 
 export const appInstance = app
   .use(staticFiles())
-  .fsRoutes()
-  .app; // .app exposes the inner App<State> for Builder.listen()
+  .fsRoutes();
 ```
 
 `createEffectApp({ layer })` creates a `ManagedRuntime` from your Layer and:
