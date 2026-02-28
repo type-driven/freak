@@ -398,7 +398,10 @@ export class EffectApp<State, AppR> {
       // BigInt fields (requestId) are serialized as strings; the client's parser.decode
       // accepts string requestIds (as produced by RpcSerialization.layerNdjson).
       const appRuntime = this.#runtime;
-      this.#app.all(options.path, async (ctx) => {
+      // RpcClient.layerProtocolHttp posts to "" (empty sub-path). joinSegments adds
+      // a "/" separator when neither side has a slash, so the actual request lands
+      // on "path/" (trailing slash). Register both forms — same as the "http" protocol.
+      const httpStreamHandler = async (ctx: Context<State>) => {
         if (ctx.req.method !== "POST") {
           return new Response("Method Not Allowed — HTTP-stream endpoints require POST", {
             status: 405,
@@ -484,7 +487,13 @@ export class EffectApp<State, AppR> {
             "Cache-Control": "no-cache",
           },
         });
-      });
+      };
+      // deno-lint-ignore no-explicit-any
+      this.#app.all(options.path, httpStreamHandler as any);
+      // Also register the trailing-slash variant — RpcClient posts to "path/" due to
+      // joinSegments(path, "") adding a separator slash when path has no trailing slash.
+      // deno-lint-ignore no-explicit-any
+      this.#app.all(options.path + "/", httpStreamHandler as any);
       return this;
     } else if (options.protocol === "sse") {
       // SSE protocol: GET endpoint streaming responses as Server-Sent Events.
