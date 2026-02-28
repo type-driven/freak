@@ -1,7 +1,8 @@
-import { useState } from "preact/hooks";
+import { useAtom } from "@fresh/effect/island";
+import { counterAtom } from "../atoms.ts";
 
 export default function Counter() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useAtom(counterAtom);
   return (
     <div>
       <p>Count: {count}</p>

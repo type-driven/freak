@@ -6,7 +6,11 @@
     "@fresh/core/dev": "../../../fresh/src/dev/mod.ts",
     "@fresh/core/runtime": "../../../fresh/src/runtime/shared.ts",
     "@fresh/effect": "../../../effect/src/mod.ts",
+    "@fresh/effect/island": "../../../effect/src/island.ts",
     "effect": "npm:effect@^4.0.0-beta.20",
+    "effect/Schema": "npm:effect@^4.0.0-beta.20/Schema",
+    "effect/unstable/reactivity/Atom": "npm:effect@^4.0.0-beta.20/unstable/reactivity/Atom",
+    "@effect/platform-browser": "npm:@effect/platform-browser@4.0.0-beta.13",
     "preact": "npm:preact@^10.28.3",
     "preact/hooks": "npm:preact@^10.28.3/hooks"
   },

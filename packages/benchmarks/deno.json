@@ -7,6 +7,7 @@
     "bench:build": "deno run -A scripts/bench_build.ts",
     "bench:bundle": "deno run -A scripts/bench_bundle.ts",
     "bench:startup": "deno run -A scripts/bench_startup.ts",
+    "bench:ssr": "deno run -A scripts/bench_ssr.ts",
     "build:all": "deno task build:freak && deno task build:freak-plain && deno task build:upstream",
     "build:freak": "deno run -A apps/freak-app/dev.ts build",
     "build:freak-plain": "deno run -A apps/freak-plain-app/dev.ts build",
