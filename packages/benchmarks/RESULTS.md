@@ -11,10 +11,10 @@
 
 | Dimension | Upstream Fresh | Freak (plain) | Freak (Effect) | Effect overhead |
 |-----------|---------------|---------------|----------------|-----------------|
-| Throughput (req/s) | 78518 | 79158 | 68933 | +12.9% |
-| Build time (s) | 0.16 | 0.16 | 0.16 | +0.4% |
+| Throughput (req/s) | 76186 | 79144 | 67906 | +14.2% |
+| Build time (s) | 0.16 | 0.16 | 0.16 | -0.1% |
 | Bundle size (KB gzip) | 28.1 | 28.1 | 28.1 | +0.0 KB |
-| Startup time (ms) | 56 | 56 | 160 | +104 ms |
+| Startup time (ms) | 56 | 56 | 161 | +105 ms |
 
 ## Methodology
 
@@ -29,9 +29,9 @@
 ### Handler Throughput
 | App | req/s | p50 (ms) | p90 (ms) | p99 (ms) |
 |-----|-------|----------|----------|----------|
-| upstream | 78518 | 0.59 | 0.78 | 2.05 |
-| freak-plain | 79158 | 0.58 | 0.80 | 2.09 |
-| freak-effect | 68933 | 0.68 | 0.85 | 1.73 |
+| upstream | 76186 | 0.59 | 0.80 | 2.09 |
+| freak-plain | 79144 | 0.57 | 0.78 | 1.88 |
+| freak-effect | 67906 | 0.68 | 0.87 | 2.50 |
 
 ### Build Time
 | App | Mean (s) | Stddev (s) | Runs |
@@ -52,13 +52,13 @@
 |-----|-----------|------|
 | upstream | 56 | 5 |
 | freak-plain | 56 | 5 |
-| freak-effect | 160 | 5 |
+| freak-effect | 161 | 5 |
 
 ## Notes on Effect Overhead
 
 ### Throughput
 
-The 12.9% throughput reduction (freak-effect vs freak-plain) comes from three sources in the Effect runtime dispatch path.
+The 14.2% throughput reduction (freak-effect vs freak-plain) comes from three sources in the Effect runtime dispatch path.
 
 **ManagedRuntime dispatch path:** Each request to the freak-effect app enters `ManagedRuntime.runPromise(effect)`. This allocates a new Fiber object, registers it with the Effect scheduler, and suspends until the scheduler resumes it with the result. Even for a trivial handler that returns a static JSON response, this round-trip through the Effect fiber scheduler adds per-request overhead that plain function calls avoid entirely.
 
@@ -70,7 +70,7 @@ The 12.9% throughput reduction (freak-effect vs freak-plain) comes from three so
 
 ### Build Time
 
-Build time difference of 0.4% between freak-effect and upstream is within normal variance (±1 stddev overlap between runs).
+Build time difference of -0.1% between freak-effect and upstream is within normal variance (±1 stddev overlap between runs).
 
 The Effect package graph adds npm modules that esbuild must resolve, parse, and tree-shake during the AOT build. Effect is designed for tree-shaking, so unused modules are excluded, but the resolution cost is still present.
 
@@ -80,6 +80,6 @@ Client bundle size is identical across all three apps (delta: 0.0 KB gzip). This
 
 ### Startup Time
 
-Startup time overhead of 104ms is acceptable for a server process. The extra time is dominated by Deno's module graph resolution for the Effect import tree — once loaded, modules are cached in the Deno V8 isolate.
+Startup time overhead of 105ms is acceptable for a server process. The extra time is dominated by Deno's module graph resolution for the Effect import tree — once loaded, modules are cached in the Deno V8 isolate.
 
 The ManagedRuntime is constructed at module load time (`createEffectApp({ layer: TodoLayer })`). For a trivial TodoLayer (in-memory Map), this is a synchronous operation that completes in microseconds. The measurable startup overhead is almost entirely from Deno's module graph resolution — loading and JIT-compiling the Effect package tree — not from Effect's own initialization logic.
