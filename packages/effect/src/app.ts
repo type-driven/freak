@@ -19,7 +19,7 @@ import type { Context } from "@fresh/core";
 import type { Middleware, MiddlewareFn } from "@fresh/core";
 import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
 import { setEffectRunner } from "@fresh/core/internal";
-import type { EffectRunner } from "@fresh/core/internal";
+import type { EffectRunner, Route, RouteComponent } from "@fresh/core/internal";
 import { ManagedRuntime, Layer, Effect } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
@@ -131,50 +131,40 @@ export class EffectApp<State, AppR> {
   /**
    * Set the app's 404 error handler.
    */
-  // deno-lint-ignore no-explicit-any
-  notFound(routeOrMiddleware: any): this {
-    // deno-lint-ignore no-explicit-any
-    this.#app.notFound(routeOrMiddleware as any);
+  notFound(routeOrMiddleware: Route<State> | Middleware<State>): this {
+    this.#app.notFound(routeOrMiddleware as Route<State>);
     return this;
   }
 
   /**
    * Set the app's error handler for a given path.
    */
-  // deno-lint-ignore no-explicit-any
-  onError(path: string, routeOrMiddleware: any): this {
-    // deno-lint-ignore no-explicit-any
-    this.#app.onError(path, routeOrMiddleware as any);
+  onError(path: string, routeOrMiddleware: Route<State> | Middleware<State>): this {
+    this.#app.onError(path, routeOrMiddleware as Route<State>);
     return this;
   }
 
   /**
    * Set the app wrapper component (rendered around all routes).
    */
-  // deno-lint-ignore no-explicit-any
-  appWrapper(component: any): this {
-    // deno-lint-ignore no-explicit-any
-    this.#app.appWrapper(component as any);
+  appWrapper(component: RouteComponent<State>): this {
+    this.#app.appWrapper(component as RouteComponent<State>);
     return this;
   }
 
   /**
    * Register a layout component for a given path.
    */
-  // deno-lint-ignore no-explicit-any
-  layout(path: string, component: any, config?: LayoutConfig): this {
-    // deno-lint-ignore no-explicit-any
-    this.#app.layout(path, component as any, config);
+  layout(path: string, component: RouteComponent<State>, config?: LayoutConfig): this {
+    this.#app.layout(path, component as RouteComponent<State>, config);
     return this;
   }
 
   /**
    * Register a file-based route module at a given path.
    */
-  // deno-lint-ignore no-explicit-any
-  route(path: string, route: any, config?: RouteConfig): this {
-    // deno-lint-ignore no-explicit-any
-    this.#app.route(path, route as any, config);
+  route(path: string, route: MaybeLazy<Route<State>>, config?: RouteConfig): this {
+    this.#app.route(path, route as MaybeLazy<Route<State>>, config);
     return this;
   }
 
@@ -372,11 +362,13 @@ export class EffectApp<State, AppR> {
 
       this.#rpcDisposers.push(dispose);
 
-      // Register the exact path only. RpcClient.layerProtocolHttp posts to the
-      // base URL directly (empty relative path), so only the exact mount point is needed.
-      // A "/*" wildcard registration is intentionally omitted: in Fresh's router,
-      // "path/*" matches both the exact path AND sub-paths, which would cause every
-      // request to run the handler twice (producing duplicate RPC responses).
+      // RpcClient.layerProtocolHttp uses HttpClientRequest.prependUrl(options.url) and
+      // then calls client.post("") (empty sub-path). The internal joinSegments helper
+      // adds a "/" separator when neither side has a slash, so the actual request lands
+      // on "path/" (trailing slash). We register both forms to handle this.
+      //
+      // A "/*" wildcard is intentionally omitted: Fresh's router matches "path/*"
+      // against the exact path too, causing double execution (duplicate RPC responses).
       const httpHandler = async (ctx: Context<State>) => {
         const url = new URL(ctx.req.url);
         url.pathname = url.pathname.slice(options.path.length) || "/";
@@ -386,6 +378,10 @@ export class EffectApp<State, AppR> {
       };
       // deno-lint-ignore no-explicit-any
       this.#app.all(options.path, httpHandler as any);
+      // Also register the trailing-slash variant — RpcClient posts to "path/" due to
+      // joinSegments(path, "") adding a separator slash when path has no trailing slash.
+      // deno-lint-ignore no-explicit-any
+      this.#app.all(options.path + "/", httpHandler as any);
     } else if (options.protocol === "http-stream") {
       // HTTP-stream protocol: POST endpoint streaming responses as NDJSON.
       //
@@ -468,8 +464,7 @@ export class EffectApp<State, AppR> {
           });
 
           // Block until the stream ends (Exit/Defect received) or the client disconnects.
-          // deno-lint-ignore no-explicit-any
-          yield* (Effect as any).callback((resume: any) => {
+          yield* Effect.callback<void>((resume) => {
             done.then(() => resume(Effect.void));
             ctx.req.signal?.addEventListener("abort", () => resume(Effect.void), { once: true });
             if (ctx.req.signal?.aborted) resume(Effect.void);
@@ -560,8 +555,7 @@ export class EffectApp<State, AppR> {
           });
 
           // Block until the client disconnects (AbortSignal fires on connection close).
-          // deno-lint-ignore no-explicit-any
-          yield* (Effect as any).callback((resume: any) => {
+          yield* Effect.callback<void>((resume) => {
             ctx.req.signal?.addEventListener(
               "abort",
               () => resume(Effect.void),

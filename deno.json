@@ -55,6 +55,7 @@
     "@types/pg": "npm:@types/pg@^8.15.5",
     "@types/prismjs": "npm:@types/prismjs@^1.26.5",
     "docsearch": "https://esm.sh/@docsearch/js@3.5.2?target=es2020",
+    "effect": "npm:effect@^4.0.0-beta.20",
     "esbuild": "npm:esbuild@0.25.7",
     "esbuild-wasm": "npm:esbuild-wasm@0.25.7",
     "fresh": "jsr:@fresh/core@^2.0.0",

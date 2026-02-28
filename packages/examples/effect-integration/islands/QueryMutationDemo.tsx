@@ -13,14 +13,13 @@
 import { useState } from "preact/hooks";
 import {
   getCacheData,
+  makeRpcHttpLayer,
   setCacheData,
   useMutation,
   useRpcQuery,
 } from "@fresh/effect/island";
 import { Effect } from "effect";
-import { Layer } from "effect";
-import { RpcClient, RpcSerialization } from "effect/unstable/rpc";
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
+import { RpcClient } from "effect/unstable/rpc";
 import { TodoRpc } from "../services/rpc.ts";
 import type { Todo } from "../types.ts";
 
@@ -28,27 +27,29 @@ import type { Todo } from "../types.ts";
 const TODOS_KEY = "todos";
 const RPC_URL = "/rpc/todos";
 
+// Built once at module load; shared memoMap in getBrowserRuntime handles dedup.
+const rpcLayer = makeRpcHttpLayer(RPC_URL);
+
 // ---------------------------------------------------------------------------
-// Helpers
+// Typed mutation helpers
 // ---------------------------------------------------------------------------
 
-/** Build a fully-satisfied RPC effect for a single call. */
-// deno-lint-ignore no-explicit-any
-function makeRpcEffect<A>(procedure: string, payload?: unknown): Effect.Effect<A, any, never> {
-  const layer = RpcClient.layerProtocolHttp({ url: RPC_URL }).pipe(
-    Layer.provide(RpcSerialization.layerJson),
-    Layer.provide(FetchHttpClient.layer),
-  // deno-lint-ignore no-explicit-any
-  ) as any;
+function createTodoEffect(text: string): Effect.Effect<Todo, unknown, never> {
   return Effect.scoped(
     Effect.gen(function* () {
-      // deno-lint-ignore no-explicit-any
-      const client = yield* RpcClient.make(TodoRpc as any);
-      // deno-lint-ignore no-explicit-any
-      return yield* (client as any)[procedure](payload);
+      const client = yield* RpcClient.make(TodoRpc);
+      return yield* client.CreateTodo({ text });
     }),
-  // deno-lint-ignore no-explicit-any
-  ).pipe(Effect.provide(layer)) as any;
+  ).pipe(Effect.provide(rpcLayer)) as Effect.Effect<Todo, unknown, never>;
+}
+
+function deleteTodoEffect(id: string): Effect.Effect<void, unknown, never> {
+  return Effect.scoped(
+    Effect.gen(function* () {
+      const client = yield* RpcClient.make(TodoRpc);
+      yield* client.DeleteTodo({ id });
+    }),
+  ).pipe(Effect.provide(rpcLayer)) as Effect.Effect<void, unknown, never>;
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +73,7 @@ export default function QueryMutationDemo() {
   // onError: rolls back to the previous list if the server call fails.
   // invalidates: after success, marks the cache stale → useRpcQuery refetches.
   const createMutation = useMutation(
-    (text: string) => makeRpcEffect<Todo>("CreateTodo", { text }),
+    (text: string) => createTodoEffect(text),
     {
       onMutate: (text) => {
         const prev = getCacheData<Todo[]>(TODOS_KEY);
@@ -89,7 +90,7 @@ export default function QueryMutationDemo() {
 
   // ── 3. useMutation: DeleteTodo with optimistic update ──────────────────────
   const deleteMutation = useMutation(
-    (id: string) => makeRpcEffect<void>("DeleteTodo", { id }),
+    (id: string) => deleteTodoEffect(id),
     {
       onMutate: (id) => {
         const prev = getCacheData<Todo[]>(TODOS_KEY);

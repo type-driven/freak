@@ -94,6 +94,7 @@
     "npm:autoprefixer@^10.4.21": "10.4.21_postcss@8.5.6",
     "npm:cssnano@^6.1.2": "6.1.2_postcss@8.5.6",
     "npm:effect@4.0.0-beta.0": "4.0.0-beta.0",
+    "npm:effect@^4.0.0-beta.20": "4.0.0-beta.20",
     "npm:esbuild-wasm@0.25.7": "0.25.7",
     "npm:esbuild-wasm@~0.25.11": "0.25.12",
     "npm:esbuild@0.25.7": "0.25.7",
@@ -583,7 +584,7 @@
     "@effect/platform-browser@4.0.0-beta.13_effect@4.0.0-beta.0": {
       "integrity": "sha512-d3thY1KRjXbHnfBdPHSiKObFLsOTO34CTTsgC2+fxanNrGZNTExyOfuHQKeziZyzvrnN1nNnZWk8uqIUOdWFRg==",
       "dependencies": [
-        "effect",
+        "effect@4.0.0-beta.0",
         "multipasta"
       ]
     },
@@ -2455,6 +2456,21 @@
         "yaml"
       ]
     },
+    "effect@4.0.0-beta.20": {
+      "integrity": "sha512-wVkh3cXtaaxyRWnjTHE4rnE6FTQ+a6SLKnrgME7yLsllmOXDnsMYRv81Z1BTLYLkIjvsMAP2UaMi/V4rnFZ+AQ==",
+      "dependencies": [
+        "@standard-schema/spec",
+        "fast-check",
+        "find-my-way-ts",
+        "ini",
+        "kubernetes-types",
+        "msgpackr",
+        "multipasta",
+        "toml",
+        "uuid",
+        "yaml"
+      ]
+    },
     "electron-to-chromium@1.5.243": {
       "integrity": "sha512-ZCphxFW3Q1TVhcgS9blfut1PX8lusVi2SvXQgmEEnK4TCmE1JhH2JkjJN+DNt0pJJwfBri5AROBnz2b/C+YU9g=="
     },
@@ -4173,6 +4189,7 @@
       "npm:@types/node@^24.3.0",
       "npm:@types/pg@^8.15.5",
       "npm:@types/prismjs@^1.26.5",
+      "npm:effect@^4.0.0-beta.20",
       "npm:esbuild-wasm@0.25.7",
       "npm:esbuild@0.25.7",
       "npm:github-slugger@2",
