@@ -9,7 +9,7 @@ const FRESH_VERSION = "2.2.1";
 const FRESH_TAILWIND_VERSION = "1.0.0";
 const FRESH_VITE_PLUGIN = "1.0.0";
 const PREACT_VERSION = "10.28.3";
-const PREACT_SIGNALS_VERSION = "2.7.1";
+
 const TAILWINDCSS_VERSION = "4.1.10";
 const TAILWINDCSS_POSTCSS_VERSION = "4.1.10";
 const POSTCSS_VERSION = "8.5.6";
@@ -458,14 +458,11 @@ export interface State {
 export const define = createDefine<State>();`;
   await writeFile("utils.ts", UTILS_TS);
 
-  const ROUTES_HOME = `import { useSignal } from "@preact/signals";
-import { Head } from "fresh/runtime";
+  const ROUTES_HOME = `import { Head } from "fresh/runtime";
 import { define } from "../utils.ts";
 import Counter from "../islands/Counter.tsx";
 
 export default define.page(function Home(ctx) {
-  const count = useSignal(3);
-
   console.log("Shared value " + ctx.state.shared);
 
   return (
@@ -486,7 +483,7 @@ export default define.page(function Home(ctx) {
           Try updating this message in the
           <code class="mx-2">./routes/index.tsx</code> file, and refresh.
         </p>
-        <Counter count={count} />
+        <Counter start={3} />
       </div>
     </div>
   );
@@ -525,19 +522,20 @@ export const handler = define.handlers({
 });`;
   await writeFile("routes/api/[name].tsx", API_NAME);
 
-  const ISLANDS_COUNTER_TSX = `import type { Signal } from "@preact/signals";
+  const ISLANDS_COUNTER_TSX = `import { useState } from "preact/hooks";
 import { Button } from "../components/Button.tsx";
 
 interface CounterProps {
-  count: Signal<number>;
+  start: number;
 }
 
 export default function Counter(props: CounterProps) {
+  const [count, setCount] = useState(props.start);
   return (
     <div class="flex gap-8 py-6">
-      <Button id="decrement" onClick={() => props.count.value -= 1}>-1</Button>
-      <p class="text-3xl tabular-nums">{props.count}</p>
-      <Button id="increment" onClick={() => props.count.value += 1}>+1</Button>
+      <Button id="decrement" onClick={() => setCount(count - 1)}>-1</Button>
+      <p class="text-3xl tabular-nums">{count}</p>
+      <Button id="increment" onClick={() => setCount(count + 1)}>+1</Button>
     </div>
   );
 }`;
@@ -578,7 +576,6 @@ if (Deno.args.includes("build")) {
       "@/": "./",
       "fresh": `jsr:@fresh/core@^${freshVersion}`,
       "preact": `npm:preact@^${PREACT_VERSION}`,
-      "@preact/signals": `npm:@preact/signals@^${PREACT_SIGNALS_VERSION}`,
     } as Record<string, string>,
     compilerOptions: {
       lib: ["dom", "dom.asynciterable", "dom.iterable", "deno.ns"],
