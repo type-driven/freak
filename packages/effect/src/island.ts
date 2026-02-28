@@ -13,7 +13,7 @@
  * - `useRpcResult(group, { url })` — request/response over HTTP, returns `[state, client]`
  * - `useRpcStream(group, { url })` — server-push streaming over WebSocket
  * - `useRpcHttpStream(group, { url })` — server-push streaming over HTTP NDJSON
- * - `useRpcSse(group, { url })` — server-push streaming over SSE
+ * - `useRpcSse({ url, procedure })` — server-push streaming over SSE (native EventSource)
  * - `useRpcPolled(group, { url })` — repeated HTTP polling on a schedule
  *
  * A shared `ManagedRuntime` (browser singleton) is created on first use and
@@ -243,14 +243,12 @@ export function invalidateQuery(key: string): void {
  * @param effect - A fully-satisfied Effect to run on fetch
  * @param options.enabled - If false, never fetch automatically (default: true)
  * @param options.runner - Optional executor; defaults to `Effect.runPromise`
- * @param options.staleTime - Not yet implemented; reserved for future use
  */
 export function useQuery<A, E>(
   key: string,
   effect: Effect.Effect<A, E, never>,
   options?: {
     enabled?: boolean;
-    staleTime?: number;
     /**
      * Custom executor for the effect. Defaults to `Effect.runPromise`.
      * Pass `(e) => runtime.runPromise(e)` to run through a `ManagedRuntime`
@@ -641,6 +639,26 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// resolveWsUrl helper
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Convert a relative path to an absolute WebSocket URL using window.location.
+ * Absolute ws:// or wss:// URLs are returned unchanged.
+ * Guards against SSR (window undefined) by falling back to ws://localhost.
+ */
+function resolveWsUrl(url: string): string {
+  if (url.startsWith("ws://") || url.startsWith("wss://")) return url;
+  const protocol =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "wss:"
+      : "ws:";
+  const host =
+    typeof window !== "undefined" ? window.location.host : "localhost";
+  return `${protocol}//${host}${url}`;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // useRpcStream
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -653,14 +671,17 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
  * The `procedure` must be a streaming procedure defined with `stream: true`
  * in the RpcGroup (e.g., `Rpc.make("WatchTodos", { success: ..., stream: true })`).
  *
+ * Supports relative paths (e.g. `/rpc/todos/ws`) — they are resolved against
+ * `window.location` with the appropriate `ws:` / `wss:` protocol.
+ *
  * @param group - The RpcGroup definition (created with `RpcGroup.make(...)`)
- * @param options.url - The full WebSocket URL (e.g., "ws://localhost:8000/rpc/todos/ws")
+ * @param options.url - WebSocket URL or relative path (e.g., "/rpc/todos/ws")
  * @param options.procedure - The name of the streaming procedure to subscribe to
  *
  * @example
  * ```typescript
  * const streamState = useRpcStream(TodoRpc, {
- *   url: "ws://localhost:8000/rpc/todos/ws",
+ *   url: "/rpc/todos/ws",
  *   procedure: "WatchTodos",
  * });
  *
@@ -674,16 +695,17 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: { url: string; procedure: string; payload?: unknown },
 ): RpcStreamState<any, any> {
+  const wsUrl = resolveWsUrl(options.url);
   const layer = RpcClient.layerProtocolSocket().pipe(
     Layer.provide(RpcSerialization.layerNdjson),
-    Layer.provide(BrowserSocket.layerWebSocket(options.url)),
+    Layer.provide(BrowserSocket.layerWebSocket(wsUrl)),
   );
   return useStreamingRpc(
     group,
     layer,
     options.procedure,
     options.payload,
-    [options.url, options.procedure, options.payload],
+    [wsUrl, options.procedure, options.payload],
   );
 }
 
@@ -697,6 +719,9 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
  * Uses a long-lived HTTP POST request with a streaming response body. The server
  * must be mounted with `protocol: "http-stream"` so it uses `layerNdjson` (framed),
  * which streams each chunk as it arrives rather than buffering the entire response.
+ *
+ * Relative paths (e.g. `/rpc/todos/stream`) are supported — FetchHttpClient
+ * resolves them against `window.location` automatically.
  *
  * Compared to `useRpcStream` (WebSocket):
  * - No WebSocket upgrade — works in all HTTP/1.1 environments
@@ -734,9 +759,13 @@ export function useRpcHttpStream<Rpcs extends Rpc.Any>(
 /**
  * Preact hook for streaming RPC over Server-Sent Events (SSE).
  *
- * Uses the browser's native `EventSource` API to receive server-push events.
- * The server must be mounted with `protocol: "sse"`. The procedure name is sent
- * as `?p=ProcedureName`; optional payload as `?payload=<json-encoded>`.
+ * Uses the browser's native `EventSource` API (not Effect RPC machinery) to
+ * receive server-push events. The server must be mounted with `protocol: "sse"`.
+ * The procedure name is sent as `?p=ProcedureName`; optional payload as
+ * `?payload=<json-encoded>`.
+ *
+ * Note: procedure names are not type-checked against any RpcGroup — this hook
+ * operates on raw EventSource and parses the wire format directly.
  *
  * SSE advantages over WebSocket:
  * - Native browser reconnect (EventSource auto-reconnects on disconnect)
@@ -746,17 +775,25 @@ export function useRpcHttpStream<Rpcs extends Rpc.Any>(
  * Limitation: payload must be serializable as a URL query string (avoid large payloads).
  * For void-payload procedures (Schema.Void) no ?payload is sent.
  *
- * @param group - The RpcGroup definition (not used for transport but kept for consistency)
+ * Accepts either `(options)` or `(group, options)` for backwards compatibility.
+ * The `group` argument is ignored — it existed only for API consistency with
+ * other hooks.
+ *
  * @param options.url - The SSE endpoint URL (e.g., "/rpc/todos/sse")
  * @param options.procedure - The procedure name (e.g., "WatchTodos")
  * @param options.payload - Optional payload to send as ?payload=<json>
  */
 // deno-lint-ignore no-explicit-any
-export function useRpcSse<Rpcs extends Rpc.Any>(
-  _group: RpcGroup.RpcGroup<Rpcs>,
-  options: { url: string; procedure: string; payload?: unknown },
+export function useRpcSse(
+  groupOrOptions: unknown,
+  maybeOptions?: { url: string; procedure: string; payload?: unknown },
   // deno-lint-ignore no-explicit-any
 ): RpcStreamState<any, any> {
+  const options = (maybeOptions ?? groupOrOptions) as {
+    url: string;
+    procedure: string;
+    payload?: unknown;
+  };
   const [state, setState] = useState<RpcStreamState<unknown, unknown>>({
     _tag: "connecting",
   });
@@ -839,7 +876,8 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
   // deno-lint-ignore no-explicit-any
 ): RpcStreamState<any, any> {
   const [state, setState] = useState<RpcStreamState<unknown, unknown>>({
-    _tag: "connecting",
+    _tag: "connected",
+    latest: null,
   });
   const unmountedRef = useRef(false);
 
@@ -889,3 +927,6 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
 
   return state;
 }
+
+// Re-export atom hooks from island-atoms.ts
+export { useAtom, useAtomValue, useAtomSet } from "./island-atoms.ts";

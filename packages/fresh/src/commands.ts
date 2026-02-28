@@ -1,4 +1,4 @@
-import { setAdditionalStyles } from "./context.ts";
+import { type Context, setAdditionalStyles } from "./context.ts";
 import { HttpError } from "./error.ts";
 import { type EffectRunner, isHandlerByMethod, type PageResponse } from "./handlers.ts";
 import type { MaybeLazyMiddleware, Middleware } from "./middlewares/mod.ts";
@@ -206,12 +206,13 @@ export function applyCommands<State>(
   commands: Command<State>[],
   basePath: string,
   effectRunner?: EffectRunner | null,
+  atomHydrationHook?: ((ctx: Context<unknown>) => string | null) | null,
 ): { rootMiddlewares: MaybeLazyMiddleware<State>[] } {
   const root = newSegment<State>("", null);
 
-  applyCommandsInner(root, router, commands, basePath, effectRunner);
+  applyCommandsInner(root, router, commands, basePath, effectRunner, atomHydrationHook);
 
-  return { rootMiddlewares: segmentToMiddlewares(root, effectRunner) };
+  return { rootMiddlewares: segmentToMiddlewares(root, effectRunner, atomHydrationHook) };
 }
 
 function applyCommandsInner<State>(
@@ -220,6 +221,7 @@ function applyCommandsInner<State>(
   commands: Command<State>[],
   basePath: string,
   effectRunner?: EffectRunner | null,
+  atomHydrationHook?: ((ctx: Context<unknown>) => string | null) | null,
 ) {
   for (let i = 0; i < commands.length; i++) {
     const cmd = commands[i];
@@ -270,7 +272,7 @@ function applyCommandsInner<State>(
           pattern,
           cmd.includeLastSegment,
         );
-        const fns = segmentToMiddlewares(segment, effectRunner);
+        const fns = segmentToMiddlewares(segment, effectRunner, atomHydrationHook);
 
         if (isLazy(route)) {
           const routePath = mergePath(
@@ -289,7 +291,7 @@ function applyCommandsInner<State>(
               setAdditionalStyles(ctx, def.css);
             }
 
-            return renderRoute(ctx, def, 200, effectRunner);
+            return renderRoute(ctx, def, 200, effectRunner, atomHydrationHook);
           });
 
           if (config === undefined || config.methods === "ALL") {
@@ -307,7 +309,7 @@ function applyCommandsInner<State>(
             }
           }
         } else {
-          fns.push((ctx) => renderRoute(ctx, route, 200, effectRunner));
+          fns.push((ctx) => renderRoute(ctx, route, 200, effectRunner, atomHydrationHook));
 
           const routePath = toRoutePath(mergePath(
             basePath,
@@ -338,7 +340,7 @@ function applyCommandsInner<State>(
           pattern,
           cmd.includeLastSegment,
         );
-        const result = segmentToMiddlewares(segment, effectRunner);
+        const result = segmentToMiddlewares(segment, effectRunner, atomHydrationHook);
 
         result.push(...fns);
 
@@ -360,7 +362,7 @@ function applyCommandsInner<State>(
       case CommandType.FsRoute: {
         const items = cmd.getItems();
         const base = mergePath(basePath, cmd.pattern, true);
-        applyCommandsInner(root, router, items, base, effectRunner);
+        applyCommandsInner(root, router, items, base, effectRunner, atomHydrationHook);
         break;
       }
       default:

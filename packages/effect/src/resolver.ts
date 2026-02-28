@@ -1,23 +1,11 @@
-import { Exit, type ManagedRuntime, type Effect } from "effect";
+import { Effect, Exit, type ManagedRuntime } from "effect";
 import { HttpError } from "@fresh/core";
 
 /**
- * Effect v4 TypeId — verified from effect@4.0.0-beta.0 dist/internal/core.js.
- * This is a string literal in v4 (NOT Symbol.for() as in v3).
- * Re-verify this value on every effect version bump.
- */
-const EFFECT_TYPE_ID = "~effect/Effect";
-
-/**
- * Duck-type check for Effect v4 values. Uses the string key presence
- * check — no Effect import required at the call site.
+ * Check whether a value is an Effect, using the official Effect.isEffect guard.
  */
 export function isEffect(value: unknown): boolean {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    EFFECT_TYPE_ID in (value as object)
-  );
+  return Effect.isEffect(value);
 }
 
 export interface ResolverOptions {
@@ -27,9 +15,8 @@ export interface ResolverOptions {
    * a plain Error. Use `Cause.squash(cause)` or pattern-match on the Cause
    * variants (Fail, Die, Interrupt) to extract the underlying error.
    *
-   * If omitted, the resolver throws `HttpError(500)` which Fresh routes
-   * to its error page (`_error.tsx`). The Cause is preserved in
-   * `error.cause` for server-side logging.
+   * The default behavior throws `HttpError(500)` without exposing the Effect
+   * Cause. Provide `mapError` to log or transform the cause.
    *
    * The callback may also throw (e.g., `throw new HttpError(404)`) to
    * enter Fresh's error handling chain with a specific status code.
@@ -72,7 +59,7 @@ export function createResolver(
 
     // Default: throw HttpError(500) so Fresh's error handling chain
     // (_error.tsx / app.onError) renders a proper error page.
-    // Cause is preserved in error.cause for server-side inspection.
-    throw new HttpError(500, "Internal Server Error", { cause: exit.cause });
+    // Raw Cause is intentionally omitted to avoid leaking sensitive internals.
+    throw new HttpError(500, "Internal Server Error");
   };
 }

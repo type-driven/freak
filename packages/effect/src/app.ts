@@ -18,7 +18,7 @@ import { App, type FreshConfig, type ListenOptions } from "@fresh/core";
 import type { Context } from "@fresh/core";
 import type { Middleware, MiddlewareFn } from "@fresh/core";
 import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
-import { setEffectRunner } from "@fresh/core/internal";
+import { setEffectRunner, setAtomHydrationHook, setAtomHydrationHookForApp } from "@fresh/core/internal";
 import type { EffectRunner, Route, RouteComponent } from "@fresh/core/internal";
 import { ManagedRuntime, Layer, Effect } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
@@ -27,6 +27,7 @@ import { RpcServer, RpcSerialization } from "effect/unstable/rpc";
 import { Socket, SocketServer } from "effect/unstable/socket";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
+import { serializeAtomHydration, initAtomHydrationMap } from "./hydration.ts";
 
 /**
  * An Effect-aware middleware function. Can return a plain Response,
@@ -287,7 +288,7 @@ export class EffectApp<State, AppR> {
    * The sub-handler's `dispose()` is called automatically when `EffectApp.dispose()`
    * is invoked.
    *
-   * Returns `void` — called for its side effect, not for chaining.
+   * Returns `this` for method chaining.
    *
    * @param options.group - The RpcGroup definition (created with `RpcGroup.make(...)`)
    * @param options.path - URL path prefix (e.g., "/rpc/todos"). Must start with "/".
@@ -333,7 +334,7 @@ export class EffectApp<State, AppR> {
      * Only applies to `protocol: "websocket"`. Ignored for other protocols.
      */
     allowedOrigins?: ReadonlyArray<string>;
-  }): void {
+  }): this {
     if (options.protocol === "http") {
       // HTTP protocol: layerHttp + HttpRouter.toWebHandler (request/response)
       // deno-lint-ignore no-explicit-any
@@ -382,6 +383,7 @@ export class EffectApp<State, AppR> {
       // joinSegments(path, "") adding a separator slash when path has no trailing slash.
       // deno-lint-ignore no-explicit-any
       this.#app.all(options.path + "/", httpHandler as any);
+      return this;
     } else if (options.protocol === "http-stream") {
       // HTTP-stream protocol: POST endpoint streaming responses as NDJSON.
       //
@@ -447,7 +449,7 @@ export class EffectApp<State, AppR> {
                   response,
                   (_k, v) => typeof v === "bigint" ? String(v) : v,
                 );
-                writer.write(enc.encode(line + "\n")).catch(() => { closed = true; });
+                writer.write(enc.encode(line + "\n")).catch(() => { close(); });
                 // Non-streaming procedures complete with a single Exit response.
                 if (response._tag === "Exit" || response._tag === "Defect") close();
               }),
@@ -483,6 +485,7 @@ export class EffectApp<State, AppR> {
           },
         });
       });
+      return this;
     } else if (options.protocol === "sse") {
       // SSE protocol: GET endpoint streaming responses as Server-Sent Events.
       //
@@ -583,6 +586,7 @@ export class EffectApp<State, AppR> {
           },
         });
       });
+      return this;
     } else {
       // WebSocket protocol: use Deno.upgradeWebSocket + per-connection SocketServer.
       //
@@ -596,6 +600,15 @@ export class EffectApp<State, AppR> {
       // with app.get() means non-GET requests naturally receive a 405 from Fresh's router
       // instead of hitting Deno.upgradeWebSocket (which would throw a 500).
       const allowedOrigins = options.allowedOrigins;
+      if (!allowedOrigins || allowedOrigins.length === 0) {
+        const isDev = this.#app.config.mode !== "production";
+        if (isDev) {
+          console.warn(
+            `[EffectApp] WebSocket endpoint at "${options.path}" has no allowedOrigins configured — ` +
+            `any origin can connect. Set allowedOrigins to restrict access in production.`,
+          );
+        }
+      }
       // deno-lint-ignore no-explicit-any
       this.#app.get(options.path, async (ctx) => {
         // Optional Origin validation — prevents cross-origin WebSocket connections.
@@ -688,6 +701,7 @@ export class EffectApp<State, AppR> {
 
         return response;
       });
+      return this;
     }
   }
 
@@ -858,6 +872,18 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
   const runner: EffectRunner = (value, ctx) => resolver(value, ctx) as Promise<unknown>;
   // deno-lint-ignore no-explicit-any
   setEffectRunner(app as App<any>, runner);
+
+  // Register atom hydration hook — called by FreshRuntimeScript during SSR
+  // to serialize atom state into the __FRSH_ATOM_STATE script tag.
+  setAtomHydrationHook((ctx) => serializeAtomHydration(ctx));
+  // Also register per-app hook (infrastructure for future full isolation)
+  // deno-lint-ignore no-explicit-any
+  setAtomHydrationHookForApp(app as App<any>, (ctx) => serializeAtomHydration(ctx));
+
+  // Register initAtomHydrationMap as a built-in middleware that runs before
+  // user middlewares, so the per-request atom map is always available.
+  app.use((ctx) => { initAtomHydrationMap(ctx); return ctx.next(); });
+
   const effectApp = new EffectApp<State, AppR>(
     app,
     runtime as ManagedRuntime.ManagedRuntime<AppR, unknown>,

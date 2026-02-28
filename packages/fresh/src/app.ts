@@ -163,6 +163,14 @@ export let setErrorInterceptor: <State>(
 export let setEffectRunner: (app: App<unknown>, fn: EffectRunner) => void;
 export let getEffectRunner: (app: App<unknown>) => EffectRunner | null;
 
+export let setAtomHydrationHookForApp: (
+  app: App<unknown>,
+  hook: (ctx: Context<unknown>) => string | null,
+) => void;
+export let getAtomHydrationHookForApp: (
+  app: App<unknown>,
+) => ((ctx: Context<unknown>) => string | null) | null;
+
 const NOOP = () => {};
 
 /**
@@ -174,6 +182,7 @@ export class App<State> {
   #commands: Command<State>[] = [];
   #onError: (err: unknown) => void = NOOP;
   #effectRunner: EffectRunner | null = null;
+  #atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null = null;
 
   static {
     getBuildCache = (app) => app.#getBuildCache();
@@ -189,6 +198,10 @@ export class App<State> {
       app.#effectRunner = fn;
     };
     getEffectRunner = (app) => app.#effectRunner;
+    setAtomHydrationHookForApp = (app, hook) => {
+      app.#atomHydrationHook = hook;
+    };
+    getAtomHydrationHookForApp = (app) => app.#atomHydrationHook;
   }
 
   /**
@@ -397,12 +410,14 @@ export class App<State> {
     const router = new UrlPatternRouter<MaybeLazyMiddleware<State>>();
 
     const effectRunner = this.#effectRunner;
+    const atomHydrationHook = this.#atomHydrationHook;
 
     const { rootMiddlewares } = applyCommands(
       router,
       this.#commands,
       this.config.basePath,
       effectRunner,
+      atomHydrationHook,
     );
 
     return async (

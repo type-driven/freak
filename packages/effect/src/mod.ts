@@ -9,3 +9,6 @@ export type {
 } from "./define.ts";
 export { isEffect } from "./resolver.ts";
 export type { Layer, ManagedRuntime } from "./types.ts";
+
+// Atom hydration helpers
+export { setAtom, initAtomHydrationMap, serializeAtomHydration } from "./hydration.ts";

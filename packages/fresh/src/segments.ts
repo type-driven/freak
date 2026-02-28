@@ -106,6 +106,7 @@ export function getOrCreateSegment<State>(
 export function segmentToMiddlewares<State>(
   segment: Segment<State>,
   effectRunner?: EffectRunner | null,
+  atomHydrationHook?: ((ctx: Context<unknown>) => string | null) | null,
 ): MaybeLazyMiddleware<State>[] {
   const result: MaybeLazyMiddleware<State>[] = [];
 
@@ -154,7 +155,7 @@ export function segmentToMiddlewares<State>(
         }
 
         if (errorRoute !== null) {
-          return await renderRoute(ctx, errorRoute, status, effectRunner);
+          return await renderRoute(ctx, errorRoute, status, effectRunner, atomHydrationHook);
         }
 
         throw err;
@@ -177,6 +178,7 @@ export async function renderRoute<State>(
   route: Route<State>,
   status = 200,
   effectRunner?: EffectRunner | null,
+  atomHydrationHook?: ((ctx: Context<unknown>) => string | null) | null,
 ): Promise<Response> {
   const internals = getInternals(ctx);
   if (route.config?.skipAppWrapper) {

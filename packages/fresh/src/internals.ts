@@ -1,6 +1,6 @@
 import * as path from "@std/path";
 
-export { setBuildCache, setErrorInterceptor, setEffectRunner, getEffectRunner } from "./app.ts";
+export { setBuildCache, setErrorInterceptor, setEffectRunner, getEffectRunner, setAtomHydrationHookForApp, getAtomHydrationHookForApp } from "./app.ts";
 export { type EffectRunner, isEffectLike } from "./handlers.ts";
 export { IslandPreparer, ProdBuildCache } from "./build_cache.ts";
 export { path };
