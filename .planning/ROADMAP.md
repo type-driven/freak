@@ -357,11 +357,10 @@ Plans:
 
 ### Phase 12: Atom-Based Island Hydration
 
-**Goal**: Research replacing Fresh's signal-based island hydration with atom-based
-hydration — since Freak uses Effect v4 atoms instead of Preact signals, the existing
-serialization/reviver pipeline may have a mismatch. Produce a decision document covering
-what needs to change, what the new hydration contract looks like, and whether a phased
-migration or full replacement is preferred.
+**Goal**: Confirm the dual-channel hydration architecture (signals for island props, atoms
+for global state via __FRSH_ATOM_STATE) is correct and complete. Produce a decision document
+recording that atom-based hydration layers on top of signal hydration, with gap assessment
+and API stability analysis.
 
 **Depends on**: Phase 11 (v2 complete)
 
@@ -375,10 +374,10 @@ migration or full replacement is preferred.
 3. Any breaking changes to the existing `initAtomHydration()` / `setAtom()` API surface
    are identified and a migration path is proposed.
 
-**Plans**: 0 plans
+**Plans**: 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — Write decision document (dual-channel architecture confirmation, gap assessment, API stability)
 
 ---
 
@@ -428,9 +427,9 @@ Plans:
 | 9. RPC Integration | 2/2 | Complete | 2026-02-27 |
 | 10. Migration + Example | N/A | Skipped | 2026-02-27 |
 | 11. Micro-App Architecture | 1/1 | Complete | 2026-02-27 |
-| 12. Atom-Based Island Hydration | 0/TBD | Not Started | — |
+| 12. Atom-Based Island Hydration | 0/1 | Planned | — |
 | 13. Benchmarks — Freak vs Fresh | 2/2 | Complete | 2026-02-28 |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-28 -- Phase 13 complete: RESULTS.md published*
+*Last updated: 2026-02-28 -- Phase 12 planned: 1 plan in 1 wave*
