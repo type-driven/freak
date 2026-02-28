@@ -15,7 +15,7 @@ Freak is a fork of `@fresh/core` that adds first-class [Effect](https://effect.w
 | Area | Fresh 2 | Freak |
 |---|---|---|
 | App entry point | `new App(config)` | `createEffectApp({ layer })` |
-| `main.ts` export | `export default app` | `export const app = effectApp….app` |
+| `main.ts` export | `export default app` | `export const app = effectApp….` |
 | Route handlers | Return `Response \| PageResponse \| Promise` | Can also return `Effect` |
 | `utils.ts` define | `createDefine<State>()` | `createEffectDefine<State, R>()` |
 | Island local state | `useSignal` (`@preact/signals`) | `useState` / `useAtom` (Effect atoms) |
@@ -445,20 +445,18 @@ export default function TodoApp() {
 
 ## Common pitfalls
 
-### Forgetting to export `app`
+### Forgetting to export as `app`
 
-`Builder.listen(() => import("./main.ts"))` looks for an `app` named export. Any of these work:
+`Builder.listen(() => import("./main.ts"))` looks for a named `app` export. `export default` does NOT work — it produces a `{ default: ... }` module shape that the builder can't unwrap.
 
 ```ts
-// All correct — Builder.listen() unwraps EffectApp automatically
+// CORRECT
 export const app = effectApp.use(staticFiles()).fsRoutes();
+
+// WRONG — builder looks for named "app", not "default"
 export default effectApp.use(staticFiles()).fsRoutes();
-```
 
-What doesn't work is exporting under a different name with no `app` key:
-
-```ts
-// WRONG — builder can't find the app
+// WRONG — wrong key name
 export const myApp = effectApp.use(staticFiles()).fsRoutes();
 ```
 

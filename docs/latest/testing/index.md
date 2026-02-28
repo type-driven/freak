@@ -151,24 +151,18 @@ to use JSX:
 ```tsx tests/island-ssr.test.tsx
 import { expect } from "@std/expect";
 import { App } from "fresh";
-import { useSignal } from "@preact/signals";
 import { type State } from "../utils.ts";
 import Counter from "../islands/Counter.tsx";
-
-function CounterPage() {
-  const count = useSignal(3);
-  return (
-    <div class="p-8">
-      <h1>Counter Test Page</h1>
-      <Counter count={count} />
-    </div>
-  );
-}
 
 Deno.test("Counter page renders island", async () => {
   const app = new App<State>()
     .get("/counter", (ctx) => {
-      return ctx.render(<CounterPage />);
+      return ctx.render(
+        <div class="p-8">
+          <h1>Counter Test Page</h1>
+          <Counter start={3} />
+        </div>,
+      );
     })
     .handler();
 

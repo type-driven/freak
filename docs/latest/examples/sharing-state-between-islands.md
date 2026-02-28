@@ -3,181 +3,136 @@ description: |
   When you need to have state shared between islands, this page provides a few recipes.
 ---
 
-All of this content is lifted from this great
-[example](https://fresh-with-signals.deno.dev/) by Luca. The source can be found
-[here](https://github.com/lucacasonato/fresh-with-signals).
+Each island is a separate Preact render root — they don't share a component
+tree. These recipes cover the main patterns for coordinating state between them.
 
-## Multiple Sibling Islands with Independent State
+## Independent Islands with Local State
 
-Imagine we have `Counter.tsx` like this:
+For state that belongs to a single island, use `useState` from `preact/hooks`.
+Each instance manages its own independent value:
 
 ```tsx islands/Counter.tsx
-import { useSignal } from "@preact/signals";
-import { Button } from "../components/Button.tsx";
+import { useState } from "preact/hooks";
 
 interface CounterProps {
   start: number;
 }
 
-// This island is used to display a counter and increment/decrement it. The
-// state for the counter is stored locally in this island.
 export default function Counter(props: CounterProps) {
-  const count = useSignal(props.start);
+  const [count, setCount] = useState(props.start);
   return (
     <div class="flex gap-2 items-center w-full">
       <p class="flex-grow-1 font-bold text-xl">{count}</p>
-      <Button onClick={() => count.value--}>-1</Button>
-      <Button onClick={() => count.value++}>+1</Button>
+      <button onClick={() => setCount(count - 1)}>-1</button>
+      <button onClick={() => setCount(count + 1)}>+1</button>
     </div>
   );
 }
 ```
 
-Note how `useSignal` is within the `Counter` component. Then if we instantiate
-some counters like this...
+Instantiating several counters gives each its own state:
 
 ```tsx routes/index.tsx
 <Counter start={3} />
 <Counter start={4} />
 ```
 
-they'll keep track of their own independent state. Not much sharing going on
-here, yet.
+## Shared State Between Islands
 
-## Multiple Sibling Islands with Shared State
+When multiple islands need to react to the same value, define a
+module-level atom and import it in each island. Because atoms live
+at module scope, all islands on the page share the same instance.
 
-But we can switch things up by looking at a `SynchronizedSlider.tsx` like this:
+```ts atoms/slider.ts
+import { Atom } from "effect/unstable/reactivity";
+
+export const sliderAtom = Atom.make(50);
+```
 
 ```tsx islands/SynchronizedSlider.tsx
-import { Signal } from "@preact/signals";
+import { useAtom } from "@fresh/effect/island";
+import { sliderAtom } from "../atoms/slider.ts";
 
-interface SliderProps {
-  slider: Signal<number>;
-}
-
-// This island displays a slider with a value equal to the `slider` signal's
-// value. When the slider is moved, the `slider` signal is updated.
-export default function SynchronizedSlider(props: SliderProps) {
+export default function SynchronizedSlider() {
+  const [value, setValue] = useAtom(sliderAtom);
   return (
     <input
       class="w-full"
       type="range"
       min={1}
       max={100}
-      value={props.slider.value}
-      onInput={(e) => (props.slider.value = Number(e.currentTarget.value))}
+      value={value}
+      onInput={(e) => setValue(Number(e.currentTarget.value))}
     />
   );
 }
 ```
 
-Now if we were to do the following...
+Rendering several instances automatically keeps them in sync — they all read
+and write the same atom:
 
 ```tsx routes/index.tsx
-export default function Home() {
-  const sliderSignal = useSignal(50);
-  return (
-    <div>
-      <SynchronizedSlider slider={sliderSignal} />
-      <SynchronizedSlider slider={sliderSignal} />
-      <SynchronizedSlider slider={sliderSignal} />
-    </div>
-  );
-}
+<SynchronizedSlider />
+<SynchronizedSlider />
+<SynchronizedSlider />
 ```
 
-they would all use the same value.
+## Shared State Across Unrelated Islands
 
-## Independent Islands
+The same pattern scales to islands that are far apart in the tree. Define the
+atom in a shared file and import it wherever needed:
 
-We can also create a `signal` in a utility file and export it for consumption
-across multiple places.
+```ts atoms/cart.ts
+import { Atom } from "effect/unstable/reactivity";
+import { Schema } from "effect";
 
-```ts utils/cart.ts
-import { signal } from "@preact/signals";
-
-export const cart = signal<string[]>([]);
+// Serializable atom — supports SSR hydration if needed.
+// Use Atom.make([]) if you don't need server-side seeding.
+export const cartAtom = Atom.serializable({
+  key: "cart",
+  schema: Schema.Array(Schema.String),
+})([]);
 ```
 
 ```tsx islands/AddToCart.tsx
-import { Button } from "../components/Button.tsx";
-import { cart } from "../utils/cart.ts";
+import { useAtom } from "@fresh/effect/island";
+import { cartAtom } from "../atoms/cart.ts";
 
-interface AddToCartProps {
-  product: string;
-}
-
-// This island is used to add a product to the cart state.
-export default function AddToCart(props: AddToCartProps) {
+export default function AddToCart(props: { product: string }) {
+  const [cart, setCart] = useAtom(cartAtom);
   return (
-    <Button
-      onClick={() => (cart.value = [...cart.value, props.product])}
-      class="w-full"
-    >
-      Add{cart.value.includes(props.product) ? " another" : ""} "{props.product}
-      " to cart
-    </Button>
+    <button onClick={() => setCart([...cart, props.product])}>
+      Add{cart.includes(props.product) ? " another" : ""} "{props.product}" to cart
+    </button>
   );
 }
 ```
 
 ```tsx islands/Cart.tsx
-import { Button } from "../components/Button.tsx";
-import { cart } from "../utils/cart.ts";
-import * as icons from "../components/Icons.tsx";
+import { useAtomValue, useAtomSet } from "@fresh/effect/island";
+import { cartAtom } from "../atoms/cart.ts";
 
-// This island is used to display the cart contents and remove items from it.
 export default function Cart() {
-  return (
-    <h1 class="text-xl flex items-center justify-center">
-      Cart
-    </h1>
+  const cart = useAtomValue(cartAtom);
+  const setCart = useAtomSet(cartAtom);
 
-    <ul class="w-full bg-gray-50 mt-2 p-2 rounded-sm min-h-[6.5rem]">
-      {cart.value.length === 0 && (
-        <li class="text-center my-4">
-          <div class="text-gray-400">
-            <icons.Cart class="w-8 h-8 inline-block" />
-            <div>
-              Your cart is empty.
-            </div>
-          </div>
+  const remove = (index: number) => {
+    setCart(cart.filter((_, i) => i !== index));
+  };
+
+  return (
+    <ul>
+      {cart.length === 0 && <li>Your cart is empty.</li>}
+      {cart.map((product, i) => (
+        <li key={i}>
+          {product}
+          <button onClick={() => remove(i)}>✕</button>
         </li>
-      )}
-      {cart.value.map((product, index) => (
-        <CartItem product={product} index={index} />
       ))}
     </ul>
   );
 }
-
-interface CartItemProps {
-  product: string;
-  index: number;
-}
-
-function CartItem(props: CartItemProps) {
-  const remove = () => {
-    const newCart = [...cart.value];
-    newCart.splice(props.index, 1);
-    cart.value = newCart;
-  };
-
-  return (
-    <li class="flex items-center justify-between gap-1">
-      <icons.Lemon class="text-gray-500" />
-      <div class="flex-1">
-        {props.product}
-      </div>
-      <Button onClick={remove} aria-label="Remove" class="border-none">
-        <icons.X class="inline-block w-4 h-4" />
-      </Button>
-    </li>
-  );
-}
 ```
-
-Now we can add the islands to our site by doing the following:
 
 ```tsx routes/cart.tsx
 <AddToCart product="Lemon" />
@@ -185,5 +140,43 @@ Now we can add the islands to our site by doing the following:
 <Cart />
 ```
 
-What happens as a result? The `cart` signal is shared across the two `AddToCart`
-islands _and_ the `Cart` island.
+Changes in either `AddToCart` island immediately reflect in the `Cart` island
+because they all subscribe to the same `cartAtom`.
+
+## SSR Hydration
+
+If you want an island's initial state to come from the server (e.g. a pre-filled
+cart from a database), use `Atom.serializable` and call `setAtom` in your route
+handler:
+
+```tsx routes/cart.tsx
+import { page } from "@fresh/core";
+import { setAtom } from "@fresh/effect";
+import { define } from "@/utils.ts";
+import { Effect } from "effect";
+import { CartService } from "@/services/CartService.ts";
+import { cartAtom } from "@/atoms/cart.ts";
+import Cart from "@/islands/Cart.tsx";
+import AddToCart from "@/islands/AddToCart.tsx";
+
+export const handlers = define.handlers({
+  GET: (ctx) =>
+    Effect.gen(function* () {
+      const svc = yield* CartService;
+      const items = yield* svc.getCart(ctx.state.userId);
+      setAtom(ctx, cartAtom, items); // serialized into HTML, hydrates islands instantly
+      return page();
+    }),
+});
+
+export default define.page(() => (
+  <>
+    <AddToCart product="Lemon" />
+    <AddToCart product="Lime" />
+    <Cart />
+  </>
+));
+```
+
+The atom value is embedded in a `<script>` tag and read by the island module
+before first render — no loading state, no flash of empty content.

@@ -11,15 +11,15 @@ Islands are defined by creating a file in the `islands/` folder or a
 must be a PascalCase or kebab-case name of the island.
 
 ```tsx islands/my-island.tsx
-import { useSignal } from "@preact/signals";
+import { useState } from "preact/hooks";
 
 export default function MyIsland() {
-  const count = useSignal(0);
+  const [count, setCount] = useState(0);
 
   return (
     <div>
       <p>Count: {count}</p>
-      <button onClick={() => (count.value += 1)}>+</button>
+      <button onClick={() => setCount(count + 1)}>+</button>
     </div>
   );
 }
@@ -53,11 +53,9 @@ Fresh can serialize the following types of values:
 - Collections `Map` and `Set`
 - Plain objects with string keys and serializable values
 - Arrays containing serializable values
-- Preact Signals (if the inner value is serializable)
 
-Circular references are supported. If an object or signal is referenced multiple
-times, it is only serialized once and the references are restored upon
-deserialization.
+Circular references are supported. If an object is referenced multiple times, it
+is only serialized once and the references are restored upon deserialization.
 
 > [warn]: Passing functions to an island is not supported.
 >
