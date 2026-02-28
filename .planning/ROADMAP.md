@@ -173,7 +173,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [x] **Phase 9: RPC Integration** — `app.rpc()` mounts Effect RpcServer, `useRpcResult()` / `useRpcStream()` in islands
 - [~] **Phase 10: Migration + Example** — skipped (MIG-02 satisfied by Phase 9; no external users require MIG-01 compat shim)
 - [x] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
-- [ ] **Phase 12: Atom-Based Island Hydration** — Research replacing signal hydration with atom hydration, decision document
+- [x] **Phase 12: Atom-Based Island Hydration** — Research replacing signal hydration with atom hydration, decision document
 - [x] **Phase 13: Benchmarks — Freak vs Fresh** — Repeatable benchmark suite, published results report
 
 ## v2 Phase Details
@@ -377,7 +377,7 @@ and API stability analysis.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 12-01-PLAN.md — Write decision document (dual-channel architecture confirmation, gap assessment, API stability)
+- [x] 12-01-PLAN.md — Write decision document (dual-channel architecture confirmation, gap assessment, API stability)
 
 ---
 
@@ -427,9 +427,9 @@ Plans:
 | 9. RPC Integration | 2/2 | Complete | 2026-02-27 |
 | 10. Migration + Example | N/A | Skipped | 2026-02-27 |
 | 11. Micro-App Architecture | 1/1 | Complete | 2026-02-27 |
-| 12. Atom-Based Island Hydration | 0/1 | Planned | — |
+| 12. Atom-Based Island Hydration | 1/1 | Complete | 2026-02-28 |
 | 13. Benchmarks — Freak vs Fresh | 2/2 | Complete | 2026-02-28 |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-28 -- Phase 12 planned: 1 plan in 1 wave*
+*Last updated: 2026-02-28 -- Phase 12 complete: decision document written, all 3 SCs verified*
