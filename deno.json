@@ -18,7 +18,8 @@
     "check:docs": "deno run -A tools/check_docs.ts",
     "ok": "deno fmt --check && deno lint && deno task check:types && deno task test",
     "test:www": "deno test -A www/main_test.*",
-    "release": "deno run -A tools/release.ts"
+    "release": "deno run -A tools/release.ts",
+    "patch": "deno run -A patches/effect-rpc-json-decode.ts"
   },
   "exclude": [
     "**/_fresh/*",
