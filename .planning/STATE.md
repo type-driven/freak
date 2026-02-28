@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — complete (Phase 13 done; all phases finished)
+**Current focus:** Milestone v2 — complete (Phases 12 + 13 done; all phases finished)
 
 ## Current Position
 
-Phase: 13 of 13 (Benchmarks — Freak vs Fresh) — plan 2/2 complete
-Plan: 2/2 complete in Phase 13
-Status: Phase 13 complete — RESULTS.md published with benchmark data across 4 dimensions
-Last activity: 2026-02-28 — Completed 13-02-PLAN.md (benchmark scripts + RESULTS.md)
+Phase: 12 of 13 (Atom-Based Island Hydration) — plan 1/1 complete
+Plan: 1/1 complete in Phase 12
+Status: Phase 12 complete — 12-DECISION.md written; dual-channel hydration documented; all 3 SC verified
+Last activity: 2026-02-28 — Completed 12-01-PLAN.md (architectural decision document)
 
-Progress: [██████████] 100% — v1+v2 complete; Phase 13 complete (2/2 plans)
+Progress: [██████████] 100% — v1+v2 complete; Phase 12 (1/1) and Phase 13 (2/2) complete
 
 ## Performance Metrics
 
@@ -102,6 +102,11 @@ Recent decisions affecting current work:
 - [13-02]: Effect throughput overhead: 14.2% for trivial in-memory handler (freak-effect vs freak-plain); negligible for I/O-bound workloads
 - [13-02]: Effect zero client bundle impact — server-only Effect usage tree-shaken completely from islands
 - [13-02]: Effect startup overhead (+104ms) from Deno module graph resolution, not from ManagedRuntime.make()
+- [12-01]: Atom hydration layers on top of signal hydration (parallel channels) — no replacement, no new protocol
+- [12-01]: setAtom()/initAtomHydration()/setAtomHydrationHook() — no breaking changes, no migration required
+- [12-01]: setAtomHydrationHookForApp() is dead code — stored in App#atomHydrationHook but FreshRuntimeScript never calls it; deferred
+- [12-01]: Partials gap deferred — __FRSH_ATOM_STATE not emitted during Fresh Partial navigation; workaround: use RPC streams
+- [12-01]: hydration.ts duplication (plugin-effect has identical local copy of effect/src/hydration.ts) — deferred pending JSR constraint verification
 
 ### Pending Todos
 
@@ -121,6 +126,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-28T17:00:00Z
-Stopped at: Phase 13 plan 02 complete — RESULTS.md published, all phases done (5fc1560d)
+Last session: 2026-02-28T20:57:30Z
+Stopped at: Phase 12 plan 01 complete — 12-DECISION.md written, all SC verified (cf33045a)
 Resume file: None
