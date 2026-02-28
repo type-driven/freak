@@ -1,6 +1,6 @@
 import { Builder } from "@fresh/core/dev";
 
-const builder = new Builder({ target: "safari12" });
+const builder = new Builder({ target: "safari12", root: import.meta.dirname });
 
 if (Deno.args.includes("build")) {
   await builder.build();

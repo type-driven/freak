@@ -4,6 +4,9 @@
   "workspace": [
     "./packages/*",
     "./packages/examples/effect-integration",
+    "./packages/benchmarks/apps/freak-app",
+    "./packages/benchmarks/apps/freak-plain-app",
+    "./packages/benchmarks/apps/upstream-app",
     "./www"
   ],
   "tasks": {
