@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — complete (Phase 11 done; all phases finished)
+**Current focus:** Milestone v2 — complete (Phase 13 done; all phases finished)
 
 ## Current Position
 
-Phase: 13 of 13 (Benchmarks — Freak vs Fresh) — plan 1/2 complete
-Plan: 1/2 complete in Phase 13
-Status: Phase 13 plan 01 complete — three benchmark apps scaffold created and verified building
-Last activity: 2026-02-28 — Completed 13-01-PLAN.md (benchmark app scaffold)
+Phase: 13 of 13 (Benchmarks — Freak vs Fresh) — plan 2/2 complete
+Plan: 2/2 complete in Phase 13
+Status: Phase 13 complete — RESULTS.md published with benchmark data across 4 dimensions
+Last activity: 2026-02-28 — Completed 13-02-PLAN.md (benchmark scripts + RESULTS.md)
 
-Progress: [██████████] v1+v2 complete; Phase 13 in progress (1/2 plans)
+Progress: [██████████] 100% — v1+v2 complete; Phase 13 complete (2/2 plans)
 
 ## Performance Metrics
 
@@ -97,6 +97,11 @@ Recent decisions affecting current work:
 - [13-01]: Builder({ root: import.meta.dirname }) required in dev.ts when running from outside the app directory — prevents _fresh/ being written to repo root
 - [13-01]: Benchmark apps added as explicit workspace members in root deno.json — ./packages/* glob does not recursively cover nested apps/*/deno.json
 - [13-01]: upstream-app pins jsr:@fresh/core@2.2.0 exactly (not range) — reproducible comparisons against known upstream baseline
+- [13-02]: oha requires --ipv4 flag and 127.0.0.1 not localhost — macOS resolves localhost to ::1 (IPv6), oha defaults to IPv4
+- [13-02]: upstream-app needs explicit fresh/internal import override — root deno.json maps 'fresh' to jsr:@fresh/core@^2.0.0 which resolves to local fork; upstream-app/deno.json must override with jsr:@fresh/core@2.2.0/internal
+- [13-02]: Effect throughput overhead: 14.2% for trivial in-memory handler (freak-effect vs freak-plain); negligible for I/O-bound workloads
+- [13-02]: Effect zero client bundle impact — server-only Effect usage tree-shaken completely from islands
+- [13-02]: Effect startup overhead (+104ms) from Deno module graph resolution, not from ManagedRuntime.make()
 
 ### Pending Todos
 
@@ -116,6 +121,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-28T15:08:26Z
-Stopped at: Phase 13 plan 01 complete — benchmark app scaffold committed (4d2312bb)
+Last session: 2026-02-28T17:00:00Z
+Stopped at: Phase 13 plan 02 complete — RESULTS.md published, all phases done (5fc1560d)
 Resume file: None
