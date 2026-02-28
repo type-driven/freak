@@ -4,4 +4,4 @@ import { TodoLayer } from "./services/TodoService.ts";
 
 const effectApp = createEffectApp({ layer: TodoLayer });
 
-export const app = effectApp.use(staticFiles()).fsRoutes();
+export const app = effectApp.use(staticFiles()).fsRoutes().app;

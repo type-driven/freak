@@ -2,9 +2,6 @@
   "name": "@fresh/benchmark-upstream-app",
   "version": "0.1.0",
   "imports": {
-    "@fresh/core": "jsr:@fresh/core@2.2.0",
-    "@fresh/core/dev": "jsr:@fresh/core@2.2.0/dev",
-    "@fresh/core/runtime": "jsr:@fresh/core@2.2.0/runtime",
     "preact": "npm:preact@^10.28.3",
     "preact/hooks": "npm:preact@^10.28.3/hooks"
   },
