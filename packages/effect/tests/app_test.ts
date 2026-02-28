@@ -17,14 +17,23 @@
 
 import { assertEquals } from "jsr:@std/assert@1";
 import { Effect, Layer, ServiceMap } from "effect";
+import * as Atom from "effect/unstable/reactivity/Atom";
+import * as Schema from "effect/Schema";
 import { FakeServer } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "../src/mod.ts";
+import {
+  ATOM_HYDRATION_KEY,
+  serializeAtomHydration,
+  setAtom,
+} from "../src/hydration.ts";
 
 // ============================================================================
 // Shared service definitions
 // ============================================================================
 
-const GreetingService = ServiceMap.Service<{ greet: () => string }>("GreetingService");
+const GreetingService = ServiceMap.Service<{ greet: () => string }>(
+  "GreetingService",
+);
 const LayerA = Layer.succeed(GreetingService, { greet: () => "hello from A" });
 const LayerB = Layer.succeed(GreetingService, { greet: () => "hello from B" });
 type GreetR = ServiceMap.Service.Identifier<typeof GreetingService>;
@@ -54,9 +63,13 @@ Deno.test("SC-1: createEffectApp().use() with Effect middleware works", async ()
     Effect.gen(function* () {
       (_ctx.state as Record<string, unknown>).injected = "value";
       return yield* Effect.promise(() => _ctx.next());
-    }));
-  app.get("/state", (ctx) =>
-    new Response((ctx.state as Record<string, unknown>).injected as string));
+    })
+  );
+  app.get(
+    "/state",
+    (ctx) =>
+      new Response((ctx.state as Record<string, unknown>).injected as string),
+  );
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/state");
@@ -117,6 +130,94 @@ Deno.test("SC-4: two EffectApp instances own independent runtimes", async () => 
 
   await appA.dispose();
   await appB.dispose();
+});
+
+// ============================================================================
+// HYDR: createEffectApp() atom hydration wiring
+// ============================================================================
+
+Deno.test("HYDR-1: createEffectApp() auto-initializes atom hydration map on every request", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+
+  let capturedMap: unknown;
+  app.get("/test", (ctx) => {
+    capturedMap = (ctx.state as Record<string | symbol, unknown>)[
+      ATOM_HYDRATION_KEY
+    ];
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  const res = await server.get("/test");
+  assertEquals(res.status, 200);
+  assertEquals(capturedMap instanceof Map, true);
+  assertEquals((capturedMap as Map<string, unknown>).size, 0);
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-2: setAtom works in handler after createEffectApp() middleware initializes map", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const countAtom = Atom.serializable(Atom.make(0), {
+    key: "hydr-test-count",
+    schema: Schema.Number,
+  });
+
+  let capturedJson: string | null = null;
+  app.get("/test", (ctx) => {
+    setAtom(ctx as { state: unknown }, countAtom, 99);
+    capturedJson = serializeAtomHydration(ctx as { state: unknown });
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  await server.get("/test");
+
+  assertEquals(capturedJson, JSON.stringify({ "hydr-test-count": 99 }));
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-3: atom hydration map is isolated per request", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const countAtom = Atom.serializable(Atom.make(0), {
+    key: "hydr-isolation-count",
+    schema: Schema.Number,
+  });
+
+  const jsons: (string | null)[] = [];
+  app.get("/test", (ctx) => {
+    setAtom(ctx as { state: unknown }, countAtom, jsons.length);
+    jsons.push(serializeAtomHydration(ctx as { state: unknown }));
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  await server.get("/test");
+  await server.get("/test");
+
+  assertEquals(jsons.length, 2);
+  assertEquals(JSON.parse(jsons[0]!)["hydr-isolation-count"], 0);
+  assertEquals(JSON.parse(jsons[1]!)["hydr-isolation-count"], 1);
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-4: serializeAtomHydration returns null when no setAtom calls in handler", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+
+  let capturedJson: string | null | undefined = undefined;
+  app.get("/test", (ctx) => {
+    capturedJson = serializeAtomHydration(ctx as { state: unknown });
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  await server.get("/test");
+
+  assertEquals(capturedJson, null);
+
+  await app.dispose();
 });
 
 Deno.test("SC-4: disposing one EffectApp does not affect the other", async () => {
