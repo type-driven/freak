@@ -174,7 +174,7 @@ Effect RPC via `platform-deno-smol`, and `@fresh/plugin-effect` compat shim.
 - [~] **Phase 10: Migration + Example** — skipped (MIG-02 satisfied by Phase 9; no external users require MIG-01 compat shim)
 - [x] **Phase 11: Micro-App Architecture** — Research `mountApp` issues, evaluate Module Federation, architectural decision
 - [ ] **Phase 12: Atom-Based Island Hydration** — Research replacing signal hydration with atom hydration, decision document
-- [ ] **Phase 13: Benchmarks — Freak vs Fresh** — Repeatable benchmark suite, published results report
+- [x] **Phase 13: Benchmarks — Freak vs Fresh** — Repeatable benchmark suite, published results report
 
 ## v2 Phase Details
 
@@ -403,8 +403,8 @@ time) — results published as `packages/benchmarks/RESULTS.md`.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — Scaffold three benchmark apps (freak-app, freak-plain-app, upstream-app) with parity routes
-- [ ] 13-02-PLAN.md — Benchmark scripts, orchestrator, run suite, publish RESULTS.md
+- [x] 13-01-PLAN.md — Scaffold three benchmark apps (freak-app, freak-plain-app, upstream-app) with parity routes
+- [x] 13-02-PLAN.md — Benchmark scripts (oha throughput, hyperfine build, bundle size, startup), orchestrator, run suite, root-cause analysis, publish RESULTS.md
 
 ---
 
@@ -429,8 +429,8 @@ Plans:
 | 10. Migration + Example | N/A | Skipped | 2026-02-27 |
 | 11. Micro-App Architecture | 1/1 | Complete | 2026-02-27 |
 | 12. Atom-Based Island Hydration | 0/TBD | Not Started | — |
-| 13. Benchmarks — Freak vs Fresh | 0/2 | Not Started | — |
+| 13. Benchmarks — Freak vs Fresh | 2/2 | Complete | 2026-02-28 |
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-28 -- Phase 13 planned: 2 plans in 2 waves*
+*Last updated: 2026-02-28 -- Phase 13 complete: RESULTS.md published*

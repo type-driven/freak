@@ -3,6 +3,7 @@
   "specifiers": {
     "jsr:@deno/esbuild-plugin@^1.2.0": "1.2.1",
     "jsr:@deno/loader@~0.3.10": "0.3.12",
+    "jsr:@fresh/core@2.2.0": "2.2.0",
     "jsr:@marvinh-test/fresh-island@^0.0.3": "0.0.3",
     "jsr:@marvinh-test/import-json@^0.0.1": "0.0.1",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
@@ -86,6 +87,22 @@
     },
     "@deno/loader@0.3.12": {
       "integrity": "52d3b3be0a32192efe07b0a4f1b3047077d2f2bba0f693e32f47421507f9fdb6"
+    },
+    "@fresh/core@2.2.0": {
+      "integrity": "b3c00f82288a2c4c8ec85e4abb67b080b366ec5971860f2f2898eb281ea1a80f",
+      "dependencies": [
+        "jsr:@deno/esbuild-plugin",
+        "jsr:@std/encoding",
+        "jsr:@std/fmt",
+        "jsr:@std/fs",
+        "jsr:@std/html",
+        "jsr:@std/http",
+        "jsr:@std/jsonc",
+        "jsr:@std/media-types",
+        "jsr:@std/path@^1.1.2",
+        "jsr:@std/semver",
+        "jsr:@std/uuid"
+      ]
     },
     "@marvinh-test/fresh-island@0.0.3": {
       "integrity": "6d06b6009b7dfba9bba28e941e03e6ff652c4ef4f2fbfdf4b78741abd6c6c1c6",
@@ -4007,6 +4024,7 @@
       },
       "packages/benchmarks/apps/upstream-app": {
         "dependencies": [
+          "jsr:@fresh/core@2.2.0",
           "npm:preact@^10.28.3"
         ]
       },
