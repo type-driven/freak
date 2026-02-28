@@ -696,10 +696,11 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
   options: { url: string; procedure: string; payload?: unknown },
 ): RpcStreamState<any, any> {
   const wsUrl = resolveWsUrl(options.url);
+  // deno-lint-ignore no-explicit-any
   const layer = RpcClient.layerProtocolSocket().pipe(
     Layer.provide(RpcSerialization.layerNdjson),
     Layer.provide(BrowserSocket.layerWebSocket(wsUrl)),
-  );
+  ) as unknown as Layer.Layer<any, any, never>;
   return useStreamingRpc(
     group,
     layer,
