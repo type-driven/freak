@@ -142,9 +142,9 @@
 
 ### Islands in Plugins (ISLD)
 
-- [ ] **ISLD-01**: Island components registered in a mounted plugin appear in the host's BuildCache and build output
-- [ ] **ISLD-02**: Plugin islands render correctly in SSR (produce `<!--frsh:island:-->` markers) and hydrate on client
-- [ ] **ISLD-03**: Two plugins mounted on the same host can each register distinct islands without chunk name collisions
+- [x] **ISLD-01**: Island components registered in a mounted plugin appear in the host's BuildCache and build output
+- [x] **ISLD-02**: Plugin islands render correctly in SSR (produce `<!--frsh:island:-->` markers) and hydrate on client
+- [x] **ISLD-03**: Two plugins mounted on the same host can each register distinct islands without chunk name collisions
 
 ### Typed Composition Demo (DEMO)
 
@@ -170,9 +170,9 @@
 | PLUG-01 | Phase 15 — Plugin Formal Type | Complete |
 | PLUG-02 | Phase 15 — Plugin Formal Type | Complete |
 | PLUG-03 | Phase 15 — Plugin Formal Type | Complete |
-| ISLD-01 | Phase 16 — Islands in Plugins | Pending |
-| ISLD-02 | Phase 16 — Islands in Plugins | Pending |
-| ISLD-03 | Phase 16 — Islands in Plugins | Pending |
+| ISLD-01 | Phase 16 — Islands in Plugins | Complete |
+| ISLD-02 | Phase 16 — Islands in Plugins | Complete |
+| ISLD-03 | Phase 16 — Islands in Plugins | Complete |
 | DEMO-01 | Phase 17 — Typed Composition Demo | Pending |
 | DEMO-02 | Phase 17 — Typed Composition Demo | Pending |
 | DEMO-03 | Phase 17 — Typed Composition Demo | Pending |

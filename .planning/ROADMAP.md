@@ -431,7 +431,7 @@ Plans:
 | 13. Benchmarks — Freak vs Fresh | 2/2 | Complete | 2026-02-28 |
 | 14. Typed App Composition | 1/1 | Complete | 2026-03-01 |
 | 15. Plugin Formal Type | 1/1 | Complete | 2026-03-01 |
-| 16. Islands in Plugins | 0/1 | Pending | — |
+| 16. Islands in Plugins | 1/1 | Complete | 2026-03-01 |
 | 17. Typed Composition Demo | 0/1 | Pending | — |
 
 ---
@@ -446,7 +446,7 @@ host `EffectApp` to plugin handlers without casts.
 
 - [x] **Phase 14: Typed App Composition** — WeakMap state isolation, `runEffect()`, generic hydration functions, `createCounterPlugin<S>`
 - [x] **Phase 15: Plugin Formal Type** — `Plugin<Config, S, R>` interface + `createPlugin()` factory
-- [ ] **Phase 16: Islands in Plugins** — BuildCache aggregation for plugin islands
+- [x] **Phase 16: Islands in Plugins** — BuildCache aggregation for plugin islands
 - [ ] **Phase 17: Typed Composition Demo** — Auth state + multi-plugin composition example
 
 ## v3 Phase Details
@@ -515,7 +515,7 @@ different island sets can be mounted on the same host without chunk name collisi
 **Plans**: 1 plan
 
 Plans:
-- [ ] 16-01-PLAN.md — BuildCache aggregation for mounted plugin islands, chunk isolation, SSR + hydration tests
+- [x] 16-01-PLAN.md — BuildCache aggregation for mounted plugin islands, chunk isolation, SSR + hydration tests
 
 ---
 
