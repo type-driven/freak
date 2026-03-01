@@ -430,7 +430,7 @@ Plans:
 | 12. Atom-Based Island Hydration | 1/1 | Complete | 2026-02-28 |
 | 13. Benchmarks — Freak vs Fresh | 2/2 | Complete | 2026-02-28 |
 | 14. Typed App Composition | 1/1 | Complete | 2026-03-01 |
-| 15. Plugin Formal Type | 0/1 | Pending | — |
+| 15. Plugin Formal Type | 1/1 | Complete | 2026-03-01 |
 | 16. Islands in Plugins | 0/1 | Pending | — |
 | 17. Typed Composition Demo | 0/1 | Pending | — |
 
@@ -445,7 +445,7 @@ host `EffectApp` to plugin handlers without casts.
 ## v3 Phases
 
 - [x] **Phase 14: Typed App Composition** — WeakMap state isolation, `runEffect()`, generic hydration functions, `createCounterPlugin<S>`
-- [ ] **Phase 15: Plugin Formal Type** — `Plugin<Config, S, R>` interface + `createPlugin()` factory
+- [x] **Phase 15: Plugin Formal Type** — `Plugin<Config, S, R>` interface + `createPlugin()` factory
 - [ ] **Phase 16: Islands in Plugins** — BuildCache aggregation for plugin islands
 - [ ] **Phase 17: Typed Composition Demo** — Auth state + multi-plugin composition example
 
@@ -493,7 +493,7 @@ typed plugin from a config object and App builder function.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 15-01-PLAN.md — Plugin<Config,S,R> interface, createPlugin() factory, mount-site type checking, tests
+- [x] 15-01-PLAN.md — Plugin<Config,S,R> interface, createPlugin() factory, mount-site type checking, tests
 
 ---
 
@@ -543,4 +543,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-03-01 — Milestone v3 added (Phases 14-17); Phase 14 complete*
+*Last updated: 2026-03-01 — Phase 15 complete (Plugin<Config,S,R> formal type)*

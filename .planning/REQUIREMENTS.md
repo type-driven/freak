@@ -136,9 +136,9 @@
 
 ### Plugin Type System (PLUG)
 
-- [ ] **PLUG-01**: `Plugin<Config, S, R>` formal interface defined in `@fresh/core` — documents routes (App<S>), Effect service requirements (R), host state shape (S)
-- [ ] **PLUG-02**: `createPlugin<Config, S, R>(config, factory)` factory creates a typed plugin from config + App builder
-- [ ] **PLUG-03**: TypeScript rejects mounting a plugin whose state type `S` is incompatible with the host app's state
+- [x] **PLUG-01**: `Plugin<Config, S, R>` formal interface defined in `@fresh/core` — documents routes (App<S>), Effect service requirements (R), host state shape (S)
+- [x] **PLUG-02**: `createPlugin<Config, S, R>(config, factory)` factory creates a typed plugin from config + App builder
+- [x] **PLUG-03**: TypeScript rejects mounting a plugin whose state type `S` is incompatible with the host app's state
 
 ### Islands in Plugins (ISLD)
 
@@ -167,9 +167,9 @@
 | COMP-02 | Phase 14 — Typed App Composition | Complete |
 | COMP-03 | Phase 14 — Typed App Composition | Complete |
 | COMP-04 | Phase 14 — Typed App Composition | Complete |
-| PLUG-01 | Phase 15 — Plugin Formal Type | Pending |
-| PLUG-02 | Phase 15 — Plugin Formal Type | Pending |
-| PLUG-03 | Phase 15 — Plugin Formal Type | Pending |
+| PLUG-01 | Phase 15 — Plugin Formal Type | Complete |
+| PLUG-02 | Phase 15 — Plugin Formal Type | Complete |
+| PLUG-03 | Phase 15 — Plugin Formal Type | Complete |
 | ISLD-01 | Phase 16 — Islands in Plugins | Pending |
 | ISLD-02 | Phase 16 — Islands in Plugins | Pending |
 | ISLD-03 | Phase 16 — Islands in Plugins | Pending |

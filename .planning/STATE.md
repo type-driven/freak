@@ -8,7 +8,7 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v3 — Typed Plugin System (Phase 14 complete; Phase 15 next)
+**Current focus:** Milestone v3 — Typed Plugin System (Phase 15 complete; Phase 16 next)
 
 ## Current Position
 
