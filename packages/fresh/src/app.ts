@@ -10,7 +10,7 @@ import {
 import { Context } from "./context.ts";
 import { mergePath, type Method, UrlPatternRouter } from "./router.ts";
 import type { FreshConfig, ResolvedFreshConfig } from "./config.ts";
-import type { BuildCache } from "./build_cache.ts";
+import { IslandPreparer, type BuildCache } from "./build_cache.ts";
 import { HttpError } from "./error.ts";
 import type { LayoutConfig, MaybeLazy, Route, RouteConfig } from "./types.ts";
 import type { RouteComponent } from "./segments.ts";
@@ -183,6 +183,7 @@ export class App<State> {
   #onError: (err: unknown) => void = NOOP;
   #effectRunner: EffectRunner | null = null;
   #atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null = null;
+  #islandRegistrations: Array<{ mod: Record<string, unknown>; chunkName: string }> = [];
 
   static {
     getBuildCache = (app) => app.#getBuildCache();
@@ -190,6 +191,13 @@ export class App<State> {
       app.config.root = cache.root;
       app.config.mode = mode;
       app.#getBuildCache = () => cache;
+      // Apply island components registered via app.islands() before the build cache was set
+      if (app.#islandRegistrations.length > 0) {
+        const preparer = new IslandPreparer();
+        for (const { mod, chunkName } of app.#islandRegistrations) {
+          preparer.prepare(cache.islandRegistry, mod, chunkName, chunkName, []);
+        }
+      }
     };
     setErrorInterceptor = (app, fn) => {
       app.#onError = fn;
@@ -333,6 +341,24 @@ export class App<State> {
   }
 
   /**
+   * Register island components programmatically. The components will be added
+   * to the island registry when {@linkcode setBuildCache} is called, enabling
+   * island hydration for components from external packages.
+   *
+   * @param mod A module object whose exported functions are island components.
+   * @param chunkName The chunk name used for the generated client bundle.
+   *
+   * @example
+   * ```ts
+   * app.islands({ WorkflowList, WorkflowDetail }, "workflow-dashboard")
+   * ```
+   */
+  islands(mod: Record<string, unknown>, chunkName: string): this {
+    this.#islandRegistrations.push({ mod, chunkName });
+    return this;
+  }
+
+  /**
    * Insert file routes collected in {@linkcode Builder} at this point.
    * @param pattern Append file routes at this pattern instead of the root
    * @returns
@@ -381,6 +407,22 @@ export class App<State> {
     // deno-lint-ignore no-this-alias
     const self = this;
     app.#getBuildCache = () => self.#getBuildCache();
+
+    // Merge island registrations from inner app into outer app so they're
+    // applied when setBuildCache is called on the outer app.
+    for (const reg of app.#islandRegistrations) {
+      this.#islandRegistrations.push(reg);
+    }
+
+    // Propagate Effect runner and atom hydration hook from inner app to outer
+    // if outer app doesn't already have them. This ensures Effect handlers
+    // registered on a sub-app before mounting work with the outer app's runner.
+    if (!this.#effectRunner && app.#effectRunner) {
+      this.#effectRunner = app.#effectRunner;
+    }
+    if (!this.#atomHydrationHook && app.#atomHydrationHook) {
+      this.#atomHydrationHook = app.#atomHydrationHook;
+    }
 
     return this;
   }

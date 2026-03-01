@@ -1,0 +1,22 @@
+{
+  "name": "@fresh/example-typed-composition",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": "./integration_test.ts",
+  "imports": {
+    "@fresh/core": "../../fresh/src/mod.ts",
+    "@fresh/core/internal": "../../fresh/src/internals.ts",
+    "@fresh/effect": "../../effect/src/mod.ts",
+    "effect": "npm:effect@^4.0.0-beta.20",
+    "effect/Schema": "npm:effect@^4.0.0-beta.20/Schema",
+    "effect/unstable/reactivity/Atom": "npm:effect@^4.0.0-beta.20/unstable/reactivity/Atom",
+    "preact": "npm:preact@^10.28.3",
+    "preact/hooks": "npm:preact@^10.28.3/hooks",
+    "@std/expect": "jsr:@std/expect@^1.0.0"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "dom.asynciterable", "deno.ns", "deno.unstable"],
+    "jsx": "precompile",
+    "jsxImportSource": "preact"
+  }
+}
