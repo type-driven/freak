@@ -24,3 +24,4 @@ export { createDefine, type Define } from "./define.ts";
 export type { Method } from "./router.ts";
 export { HttpError } from "./error.ts";
 export type { PageProps } from "./render.ts";
+export { type Plugin, createPlugin } from "./plugin.ts";

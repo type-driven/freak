@@ -30,6 +30,7 @@ import {
 } from "./commands.ts";
 import { MockBuildCache } from "./test_utils.ts";
 import { type EffectRunner } from "./handlers.ts";
+import type { Plugin } from "./plugin.ts";
 
 // TODO: Completed type clashes in older Deno versions
 // deno-lint-ignore no-explicit-any
@@ -378,18 +379,27 @@ export class App<State> {
   }
 
   /**
-   * Merge another {@linkcode App} instance into this app at the
-   * specified path.
+   * Merge another {@linkcode App} instance or {@linkcode Plugin} into this app
+   * at the specified path.
+   *
+   * The overload accepting a `Plugin<Config, State, R>` provides type-safe
+   * composition: TypeScript will emit an error if the plugin's required state
+   * shape (S) is incompatible with the host app's State type.
    */
-  mountApp(path: string, app: App<State>): this {
-    for (let i = 0; i < app.#commands.length; i++) {
-      const cmd = app.#commands[i];
+  mountApp<Config, R>(path: string, plugin: Plugin<Config, State, R>): this;
+  mountApp(path: string, app: App<State>): this;
+  mountApp(path: string, appOrPlugin: App<State> | Plugin<unknown, State, unknown>): this {
+    const inner: App<State> = !(appOrPlugin instanceof App)
+      ? (appOrPlugin as Plugin<unknown, State, unknown>).app
+      : appOrPlugin;
+
+    for (let i = 0; i < inner.#commands.length; i++) {
+      const cmd = inner.#commands[i];
 
       if (cmd.type !== CommandType.App && cmd.type !== CommandType.NotFound) {
-        // Apply the inner app's basePath if it exists
         let effectivePattern = cmd.pattern;
-        if (app.config.basePath) {
-          effectivePattern = mergePath(app.config.basePath, cmd.pattern, false);
+        if (inner.config.basePath) {
+          effectivePattern = mergePath(inner.config.basePath, cmd.pattern, false);
         }
 
         const clone = {
@@ -406,22 +416,17 @@ export class App<State> {
 
     // deno-lint-ignore no-this-alias
     const self = this;
-    app.#getBuildCache = () => self.#getBuildCache();
+    inner.#getBuildCache = () => self.#getBuildCache();
 
-    // Merge island registrations from inner app into outer app so they're
-    // applied when setBuildCache is called on the outer app.
-    for (const reg of app.#islandRegistrations) {
+    for (const reg of inner.#islandRegistrations) {
       this.#islandRegistrations.push(reg);
     }
 
-    // Propagate Effect runner and atom hydration hook from inner app to outer
-    // if outer app doesn't already have them. This ensures Effect handlers
-    // registered on a sub-app before mounting work with the outer app's runner.
-    if (!this.#effectRunner && app.#effectRunner) {
-      this.#effectRunner = app.#effectRunner;
+    if (!this.#effectRunner && inner.#effectRunner) {
+      this.#effectRunner = inner.#effectRunner;
     }
-    if (!this.#atomHydrationHook && app.#atomHydrationHook) {
-      this.#atomHydrationHook = app.#atomHydrationHook;
+    if (!this.#atomHydrationHook && inner.#atomHydrationHook) {
+      this.#atomHydrationHook = inner.#atomHydrationHook;
     }
 
     return this;
