@@ -1,6 +1,6 @@
 # Freak vs Fresh 2 Benchmark Results
 
-**Date:** 2026-02-28
+**Date:** 2026-03-01
 **Machine:** darwin aarch64
 **Deno:** 2.6.9 (V8 14.5.201.2-rusty)
 **Freak version:** 2.2.1 (local)
@@ -11,11 +11,11 @@
 
 | Dimension | Upstream Fresh | Freak (plain) | Freak (Effect) | Effect overhead |
 |-----------|---------------|---------------|----------------|-----------------|
-| Throughput (req/s) | 77453 | 76237 | 68874 | +9.7% |
-| Build time (s) | 0.16 | 0.16 | 0.35 | +120.0% |
-| Bundle size (KB gzip) | 28.1 | 28.1 | 660.4 | +632.3 KB |
-| Startup time (ms) | 56 | 56 | 216 | +160 ms |
-| SSR throughput (req/s) | 32622 | 32919 | 23896 | +27.4% |
+| Throughput (req/s) | 77013 | 81037 | 68984 | +14.9% |
+| Build time (s) | 0.18 | 0.17 | 0.33 | +85.4% |
+| Bundle size (KB gzip) | 27.9 | 27.9 | 574.4 | +546.5 KB |
+| Startup time (ms) | 77 | 66 | 163 | +86 ms |
+| SSR throughput (req/s) | 31455 | 32044 | 24331 | +24.1% |
 
 ## Methodology
 
@@ -31,43 +31,43 @@
 ### Handler Throughput
 | App | req/s | p50 (ms) | p90 (ms) | p99 (ms) |
 |-----|-------|----------|----------|----------|
-| upstream | 77453 | 0.60 | 0.78 | 2.03 |
-| freak-plain | 76237 | 0.60 | 0.82 | 2.20 |
-| freak-effect | 68874 | 0.67 | 0.84 | 1.98 |
+| upstream | 77013 | 0.60 | 0.79 | 1.92 |
+| freak-plain | 81037 | 0.58 | 0.74 | 1.90 |
+| freak-effect | 68984 | 0.69 | 0.86 | 1.43 |
 
 ### Build Time
 | App | Mean (s) | Stddev (s) | Runs |
 |-----|----------|------------|------|
-| upstream | 0.16 | 0.00 | 5 |
-| freak-plain | 0.16 | 0.00 | 5 |
-| freak-effect | 0.35 | 0.01 | 5 |
+| upstream | 0.18 | 0.00 | 5 |
+| freak-plain | 0.17 | 0.01 | 5 |
+| freak-effect | 0.33 | 0.01 | 5 |
 
 ### Bundle Size
 | App | Raw (KB) | Gzip (KB) | Files |
 |-----|----------|-----------|-------|
-| upstream | 71.4 | 28.1 | 6 |
-| freak-plain | 71.4 | 28.1 | 6 |
-| freak-effect | 2056.2 | 660.4 | 6 |
+| upstream | 71.1 | 27.9 | 6 |
+| freak-plain | 71.1 | 27.9 | 6 |
+| freak-effect | 1791.2 | 574.4 | 6 |
 
 ### Startup Time
 | App | Mean (ms) | Runs |
 |-----|-----------|------|
-| upstream | 56 | 5 |
-| freak-plain | 56 | 5 |
-| freak-effect | 216 | 5 |
+| upstream | 77 | 5 |
+| freak-plain | 66 | 5 |
+| freak-effect | 163 | 5 |
 
 ### SSR Page Throughput
 | App | req/s | p50 (ms) | p90 (ms) | p99 (ms) |
 |-----|-------|----------|----------|----------|
-| upstream | 32622 | 1.40 | 2.02 | 3.47 |
-| freak-plain | 32919 | 1.39 | 2.08 | 3.50 |
-| freak-effect | 23896 | 1.81 | 3.31 | 4.39 |
+| upstream | 31455 | 1.44 | 2.12 | 3.49 |
+| freak-plain | 32044 | 1.42 | 2.05 | 3.55 |
+| freak-effect | 24331 | 1.72 | 3.36 | 4.19 |
 
 ## Notes on Effect Overhead
 
 ### Throughput
 
-The 9.7% throughput reduction (freak-effect vs freak-plain) comes from three sources in the Effect runtime dispatch path.
+The 14.9% throughput reduction (freak-effect vs freak-plain) comes from three sources in the Effect runtime dispatch path.
 
 **ManagedRuntime dispatch path:** Each request to the freak-effect app enters `ManagedRuntime.runPromise(effect)`. This allocates a new Fiber object, registers it with the Effect scheduler, and suspends until the scheduler resumes it with the result. Even for a trivial handler that returns a static JSON response, this round-trip through the Effect fiber scheduler adds per-request overhead that plain function calls avoid entirely.
 
@@ -79,17 +79,17 @@ The 9.7% throughput reduction (freak-effect vs freak-plain) comes from three sou
 
 ### Build Time
 
-Build time increases by 120.0% due to the additional Effect npm dependency tree that esbuild must resolve and bundle.
+Build time increases by 85.4% due to the additional Effect npm dependency tree that esbuild must resolve and bundle.
 
 The Effect package graph adds npm modules that esbuild must resolve, parse, and tree-shake during the AOT build. Effect is designed for tree-shaking, so unused modules are excluded, but the resolution cost is still present.
 
 ### Bundle Size
 
-Client bundle size increases by 632.3 KB gzip for freak-effect. Review which Effect modules were included in client bundles (ideally zero — server-only handlers should not appear in _fresh/static/).
+Client bundle size increases by 546.5 KB gzip for freak-effect. Review which Effect modules were included in client bundles (ideally zero — server-only handlers should not appear in _fresh/static/).
 
 ### Startup Time
 
-Startup time overhead of 160ms is acceptable for a server process. The extra time is dominated by Deno's module graph resolution for the Effect import tree — once loaded, modules are cached in the Deno V8 isolate.
+Startup time overhead of 86ms is acceptable for a server process. The extra time is dominated by Deno's module graph resolution for the Effect import tree — once loaded, modules are cached in the Deno V8 isolate.
 
 The ManagedRuntime is constructed at module load time (`createEffectApp({ layer: TodoLayer })`). For a trivial TodoLayer (in-memory Map), this is a synchronous operation that completes in microseconds. The measurable startup overhead is almost entirely from Deno's module graph resolution — loading and JIT-compiling the Effect package tree — not from Effect's own initialization logic.
 
