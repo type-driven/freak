@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { createEffectDefine } from "@fresh/plugin-effect";
+import { createEffectDefine } from "@fresh/effect";
 import { TodoService, type TodoServiceR } from "../../services/TodoService.ts";
 
 const define = createEffectDefine<unknown, TodoServiceR>();

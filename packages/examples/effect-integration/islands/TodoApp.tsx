@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { useRpcStream } from "@fresh/effect/island";
-import { useAtom } from "@fresh/plugin-effect/island";
+import { useAtom } from "@fresh/effect/island";
 import { TodoRpc } from "../services/rpc.ts";
 import { todoListAtom } from "../atoms.ts";
 import type { Todo } from "../types.ts";
