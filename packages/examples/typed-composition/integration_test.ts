@@ -29,7 +29,7 @@
 
 import { expect } from "@std/expect";
 import { setBuildCache } from "@fresh/core/internal";
-import { App } from "@fresh/core";
+import { App, createPlugin } from "@fresh/core";
 import { MockBuildCache } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "@fresh/effect";
 import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
@@ -200,7 +200,27 @@ Deno.test("composition: atom state from plugin handler is request-isolated", asy
 });
 
 // ---------------------------------------------------------------------------
-// 4. MULTI-PLUGIN COMPOSITION — two plugins, one host
+// 4. TYPED COMPOSITION — plugin generic over host state
+// ---------------------------------------------------------------------------
+
+Deno.test("composition: plugin factory is generic — composes with typed host state", async () => {
+  // Typed host state — plugin is parameterized over it
+  interface HostState { requestId: string }
+
+  const hostApp = createEffectApp<HostState>({ layer: CounterLive });
+  const plugin = createCounterPlugin<HostState>();
+
+  hostApp.mountApp("/counter", plugin);
+  const handler = hostApp.handler();
+
+  const res = await get(handler, "/counter/count");
+  expect(res.status).toBe(200);
+
+  await hostApp.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// 5. MULTI-PLUGIN COMPOSITION — two plugins, one host
 // ---------------------------------------------------------------------------
 
 Deno.test("composition: two plugins mounted on the same host app", async () => {
@@ -236,5 +256,30 @@ Deno.test("composition: two plugins mounted on the same host app", async () => {
   expect(pingRes.status).toBe(200);
   expect(await pingRes.text()).toBe("pong");
 
+  await hostApp.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// PLUG-03 — state type mismatch is a compile error
+// ---------------------------------------------------------------------------
+
+Deno.test("composition: PLUG-03 — mounting plugin with incompatible state is a type error", () => {
+  const incompatiblePlugin = createPlugin<Record<string, never>, { count: number }, never>(
+    {},
+    (_config) => new App<{ count: number }>(),
+  );
+  const host = new App<{ name: string }>();
+  // @ts-expect-error Plugin<{}, { count: number }, never> is not assignable to Plugin<{}, { name: string }, unknown>
+  host.mountApp("/bad", incompatiblePlugin);
+});
+
+Deno.test("composition: PLUG-03 — mounting plugin with incompatible state on EffectApp is a type error", async () => {
+  const incompatiblePlugin = createPlugin<Record<string, never>, { count: number }, never>(
+    {},
+    (_config) => new App<{ count: number }>(),
+  );
+  const hostApp = createEffectApp<{ name: string }>({ layer: Layer.empty });
+  // @ts-expect-error Plugin<{}, { count: number }, never> is not assignable to Plugin<{}, { name: string }, unknown>
+  hostApp.mountApp("/bad", incompatiblePlugin);
   await hostApp.dispose();
 });

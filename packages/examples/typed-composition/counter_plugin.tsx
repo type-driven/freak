@@ -16,8 +16,8 @@
 
 /** @jsxImportSource preact */
 
-import { App } from "@fresh/core";
-import { setAtom } from "@fresh/effect";
+import { App, createPlugin, type Plugin } from "@fresh/core";
+import { runEffect, setAtom } from "@fresh/effect";
 import { Effect, Layer, ServiceMap } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
@@ -50,6 +50,9 @@ export const CounterLive = Layer.effect(
   }),
 );
 
+/** Type-level identifier for CounterService — used as R in Plugin<Config, S, R>. */
+export type CounterServiceIdentifier = typeof CounterService;
+
 // ---------------------------------------------------------------------------
 // Shared atom — server sets it; client island reads it after hydration
 // ---------------------------------------------------------------------------
@@ -75,59 +78,39 @@ export function CounterIsland({ initial }: { initial: number }): VNode {
 // Plugin app factory
 // ---------------------------------------------------------------------------
 
-/**
- * Type cast helper for Effect-returning route handlers in a plain App<unknown>.
- *
- * `App.get/post` expects `Middleware<State>` which returns `Response | Promise<Response>`.
- * A plugin using plain `App<unknown>` (no own runtime) returns `Effect.Effect<Response>`
- * and relies on the host EffectApp's effectRunner to intercept and execute it.
- *
- * This helper localizes the cast to one place. When using `EffectApp` directly
- * (i.e., the host), the Effect-aware builder types eliminate the need for this cast.
- */
-function effectRoute<R>(
-  fn: Effect.Effect<Response, unknown, R>,
-): Response {
-  return fn as unknown as Response;
-}
+export function createCounterPlugin<S = unknown>(): Plugin<Record<string, never>, S, CounterServiceIdentifier> {
+  return createPlugin<Record<string, never>, S, CounterServiceIdentifier>(
+    {},
+    (_config) => {
+      const app = new App<S>();
 
-export function createCounterPlugin(): App<unknown> {
-  const app = new App<unknown>();
+      app.islands({ CounterIsland }, "counter-island");
 
-  // Register CounterIsland so ctx.render() produces <!--frsh:island:--> markers.
-  // These registrations propagate to the host app via mountApp().
-  app.islands({ CounterIsland }, "counter-island");
+      app.get("/count", (ctx) =>
+        runEffect(ctx, Effect.gen(function* () {
+          const svc = yield* CounterService;
+          return Response.json({ count: svc.get() });
+        }))
+      );
 
-  /** GET /count — returns the current count as JSON. */
-  app.get("/count", (_ctx) =>
-    effectRoute(Effect.gen(function* () {
-      const svc = yield* CounterService;
-      return Response.json({ count: svc.get() });
-    }))
+      app.post("/increment", (ctx) =>
+        runEffect(ctx, Effect.gen(function* () {
+          const svc = yield* CounterService;
+          const newCount = svc.increment();
+          setAtom(ctx, counterAtom, newCount);
+          return Response.json({ count: newCount });
+        }))
+      );
+
+      app.post("/reset", (ctx) =>
+        runEffect(ctx, Effect.gen(function* () {
+          const svc = yield* CounterService;
+          svc.reset();
+          return Response.json({ count: 0 });
+        }))
+      );
+
+      return app;
+    },
   );
-
-  /**
-   * POST /increment — increments and returns the new count.
-   * Sets the counterAtom so the client receives the SSR hydration value.
-   */
-  app.post("/increment", (ctx) =>
-    effectRoute(Effect.gen(function* () {
-      const svc = yield* CounterService;
-      const newCount = svc.increment();
-      // Hydrate the atom — serialized into __FRSH_ATOM_STATE by FreshScripts
-      setAtom(ctx as { state: unknown }, counterAtom, newCount);
-      return Response.json({ count: newCount });
-    }))
-  );
-
-  /** POST /reset — resets counter to zero. */
-  app.post("/reset", (_ctx) =>
-    effectRoute(Effect.gen(function* () {
-      const svc = yield* CounterService;
-      svc.reset();
-      return Response.json({ count: 0 });
-    }))
-  );
-
-  return app;
 }

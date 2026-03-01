@@ -14,7 +14,7 @@
  * This ensures the Effect runner is registered before any requests are processed.
  */
 
-import { App, type FreshConfig, type ListenOptions } from "@fresh/core";
+import { App, type FreshConfig, type ListenOptions, type Plugin } from "@fresh/core";
 import type { Context } from "@fresh/core";
 import type { Middleware, MiddlewareFn } from "@fresh/core";
 import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
@@ -27,7 +27,7 @@ import { RpcServer, RpcSerialization } from "effect/unstable/rpc";
 import { Socket, SocketServer } from "effect/unstable/socket";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
-import { serializeAtomHydration } from "./hydration.ts";
+import { serializeAtomHydration, _setRequestRunner } from "./hydration.ts";
 
 /**
  * An Effect-aware middleware function. Can return a plain Response,
@@ -185,11 +185,19 @@ export class EffectApp<State, AppR> {
   }
 
   /**
-   * Merge another App instance into this app at the given path.
-   * Accepts a plain App<State> (not EffectApp) for compatibility.
+   * Merge another App instance or typed Plugin into this app at the given path.
+   * Accepts either a plain App<State> or a Plugin<Config, State, R>.
+   *
+   * When a Plugin is provided, TypeScript enforces that the plugin's required
+   * state shape is compatible with this app's State type parameter.
    */
-  mountApp(path: string, app: App<State>): this {
-    this.#app.mountApp(path, app);
+  mountApp<Config, PluginR>(path: string, plugin: Plugin<Config, State, PluginR>): this;
+  mountApp(path: string, app: App<State>): this;
+  mountApp(path: string, appOrPlugin: App<State> | Plugin<unknown, State, unknown>): this {
+    const inner: App<State> = !(appOrPlugin instanceof App)
+      ? (appOrPlugin as Plugin<unknown, State, unknown>).app
+      : appOrPlugin;
+    this.#app.mountApp(path, inner);
     return this;
   }
 
@@ -884,6 +892,13 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
   const runner: EffectRunner = (value, ctx) => resolver(value, ctx) as Promise<unknown>;
   // deno-lint-ignore no-explicit-any
   setEffectRunner(app as App<any>, runner);
+
+  // Register per-request runner so plugin handlers can call runEffect(ctx, eff).
+  // The middleware runs before any route handler, so runEffect is always available.
+  app.use((ctx) => {
+    _setRequestRunner(ctx, (eff) => resolver(eff, ctx) as Promise<unknown>);
+    return ctx.next();
+  });
 
   // Register atom hydration hook — called by FreshRuntimeScript during SSR
   // to serialize atom state into the __FRSH_ATOM_STATE script tag.
