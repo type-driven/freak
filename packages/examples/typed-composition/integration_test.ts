@@ -41,6 +41,11 @@ import {
   counterAtom,
   createCounterPlugin,
 } from "./counter_plugin.tsx";
+import {
+  GreetingLive,
+  greetingAtom,
+  createGreetingPlugin,
+} from "./greeting_plugin.tsx";
 
 // ---------------------------------------------------------------------------
 // Second plugin service (used in multi-plugin composition test)
@@ -282,4 +287,86 @@ Deno.test("composition: PLUG-03 — mounting plugin with incompatible state on E
   // @ts-expect-error Plugin<{}, { count: number }, never> is not assignable to Plugin<{}, { name: string }, unknown>
   hostApp.mountApp("/bad", incompatiblePlugin);
   await hostApp.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// DEMO-01: Both plugins read typed AuthState without casts
+// ---------------------------------------------------------------------------
+
+Deno.test("DEMO-01: plugins receive typed AuthState — requestId and userId accessible", async () => {
+  // S = AuthState: ctx.state.requestId and ctx.state.userId are typed.
+  // This is the compile-time proof: TypeScript accepts ctx.state.requestId without cast
+  // when the plugin is parameterized as createGreetingPlugin<AuthState>().
+  interface AuthState { requestId: string; userId: string }
+
+  const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
+  const hostApp = createEffectApp<AuthState>({ layer: combinedLayer });
+
+  hostApp.use((ctx) => {
+    // Typed assignment — no cast needed because State = AuthState
+    ctx.state.requestId = "req-abc";
+    ctx.state.userId = "user-xyz";
+    return ctx.next();
+  });
+
+  hostApp.mountApp("/counter", createCounterPlugin<AuthState>());
+  hostApp.mountApp("/greeting", createGreetingPlugin<AuthState>());
+
+  const handler = hostApp.handler();
+
+  // CounterPlugin responds at /counter/count
+  const counterRes = await handler(new Request("http://localhost/counter/count"));
+  expect(counterRes.status).toBe(200);
+  const counterBody = await counterRes.json() as { count: number };
+  expect(typeof counterBody.count).toBe("number");
+
+  // GreetingPlugin responds at /greeting/greet and echoes state fields
+  const greetRes = await handler(new Request("http://localhost/greeting/greet"));
+  expect(greetRes.status).toBe(200);
+  const greetBody = await greetRes.json() as { greeting: string; requestId: string; userId: string };
+  expect(greetBody.greeting).toBe("Hello, World!");
+  expect(greetBody.requestId).toBe("req-abc");
+  expect(greetBody.userId).toBe("user-xyz");
+
+  await hostApp.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// DEMO-02: Two plugins — no route conflicts
+// ---------------------------------------------------------------------------
+
+Deno.test("DEMO-02: two plugins mounted on one host — routes don't conflict", async () => {
+  const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
+  const hostApp = createEffectApp({ layer: combinedLayer });
+
+  hostApp.mountApp("/counter", createCounterPlugin());
+  hostApp.mountApp("/greeting", createGreetingPlugin());
+
+  const handler = hostApp.handler();
+
+  // Both plugin route groups respond independently — no overlap
+  const [countRes, greetRes] = await Promise.all([
+    handler(new Request("http://localhost/counter/count")),
+    handler(new Request("http://localhost/greeting/greet")),
+  ]);
+
+  expect(countRes.status).toBe(200);
+  expect(greetRes.status).toBe(200);
+
+  await hostApp.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// DEMO-03: Merged atom serialization — no key collisions
+// ---------------------------------------------------------------------------
+
+Deno.test("DEMO-03: setAtom from both plugins serializes into one merged blob", () => {
+  // Simulate two plugin handlers setting atoms on the same request ctx.
+  // counterAtom key = "counter", greetingAtom key = "greeting" — distinct, no collision.
+  const ctx = { state: {} };
+  setAtom(ctx, counterAtom, 5);          // from CounterPlugin
+  setAtom(ctx, greetingAtom, "Hi");      // from GreetingPlugin
+
+  const blob = serializeAtomHydration(ctx);
+  expect(blob).toBe(JSON.stringify({ counter: 5, greeting: "Hi" }));
 });
