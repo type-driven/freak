@@ -75,6 +75,22 @@ export function CounterIsland({ initial }: { initial: number }): VNode {
 // Plugin app factory
 // ---------------------------------------------------------------------------
 
+/**
+ * Type cast helper for Effect-returning route handlers in a plain App<unknown>.
+ *
+ * `App.get/post` expects `Middleware<State>` which returns `Response | Promise<Response>`.
+ * A plugin using plain `App<unknown>` (no own runtime) returns `Effect.Effect<Response>`
+ * and relies on the host EffectApp's effectRunner to intercept and execute it.
+ *
+ * This helper localizes the cast to one place. When using `EffectApp` directly
+ * (i.e., the host), the Effect-aware builder types eliminate the need for this cast.
+ */
+function effectRoute<R>(
+  fn: Effect.Effect<Response, unknown, R>,
+): Response {
+  return fn as unknown as Response;
+}
+
 export function createCounterPlugin(): App<unknown> {
   const app = new App<unknown>();
 
@@ -82,40 +98,35 @@ export function createCounterPlugin(): App<unknown> {
   // These registrations propagate to the host app via mountApp().
   app.islands({ CounterIsland }, "counter-island");
 
-  /**
-   * GET /count — returns the current count as JSON.
-   * Returns an Effect that the host EffectApp's runner executes.
-   */
+  /** GET /count — returns the current count as JSON. */
   app.get("/count", (_ctx) =>
-    Effect.gen(function* () {
+    effectRoute(Effect.gen(function* () {
       const svc = yield* CounterService;
       return Response.json({ count: svc.get() });
-    }) as unknown as Response
+    }))
   );
 
   /**
    * POST /increment — increments and returns the new count.
-   * Also sets the counterAtom so the client receives the SSR value.
+   * Sets the counterAtom so the client receives the SSR hydration value.
    */
   app.post("/increment", (ctx) =>
-    Effect.gen(function* () {
+    effectRoute(Effect.gen(function* () {
       const svc = yield* CounterService;
       const newCount = svc.increment();
-      // Hydrate the atom — rendered into __FRSH_ATOM_STATE by FreshScripts
+      // Hydrate the atom — serialized into __FRSH_ATOM_STATE by FreshScripts
       setAtom(ctx as { state: unknown }, counterAtom, newCount);
       return Response.json({ count: newCount });
-    }) as unknown as Response
+    }))
   );
 
-  /**
-   * POST /reset — resets counter to zero.
-   */
+  /** POST /reset — resets counter to zero. */
   app.post("/reset", (_ctx) =>
-    Effect.gen(function* () {
+    effectRoute(Effect.gen(function* () {
       const svc = yield* CounterService;
       svc.reset();
       return Response.json({ count: 0 });
-    }) as unknown as Response
+    }))
   );
 
   return app;

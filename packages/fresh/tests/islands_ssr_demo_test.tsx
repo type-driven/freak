@@ -20,6 +20,7 @@ import { expect } from "@std/expect";
 import { App } from "@fresh/core";
 import { setBuildCache } from "../src/internals.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
+import type { ComponentType } from "preact";
 
 // ---------------------------------------------------------------------------
 // Fixture island components (simple, no required props for clean types)
@@ -28,9 +29,6 @@ import { MockBuildCache } from "../src/test_utils.ts";
 function DemoCounter({ count }: { count: number }) {
   return <p class="output">{count}</p>;
 }
-
-// deno-lint-ignore no-explicit-any
-const DemoCounterAsIsland = DemoCounter as any;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,7 +82,7 @@ Deno.test("SSR: app.islands() → island markers appear in ctx.render() output",
   setBuildCache(app, cache, "production"); // triggers deferred registration
 
   // Verify registry was populated
-  expect(cache.islandRegistry.has(DemoCounterAsIsland)).toBe(true);
+  expect(cache.islandRegistry.has(DemoCounter as ComponentType)).toBe(true);
 
   app.get("/", (ctx) =>
     ctx.render(
@@ -131,7 +129,7 @@ Deno.test("SSR: mountApp propagates island registrations — inner app islands h
   setBuildCache(outer, cache, "production");
 
   // Verify the inner app's island made it into the outer registry
-  expect(cache.islandRegistry.has(DemoCounterAsIsland)).toBe(true);
+  expect(cache.islandRegistry.has(DemoCounter as ComponentType)).toBe(true);
 
   const html = await renderPage(outer, "/plugin/widget");
 

@@ -30,6 +30,7 @@ import { createResolver } from "../../effect/src/resolver.ts";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
 import { setAtom, serializeAtomHydration } from "../../effect/src/hydration.ts";
+import type { ComponentType } from "preact";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,8 +59,6 @@ const GreetLive = Layer.succeed(GreetService, { hello: () => "hello from shared 
 
 Deno.test("mountApp: island registrations propagate to outer + apply at setBuildCache", () => {
   function Widget() { return null; }
-  // deno-lint-ignore no-explicit-any
-  const WidgetFn = Widget as any;
 
   const outer = new App();
   const inner = new App();
@@ -70,8 +69,8 @@ Deno.test("mountApp: island registrations propagate to outer + apply at setBuild
   const cache = new MockBuildCache([], "production");
   setBuildCache(outer, cache, "production");
 
-  expect(cache.islandRegistry.has(WidgetFn)).toBe(true);
-  expect(cache.islandRegistry.get(WidgetFn)?.file).toBe("widget-chunk");
+  expect(cache.islandRegistry.has(Widget as ComponentType)).toBe(true);
+  expect(cache.islandRegistry.get(Widget as ComponentType)?.file).toBe("widget-chunk");
 });
 
 // ---------------------------------------------------------------------------
@@ -85,8 +84,11 @@ Deno.test("mountApp: effectRunner from inner app propagates to outer when outer 
   // Simulate inner app having an Effect runner (like a plugin with its own mini-runtime)
   const runtime = ManagedRuntime.make(GreetLive);
   const runner = createResolver(runtime, {});
-  setEffectRunner(inner as App<unknown>, runner as never);
+  // inner is already App<unknown>; runner's (ctx: unknown) param is compatible with EffectRunner
+  setEffectRunner(inner, runner);
 
+  // Cast required: App.get() expects Middleware<State>, but the effectRunner intercepts
+  // Effect return values at runtime. Plain App doesn't know about Effect types.
   inner.get("/greet", (_ctx) =>
     Effect.gen(function* () {
       const svc = yield* GreetService;
@@ -113,9 +115,11 @@ Deno.test("mountApp: outer EffectApp runner executes Effect handlers from inner 
   // Outer app has the runtime (like an EffectApp parent)
   const runtime = ManagedRuntime.make(GreetLive);
   const outerRunner = createResolver(runtime, {});
-  setEffectRunner(outer as App<unknown>, outerRunner as never);
+  // outer is already App<unknown>; runner's (ctx: unknown) param is compatible with EffectRunner
+  setEffectRunner(outer, outerRunner);
 
-  // Inner app (plugin) registers Effect handlers — no runner of its own
+  // Cast required: App.get() expects Middleware<State>, but the effectRunner intercepts
+  // Effect return values at runtime. Plain App doesn't know about Effect types.
   inner.get("/hello", (_ctx) =>
     Effect.gen(function* () {
       const svc = yield* GreetService;
@@ -222,10 +226,12 @@ Deno.test("mountApp: per-app atomHydrationHook propagates from inner to outer wh
   const outer = new App<unknown>();
   const inner = new App<unknown>();
 
-  // Set per-app hook on inner (not globally)
+  // Set per-app hook on inner (not globally).
+  // (ctx: { state: unknown }) is assignable to the expected (ctx: Context<unknown>)
+  // because Context<unknown> structurally extends { state: unknown }.
   const mockHook = (ctx: { state: unknown }): string | null =>
     serializeAtomHydration(ctx);
-  setAtomHydrationHookForApp(inner as App<unknown>, mockHook as never);
+  setAtomHydrationHookForApp(inner, mockHook);
 
   // Before mountApp — outer has no hook
   // (We can't directly test private fields, but we can test via handler behavior)

@@ -28,19 +28,29 @@
  */
 
 import { expect } from "@std/expect";
-import {
-  setBuildCache,
-} from "@fresh/core/internal";
+import { setBuildCache } from "@fresh/core/internal";
+import { App } from "@fresh/core";
 import { MockBuildCache } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "@fresh/effect";
 import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
+import type { ComponentType } from "preact";
+import { Effect, Layer, ServiceMap } from "effect";
 import {
   CounterIsland,
   CounterLive,
-  CounterService,
   counterAtom,
   createCounterPlugin,
 } from "./counter_plugin.tsx";
+
+// ---------------------------------------------------------------------------
+// Second plugin service (used in multi-plugin composition test)
+// ---------------------------------------------------------------------------
+
+interface PingServiceShape {
+  readonly ping: () => string;
+}
+const PingService = ServiceMap.Service<PingServiceShape>("PingService");
+const PingLive = Layer.succeed(PingService, { ping: () => "pong" });
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -73,17 +83,16 @@ Deno.test("composition: plugin's island registrations appear in host islandRegis
   // Mount plugin into host (island registrations are merged)
   hostApp.mountApp("/counter", plugin);
 
-  // Wire build cache on the host — queued island registrations are applied
-  // deno-lint-ignore no-explicit-any
-  const cache = new MockBuildCache([], "production") as any;
-  // deno-lint-ignore no-explicit-any
-  setBuildCache(hostApp.app as any, cache, "production");
+  // Wire build cache on the host — queued island registrations are applied.
+  // MockBuildCache<unknown> satisfies BuildCache<unknown> (the host app's state type).
+  const cache = new MockBuildCache<unknown>([], "production");
+  setBuildCache(hostApp.app, cache, "production");
 
-  // CounterIsland (from the plugin) must appear in the registry
-  // deno-lint-ignore no-explicit-any
-  expect(cache.islandRegistry.has(CounterIsland as any)).toBe(true);
-  // deno-lint-ignore no-explicit-any
-  expect(cache.islandRegistry.get(CounterIsland as any)?.file).toBe("counter-island");
+  // CounterIsland (from the plugin) must appear in the registry.
+  // Cast to ComponentType (preact's base component type) for Map.has/get — the island
+  // was stored under this key by IslandPreparer.prepare().
+  expect(cache.islandRegistry.has(CounterIsland as ComponentType)).toBe(true);
+  expect(cache.islandRegistry.get(CounterIsland as ComponentType)?.file).toBe("counter-island");
 
   // Dispose to remove signal listeners registered by createEffectApp
   await hostApp.dispose();
@@ -171,11 +180,6 @@ Deno.test("composition: atom state from plugin handler is request-isolated", asy
   hostApp.mountApp("/counter", plugin);
 
   const handler = hostApp.handler();
-  const capturedJsons: (string | null)[] = [];
-
-  // Patch handler to capture atom JSON from each request's ctx.state
-  // We do this by calling the POST /increment route which calls setAtom.
-  // The atom serialization is stored in each response — verify isolation.
 
   // Two independent requests must produce independent atom state
   const [res1, res2] = await Promise.all([
@@ -200,28 +204,20 @@ Deno.test("composition: atom state from plugin handler is request-isolated", asy
 // ---------------------------------------------------------------------------
 
 Deno.test("composition: two plugins mounted on the same host app", async () => {
-  // Use a second service to demonstrate multi-plugin composition
-  const { ServiceMap, Layer } = await import("effect");
-
-  interface PingServiceShape {
-    readonly ping: () => string;
-  }
-  const PingService = ServiceMap.Service<PingServiceShape>("PingService");
-  const PingLive = Layer.succeed(PingService, { ping: () => "pong" });
-
-  const { Effect } = await import("effect");
-
-  const pingPlugin = new (await import("@fresh/core")).App<unknown>();
+  // Plugin uses PingService from the host layer — plain App, no own runtime.
+  // effectRoute() localizes the Middleware/Effect cast (see counter_plugin.tsx).
+  const effectRoute = <R>(eff: Effect.Effect<Response, unknown, R>) =>
+    eff as unknown as Response;
+  const pingPlugin = new App<unknown>();
   pingPlugin.get("/ping", (_ctx) =>
-    Effect.gen(function* () {
+    effectRoute(Effect.gen(function* () {
       const svc = yield* PingService;
       return new Response(svc.ping());
-    }) as unknown as Response
+    }))
   );
 
-  // Host provides BOTH CounterService and PingService
-  const { Layer: L } = await import("effect");
-  const combinedLayer = L.mergeAll(CounterLive, PingLive);
+  // Host provides BOTH CounterService and PingService via Layer.mergeAll
+  const combinedLayer = Layer.mergeAll(CounterLive, PingLive);
 
   const hostApp = createEffectApp({ layer: combinedLayer });
   const counterPlugin = createCounterPlugin();
