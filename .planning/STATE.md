@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v3 — Typed Plugin System (Phase 15 complete; Phase 16 next)
+**Current focus:** Milestone v3 — Typed Plugin System (Phase 16 plan 01 complete; Phase 17 next)
 
 ## Current Position
 
-Phase: 15 of 17 (Plugin Formal Type) — plan 1/1 complete
-Plan: 1/1 complete in Phase 15
-Status: Phase 15 complete — Plugin<Config,S,R> interface, createPlugin() factory, App/EffectApp mountApp overloads, PLUG-03 type tests; 16 new tests passing
-Last activity: 2026-03-01 — Phase 15 complete on branch worktree-typed-composition
+Phase: 16 of 17 (Islands in Plugins) — plan 1/1 complete
+Plan: 1/1 complete in Phase 16
+Status: Phase 16 plan 01 complete — ISLD-01/02/03 formal requirement tests for plugin islands in host BuildCache; 5 new tests passing
+Last activity: 2026-03-01 — Completed 16-01-PLAN.md on branch worktree-typed-composition
 
-Progress: [███░░░░░░░] v3 in progress — Phases 14-15 (2/2) complete; Phases 16-17 pending
+Progress: [████░░░░░░] v3 in progress — Phases 14-16 (3/3) complete; Phase 17 pending
 
 ## Performance Metrics
 
@@ -111,6 +111,9 @@ Recent decisions affecting current work:
 - [15-01]: instanceof App discriminator for Plugin vs App — 'handler' in appInstance always true (prototype chain), instanceof App is correct runtime discriminator
 - [15-01]: createPlugin explicit return type required for JSR slow-types compliance
 - [15-01]: CounterServiceIdentifier = typeof CounterService — exports service tag as type alias for Plugin<Config, S, CounterServiceIdentifier>
+- [16-01]: No production source changes needed — island aggregation already implemented in app.ts mountApp (lines 421-423) and build_cache.ts IslandPreparer; Phase 16 plan 01 is tests-only
+- [16-01]: ISLD-03 collision scenario tested with distinct function refs using same export name string ({ CounterIsland: CounterIsland2 }) — BuildCache keyed on ComponentType (function ref), so distinct refs never collide
+- [16-01]: frsh:island SSR markers use component export name (not chunk name) — asserted on entry.exportName and HTML content
 
 ### Pending Todos
 
@@ -130,6 +133,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-01T21:01:01Z
-Stopped at: Phase 15 plan 01 complete — Plugin<Config,S,R>, createPlugin(), mountApp overloads, 16 new tests (1cf9e68e, 533436f4)
+Last session: 2026-03-01T21:24:25Z
+Stopped at: Phase 16 plan 01 complete — ISLD-01/02/03 plugin islands tests, 5 new tests passing (c7823435)
 Resume file: None
