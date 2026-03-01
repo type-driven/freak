@@ -432,7 +432,7 @@ Plans:
 | 14. Typed App Composition | 1/1 | Complete | 2026-03-01 |
 | 15. Plugin Formal Type | 1/1 | Complete | 2026-03-01 |
 | 16. Islands in Plugins | 1/1 | Complete | 2026-03-01 |
-| 17. Typed Composition Demo | 1/1 | Complete | 2026-03-01 |
+| 17. Typed Composition Demo | 1/1 | Complete    | 2026-03-01 |
 
 ---
 
