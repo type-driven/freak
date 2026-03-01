@@ -429,7 +429,118 @@ Plans:
 | 11. Micro-App Architecture | 1/1 | Complete | 2026-02-27 |
 | 12. Atom-Based Island Hydration | 1/1 | Complete | 2026-02-28 |
 | 13. Benchmarks — Freak vs Fresh | 2/2 | Complete | 2026-02-28 |
+| 14. Typed App Composition | 1/1 | Complete | 2026-03-01 |
+| 15. Plugin Formal Type | 0/1 | Pending | — |
+| 16. Islands in Plugins | 0/1 | Pending | — |
+| 17. Typed Composition Demo | 0/1 | Pending | — |
+
+---
+
+## Milestone: v3
+
+Typed Plugin System — formal `Plugin<Config, S, R>` type, islands in mounted plugins
+(BuildCache aggregation), and a multi-plugin demo with typed auth state flowing from
+host `EffectApp` to plugin handlers without casts.
+
+## v3 Phases
+
+- [x] **Phase 14: Typed App Composition** — WeakMap state isolation, `runEffect()`, generic hydration functions, `createCounterPlugin<S>`
+- [ ] **Phase 15: Plugin Formal Type** — `Plugin<Config, S, R>` interface + `createPlugin()` factory
+- [ ] **Phase 16: Islands in Plugins** — BuildCache aggregation for plugin islands
+- [ ] **Phase 17: Typed Composition Demo** — Auth state + multi-plugin composition example
+
+## v3 Phase Details
+
+### Phase 14: Typed App Composition
+
+**Goal**: Per-request state stored in module-level WeakMaps (not `ctx.state`), hydration
+functions generic over `S`, `runEffect(ctx, eff)` returns honest `Promise<A>`, and plugin
+factories parameterized over host state — all without any `as any` or forced casts.
+
+**Depends on**: Phase 13 (v2 complete)
+
+**Requirements**: COMP-01, COMP-02, COMP-03, COMP-04
+
+**Success Criteria** (what must be TRUE):
+1. `setAtom(ctx, atom, value)` compiles with a typed ctx (`Context<HostState>`) without a cast — verified by TypeScript accepting the call in `counter_plugin.tsx`.
+2. `runEffect(ctx, eff)` returns `Promise<Response>` and is accepted by `app.get()` — no `as unknown as Response` cast anywhere in plugin handler code.
+3. Per-request state (hydration map + runner) lives in WeakMaps; `ctx.state` has no Symbol or `__frsh` keys — verified by inspecting `ctx.state` after a request.
+4. `createCounterPlugin<HostState>()` is accepted by `hostApp.mountApp()` when `hostApp: EffectApp<HostState, R>` — TypeScript compiles without error.
+
+**Plans**: 1 plan (complete)
+
+Plans:
+- [x] 14-01-PLAN.md — WeakMap hydration, SerializableAtom<A> type, runEffect(), generic setAtom, counter_plugin<S> factory, 8 integration tests
+
+---
+
+### Phase 15: Plugin Formal Type
+
+**Goal**: A `Plugin<Config, S, R>` formal interface in `@fresh/core` documents what a
+plugin provides (routes as `App<S>`, Effect service requirements as `R`) and what it
+requires from the host (state shape `S`). A `createPlugin()` factory constructs a
+typed plugin from a config object and App builder function.
+
+**Depends on**: Phase 14 (typed composition must be solid before formalizing the interface)
+
+**Requirements**: PLUG-01, PLUG-02, PLUG-03
+
+**Success Criteria** (what must be TRUE):
+1. `Plugin<Config, S, R>` interface compiles and `deno publish --dry-run` on `@fresh/core` succeeds — no Effect types leak into the public API.
+2. `createPlugin(config, factory): Plugin<Config, S, R>` factory creates a plugin that can be mounted via `host.mountApp()` without any additional cast.
+3. TypeScript produces a compile error when mounting a `Plugin<Config, { count: number }, R>` on a host `App<{ name: string }>` — state type mismatch is caught at the mount site.
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — Plugin<Config,S,R> interface, createPlugin() factory, mount-site type checking, tests
+
+---
+
+### Phase 16: Islands in Plugins
+
+**Goal**: Island components registered via `plugin.app.islands()` appear in the host's
+BuildCache and produce correct SSR `<!--frsh:island:-->` markers. Two plugins with
+different island sets can be mounted on the same host without chunk name collisions.
+
+**Depends on**: Phase 15 (Plugin type must exist before BuildCache aggregation is designed)
+
+**Requirements**: ISLD-01, ISLD-02, ISLD-03
+
+**Success Criteria** (what must be TRUE):
+1. A plugin that registers `CounterIsland` via `app.islands()` — after `mountApp()` — produces `<!--frsh:island:counter-island:-->` markers in SSR HTML from the host app.
+2. The island component hydrates correctly on the client (chunk loaded, component mounted) — verified by running the host app in `deno task dev` and observing the island in devtools.
+3. Mounting two plugins with different island sets on the same host produces no chunk naming errors — verified by running `deno task build` and checking the `_fresh/` output.
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 16-01-PLAN.md — BuildCache aggregation for mounted plugin islands, chunk isolation, SSR + hydration tests
+
+---
+
+### Phase 17: Typed Composition Demo
+
+**Goal**: A runnable demo in `packages/examples/typed-composition/` shows two plugins
+(`CounterPlugin`, `GreetingPlugin`) mounted on a single `EffectApp<AuthState>` host.
+The host sets typed auth state via middleware; both plugins read it generically without
+any cast. Both plugins register islands and set atoms; all state serializes correctly
+into one `__FRSH_ATOM_STATE` blob.
+
+**Depends on**: Phase 16 (islands in plugins must work)
+
+**Requirements**: DEMO-01, DEMO-02, DEMO-03
+
+**Success Criteria** (what must be TRUE):
+1. The demo app starts with `deno task dev` without errors — two plugin route groups respond at `/counter/*` and `/greeting/*`.
+2. Both plugins read `ctx.state.requestId` and `ctx.state.userId` from the typed `AuthState` without any cast — TypeScript compiles cleanly.
+3. `serializeAtomHydration(ctx)` in the response handler returns a JSON blob containing atoms from both plugins — no collisions.
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 17-01-PLAN.md — AuthState host app, CounterPlugin + GreetingPlugin, multi-plugin routes, typed state, atom serialization, dev server smoke test
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-02-28 -- Phase 12 complete: decision document written, all 3 SCs verified*
+*Last updated: 2026-03-01 — Milestone v3 added (Phases 14-17); Phase 14 complete*

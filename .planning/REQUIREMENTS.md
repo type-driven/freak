@@ -121,10 +121,67 @@
 
 **Coverage:**
 - v1 requirements: 17 total — all Complete ✓
-- v2 requirements: 15 total
-- v2 mapped to phases: 15
+- v2 requirements: 15 total — all Complete ✓
+
+---
+
+## v3 Requirements
+
+### Typed App Composition (COMP)
+
+- [x] **COMP-01**: `setAtom<A,S>`, `serializeAtomHydration<S>`, `initAtomHydrationMap<S>` accept any typed ctx — no cast at call sites
+- [x] **COMP-02**: `runEffect(ctx, eff)` returns `Promise<A>` — no Effect-as-Response lie; per-ctx runner from WeakMap
+- [x] **COMP-03**: WeakMap-based per-request state: atom maps + Effect runner stored on ctx, not `ctx.state`
+- [x] **COMP-04**: `createCounterPlugin<S = unknown>(): App<S>` — plugin factory fully generic over host state
+
+### Plugin Type System (PLUG)
+
+- [ ] **PLUG-01**: `Plugin<Config, S, R>` formal interface defined in `@fresh/core` — documents routes (App<S>), Effect service requirements (R), host state shape (S)
+- [ ] **PLUG-02**: `createPlugin<Config, S, R>(config, factory)` factory creates a typed plugin from config + App builder
+- [ ] **PLUG-03**: TypeScript rejects mounting a plugin whose state type `S` is incompatible with the host app's state
+
+### Islands in Plugins (ISLD)
+
+- [ ] **ISLD-01**: Island components registered in a mounted plugin appear in the host's BuildCache and build output
+- [ ] **ISLD-02**: Plugin islands render correctly in SSR (produce `<!--frsh:island:-->` markers) and hydrate on client
+- [ ] **ISLD-03**: Two plugins mounted on the same host can each register distinct islands without chunk name collisions
+
+### Typed Composition Demo (DEMO)
+
+- [ ] **DEMO-01**: Host `EffectApp` sets typed auth state (`{ requestId: string, userId: string }`) via middleware; plugins receive it via generic `S` without casts
+- [ ] **DEMO-02**: Two distinct plugins (`CounterPlugin`, `GreetingPlugin`) mounted on the same host — routes don't conflict, atoms don't collide
+- [ ] **DEMO-03**: Each plugin's `setAtom` calls serialize into one shared `__FRSH_ATOM_STATE` blob via the host's atom hook
+
+## v3 Future (deferred)
+
+### Plugin Authoring
+
+- **AUTH-01**: ctx.state namespacing — each plugin gets a namespaced key to prevent cross-plugin state conflicts
+- **AUTH-02**: Plugin authoring guide and error message improvements
+
+## v3 Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| COMP-01 | Phase 14 — Typed App Composition | Complete |
+| COMP-02 | Phase 14 — Typed App Composition | Complete |
+| COMP-03 | Phase 14 — Typed App Composition | Complete |
+| COMP-04 | Phase 14 — Typed App Composition | Complete |
+| PLUG-01 | Phase 15 — Plugin Formal Type | Pending |
+| PLUG-02 | Phase 15 — Plugin Formal Type | Pending |
+| PLUG-03 | Phase 15 — Plugin Formal Type | Pending |
+| ISLD-01 | Phase 16 — Islands in Plugins | Pending |
+| ISLD-02 | Phase 16 — Islands in Plugins | Pending |
+| ISLD-03 | Phase 16 — Islands in Plugins | Pending |
+| DEMO-01 | Phase 17 — Typed Composition Demo | Pending |
+| DEMO-02 | Phase 17 — Typed Composition Demo | Pending |
+| DEMO-03 | Phase 17 — Typed Composition Demo | Pending |
+
+**v3 Coverage:**
+- v3 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-25 after milestone v2 start — v2 requirements added (CORE, EAPP, HAPI, RPC, MIG)*
+*Last updated: 2026-03-01 after milestone v3 start — v3 requirements added (COMP, PLUG, ISLD, DEMO)*

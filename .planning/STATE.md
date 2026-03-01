@@ -2,22 +2,22 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-25)
+See: .planning/PROJECT.md (updated 2026-03-01)
 
 **Core value:** Route handlers and Preact islands feel idiomatic in both Fresh and
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v2 — complete (Phases 12 + 13 done; all phases finished)
+**Current focus:** Milestone v3 — Typed Plugin System (Phase 14 complete; Phase 15 next)
 
 ## Current Position
 
-Phase: 12 of 13 (Atom-Based Island Hydration) — plan 1/1 complete
-Plan: 1/1 complete in Phase 12
-Status: Phase 12 complete — 12-DECISION.md written; dual-channel hydration documented; all 3 SC verified
-Last activity: 2026-02-28 — Completed 12-01-PLAN.md (architectural decision document)
+Phase: 14 of 17 (Typed App Composition) — plan 1/1 complete
+Plan: 1/1 complete in Phase 14
+Status: Phase 14 complete — WeakMap hydration, runEffect(), generic setAtom<A,S>, createCounterPlugin<S>, 8 integration tests; all 166 tests passing
+Last activity: 2026-03-01 — Phase 14 complete on branch worktree-typed-composition
 
-Progress: [██████████] 100% — v1+v2 complete; Phase 12 (1/1) and Phase 13 (2/2) complete
+Progress: [██░░░░░░░░] v3 started — Phase 14 (1/1) complete; Phases 15-17 pending
 
 ## Performance Metrics
 
