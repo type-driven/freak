@@ -7,7 +7,7 @@
 
 import { expect } from "@std/expect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import { createEffectApp } from "@fresh/effect";
 import { setAtom, serializeAtomHydration } from "../../effect/src/hydration.ts";
 
@@ -24,15 +24,11 @@ import {
 // ---------------------------------------------------------------------------
 
 Deno.test("GreetingService.getGreeting('World') returns 'Hello, World!'", async () => {
-  const runtime = Layer.toRuntime(GreetingLive);
   const result = await Effect.runPromise(
-    Effect.provide(
-      Effect.gen(function* () {
-        const svc = yield* GreetingService;
-        return svc.getGreeting("World");
-      }),
-      GreetingLive,
-    ),
+    Effect.gen(function* () {
+      const svc = yield* GreetingService;
+      return svc.getGreeting("World");
+    }).pipe(Effect.provide(GreetingLive)),
   );
   expect(result).toBe("Hello, World!");
 });
