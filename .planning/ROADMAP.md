@@ -432,7 +432,7 @@ Plans:
 | 14. Typed App Composition | 1/1 | Complete | 2026-03-01 |
 | 15. Plugin Formal Type | 1/1 | Complete | 2026-03-01 |
 | 16. Islands in Plugins | 1/1 | Complete | 2026-03-01 |
-| 17. Typed Composition Demo | 0/1 | Pending | — |
+| 17. Typed Composition Demo | 1/1 | Complete | 2026-03-01 |
 
 ---
 
@@ -447,7 +447,7 @@ host `EffectApp` to plugin handlers without casts.
 - [x] **Phase 14: Typed App Composition** — WeakMap state isolation, `runEffect()`, generic hydration functions, `createCounterPlugin<S>`
 - [x] **Phase 15: Plugin Formal Type** — `Plugin<Config, S, R>` interface + `createPlugin()` factory
 - [x] **Phase 16: Islands in Plugins** — BuildCache aggregation for plugin islands
-- [ ] **Phase 17: Typed Composition Demo** — Auth state + multi-plugin composition example
+- [x] **Phase 17: Typed Composition Demo** — Auth state + multi-plugin composition example
 
 ## v3 Phase Details
 
@@ -539,8 +539,8 @@ into one `__FRSH_ATOM_STATE` blob.
 **Plans**: 1 plan
 
 Plans:
-- [ ] 17-01-PLAN.md — AuthState host app, CounterPlugin + GreetingPlugin, multi-plugin routes, typed state, atom serialization, dev server smoke test
+- [x] 17-01-PLAN.md — AuthState host app, CounterPlugin + GreetingPlugin, multi-plugin routes, typed state, atom serialization, dev server smoke test
 
 ---
 *Roadmap created: 2026-02-18*
-*Last updated: 2026-03-01 — Phase 15 complete (Plugin<Config,S,R> formal type)*
+*Last updated: 2026-03-01 — Phase 17 complete (Typed Composition Demo; milestone v3 CLOSED)*

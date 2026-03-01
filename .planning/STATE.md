@@ -8,16 +8,16 @@ See: .planning/PROJECT.md (updated 2026-03-01)
 Effect — no manual runtime wiring, no adapter boilerplate, just Effect returns
 where you already write handlers.
 
-**Current focus:** Milestone v3 — Typed Plugin System (Phase 16 plan 01 complete; Phase 17 next)
+**Current focus:** Milestone v3 — Typed Plugin System COMPLETE (Phase 17 plan 01 complete; DEMO-01/02/03 all verified)
 
 ## Current Position
 
-Phase: 16 of 17 (Islands in Plugins) — plan 1/1 complete
-Plan: 1/1 complete in Phase 16
-Status: Phase 16 plan 01 complete — ISLD-01/02/03 formal requirement tests for plugin islands in host BuildCache; 5 new tests passing
-Last activity: 2026-03-01 — Completed 16-01-PLAN.md on branch worktree-typed-composition
+Phase: 17 of 17 (Typed Composition Demo) — plan 1/1 complete
+Plan: 1/1 complete in Phase 17
+Status: Phase 17 plan 01 complete — GreetingPlugin + typed AuthState demo app + DEMO-01/02/03 integration tests; 13 tests passing
+Last activity: 2026-03-01 — Completed 17-01-PLAN.md on branch worktree-typed-composition
 
-Progress: [████░░░░░░] v3 in progress — Phases 14-16 (3/3) complete; Phase 17 pending
+Progress: [██████████] v3 COMPLETE — Phases 14-17 (4/4) complete; milestone v3 closed
 
 ## Performance Metrics
 
@@ -114,6 +114,9 @@ Recent decisions affecting current work:
 - [16-01]: No production source changes needed — island aggregation already implemented in app.ts mountApp (lines 421-423) and build_cache.ts IslandPreparer; Phase 16 plan 01 is tests-only
 - [16-01]: ISLD-03 collision scenario tested with distinct function refs using same export name string ({ CounterIsland: CounterIsland2 }) — BuildCache keyed on ComponentType (function ref), so distinct refs never collide
 - [16-01]: frsh:island SSR markers use component export name (not chunk name) — asserted on entry.exportName and HTML content
+- [17-01]: @fresh/core/dev maps to ../../fresh/src/dev/mod.ts (not ../../fresh/src/dev.ts which doesn't exist); fresh/deno.json exports "./dev": "./src/dev/mod.ts"
+- [17-01]: Layer.mergeAll correct for independent services (CounterLive+GreetingLive); use Layer.provide only when services have cross-layer deps
+- [17-01]: greetingAtom key "greeting" distinct from counterAtom "counter" — each plugin's atom keys must be globally unique per request
 
 ### Pending Todos
 
@@ -133,6 +136,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-01T21:24:25Z
-Stopped at: Phase 16 plan 01 complete — ISLD-01/02/03 plugin islands tests, 5 new tests passing (c7823435)
+Last session: 2026-03-01T23:31:03Z
+Stopped at: Phase 17 plan 01 complete — GreetingPlugin + typed AuthState demo + DEMO-01/02/03 tests; milestone v3 CLOSED (f7058335)
 Resume file: None
