@@ -16,7 +16,6 @@ import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
 import {
-  ATOM_HYDRATION_KEY,
   initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
@@ -32,11 +31,8 @@ Deno.test("setAtom stores encoded value in per-request map", () => {
   initAtomHydrationMap(ctx);
   setAtom(ctx, countAtom, 42);
 
-  const map = (ctx.state as Record<string | symbol, unknown>)[
-    ATOM_HYDRATION_KEY
-  ] as Map<string, unknown>;
-  assertEquals(map.has("count"), true);
-  assertEquals(map.get("count"), 42);
+  // Verify via the public API — the storage mechanism is an implementation detail.
+  assertEquals(serializeAtomHydration(ctx), JSON.stringify({ count: 42 }));
 });
 
 Deno.test("serializeAtomHydration returns JSON string", () => {

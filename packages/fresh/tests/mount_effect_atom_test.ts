@@ -182,13 +182,13 @@ Deno.test("mountApp + atom: setAtom in inner-app handler is serialized by global
   const inner = new App<unknown>();
 
   // Register global atom hook (normally done by createEffectApp)
-  setAtomHydrationHook(serializeAtomHydration as (ctx: { state: unknown }) => string | null);
+  setAtomHydrationHook(serializeAtomHydration);
 
   // Inner app route sets an atom
   inner.get("/widget", (ctx) => {
-    setAtom(ctx as { state: unknown }, countAtom, 99);
+    setAtom(ctx, countAtom, 99);
     // Capture what the atom hook would produce (simulates FreshScripts rendering)
-    const json = serializeAtomHydration(ctx as { state: unknown });
+    const json = serializeAtomHydration(ctx);
     (ctx.state as Record<string, unknown>).atomJson = json;
     return new Response("ok");
   });
@@ -246,7 +246,7 @@ Deno.test("mountApp: per-app atomHydrationHook propagates from inner to outer wh
 
   // Register a route BEFORE handler() is called so effectRunner + atomHook are captured
   outer.get("/test", (ctx) => {
-    setAtom(ctx as { state: unknown }, countAtom, 77);
+    setAtom(ctx, countAtom, 77);
     return new Response("ok");
   });
 

@@ -1,16 +1,34 @@
 /**
  * Server-side atom hydration helpers for @fresh/effect.
  *
- * These functions manage a per-request Map of atom key -> encoded value.
- * The map is stored on ctx.state[ATOM_HYDRATION_KEY] and serialized into
- * the __FRSH_ATOM_STATE script tag by FreshRuntimeScript.
+ * Per-request state (hydration map, effect runner) is stored in module-level
+ * WeakMaps keyed on the request ctx object. This keeps ctx.state purely for
+ * user domain data and avoids runtime casts.
  */
 
 import * as Atom from "effect/unstable/reactivity/Atom";
+import type { Effect } from "effect";
 
-// Symbol used as the key on ctx.state for the per-request hydration map.
-// Symbol.for() ensures the same symbol is used across module reloads.
-export const ATOM_HYDRATION_KEY = Symbol.for("fresh_atom_hydration");
+// ---------------------------------------------------------------------------
+// Hydration map storage
+// ---------------------------------------------------------------------------
+
+// Module-level WeakMap: ctx → per-request atom hydration Map.
+// WeakMap ensures the Map is GC'd when ctx goes out of scope (end of request).
+const hydrationMaps = new WeakMap<object, Map<string, unknown>>();
+
+/**
+ * Typed view of a serializable atom's internal data.
+ * Used after Atom.isSerializable() guard to access the [SerializableTypeId]
+ * slot without an `as any` escape. encode is typed with the concrete A so
+ * callers get type-safe encoding.
+ */
+interface SerializableAtom<A> {
+  readonly [Atom.SerializableTypeId]: {
+    readonly key: string;
+    readonly encode: (value: A) => unknown;
+  };
+}
 
 /**
  * Set an atom value for server-side hydration. The value will be serialized
@@ -18,15 +36,13 @@ export const ATOM_HYDRATION_KEY = Symbol.for("fresh_atom_hydration");
  *
  * Requires:
  * - The atom must be wrapped with Atom.serializable({ key, schema })
- * - effectPlugin() middleware must be active (initializes the hydration map)
  * - Each atom key must be unique within a single request
  *
  * @throws If atom is not serializable (missing Atom.serializable wrapper)
  * @throws If atom key is duplicated within the same request
- * @throws If effectPlugin() middleware has not initialized the hydration map
  */
-export function setAtom<A>(
-  ctx: { state: unknown },
+export function setAtom<A, S = unknown>(
+  ctx: { state: S },
   atom: Atom.Atom<A>,
   value: A,
 ): void {
@@ -37,22 +53,16 @@ export function setAtom<A>(
     );
   }
 
-  // deno-lint-ignore no-explicit-any
-  const serializable = (atom as any)[Atom.SerializableTypeId] as {
-    readonly key: string;
-    readonly encode: (value: A) => unknown;
-  };
+  const { key, encode } =
+    (atom as unknown as SerializableAtom<A>)[Atom.SerializableTypeId];
 
-  const key = serializable.key;
-
-  const state = ctx.state as Record<string | symbol, unknown>;
-  let map = state[ATOM_HYDRATION_KEY] as Map<string, unknown> | undefined;
+  let map = hydrationMaps.get(ctx);
   if (!map) {
     // Lazily create the per-request Map on first setAtom call.
-    // This avoids allocating a Map on every request for routes that don't use atoms,
-    // and enables multiple EffectApp instances to share the same per-request Map.
+    // Multiple EffectApp instances on the same request share one Map
+    // because they all receive the same ctx object.
     map = new Map<string, unknown>();
-    state[ATOM_HYDRATION_KEY] = map;
+    hydrationMaps.set(ctx, map);
   }
 
   if (map.has(key)) {
@@ -62,8 +72,7 @@ export function setAtom<A>(
     );
   }
 
-  const encoded = serializable.encode(value);
-  map.set(key, encoded);
+  map.set(key, encode(value));
 }
 
 /**
@@ -72,24 +81,78 @@ export function setAtom<A>(
  *
  * Called by the atom hydration hook registered in createEffectApp().
  */
-export function serializeAtomHydration(
-  ctx: { state: unknown },
+export function serializeAtomHydration<S = unknown>(
+  ctx: { state: S },
 ): string | null {
-  const state = ctx.state as Record<string | symbol, unknown>;
-  const map = state[ATOM_HYDRATION_KEY] as Map<string, unknown> | undefined;
-
+  const map = hydrationMaps.get(ctx);
   if (!map || map.size === 0) return null;
-
   return JSON.stringify(Object.fromEntries(map));
 }
 
 /**
- * Initialize the per-request atom hydration map on ctx.state.
- * Called automatically by createEffectApp() middleware before ctx.next().
+ * Initialize the per-request atom hydration map on ctx.
+ * Idempotent — a second call does not reset the map.
  */
-export function initAtomHydrationMap(ctx: { state: unknown }): void {
-  const state = ctx.state as Record<string | symbol, unknown>;
-  if (!state[ATOM_HYDRATION_KEY]) {
-    state[ATOM_HYDRATION_KEY] = new Map<string, unknown>();
+export function initAtomHydrationMap<S = unknown>(ctx: { state: S }): void {
+  if (!hydrationMaps.has(ctx)) {
+    hydrationMaps.set(ctx, new Map<string, unknown>());
   }
+}
+
+// ---------------------------------------------------------------------------
+// Per-request Effect runner storage
+// ---------------------------------------------------------------------------
+
+type RequestRunner = (
+  eff: Effect.Effect<unknown, unknown, never>,
+) => Promise<unknown>;
+
+// Module-level WeakMap: ctx → per-request Effect runner bound to the host's
+// ManagedRuntime. Set by createEffectApp()'s internal middleware.
+const requestRunners = new WeakMap<object, RequestRunner>();
+
+/**
+ * Store the Effect runner for this request's ctx.
+ * Called by createEffectApp()'s internal middleware before route handlers run.
+ * @internal
+ */
+export function _setRequestRunner(
+  ctx: object,
+  runner: RequestRunner,
+): void {
+  requestRunners.set(ctx, runner);
+}
+
+/**
+ * Run an Effect using the host EffectApp's runtime.
+ * Returns `Promise<A>` — a valid Fresh route handler return type.
+ *
+ * Use this from plugin route handlers instead of casting an Effect to Response.
+ * The host EffectApp provides all required services at runtime; TypeScript
+ * cannot verify cross-app service provision statically (R is unconstrained).
+ *
+ * @example
+ * ```ts
+ * app.post("/increment", (ctx) =>
+ *   runEffect(ctx, Effect.gen(function* () {
+ *     const svc = yield* MyService;
+ *     return Response.json({ ok: true });
+ *   }))
+ * );
+ * ```
+ *
+ * @throws If called outside of an EffectApp request context.
+ */
+export function runEffect<A, R = never>(
+  ctx: object,
+  eff: Effect.Effect<A, unknown, R>,
+): Promise<A> {
+  const runner = requestRunners.get(ctx);
+  if (!runner) {
+    throw new Error(
+      "runEffect() called outside of an EffectApp request context. " +
+        "Ensure the plugin is mounted on a host EffectApp.",
+    );
+  }
+  return runner(eff as Effect.Effect<unknown, unknown, never>) as Promise<A>;
 }

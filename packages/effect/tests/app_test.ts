@@ -22,7 +22,6 @@ import * as Schema from "effect/Schema";
 import { FakeServer } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "../src/mod.ts";
 import {
-  ATOM_HYDRATION_KEY,
   initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
@@ -140,19 +139,17 @@ Deno.test("SC-4: two EffectApp instances own independent runtimes", async () => 
 Deno.test("HYDR-1: atom hydration map is not created until setAtom is called (lazy init)", async () => {
   const app = createEffectApp<unknown, never>({ layer: Layer.empty });
 
-  let capturedMap: unknown;
+  let capturedJson: string | null = "UNSET";
   app.get("/test", (ctx) => {
-    capturedMap = (ctx.state as Record<string | symbol, unknown>)[
-      ATOM_HYDRATION_KEY
-    ];
+    // No setAtom called — serialization should return null (lazy init)
+    capturedJson = serializeAtomHydration(ctx);
     return new Response("ok");
   });
 
   const server = new FakeServer(app.handler());
   const res = await server.get("/test");
   assertEquals(res.status, 200);
-  // No Map without setAtom — lazy initialization, not eager
-  assertEquals(capturedMap, undefined);
+  assertEquals(capturedJson, null);
 
   await app.dispose();
 });
@@ -166,8 +163,8 @@ Deno.test("HYDR-2: setAtom works in handler after createEffectApp() middleware i
 
   let capturedJson: string | null = null;
   app.get("/test", (ctx) => {
-    setAtom(ctx as { state: unknown }, countAtom, 99);
-    capturedJson = serializeAtomHydration(ctx as { state: unknown });
+    setAtom(ctx, countAtom, 99);
+    capturedJson = serializeAtomHydration(ctx);
     return new Response("ok");
   });
 
@@ -267,21 +264,20 @@ Deno.test("HYDR-7: setAtom lazily creates hydration map in request handler", asy
     schema: Schema.Number,
   });
 
-  let beforeSetAtom: unknown;
-  let afterSetAtom: unknown;
+  let beforeJson: string | null = "UNSET";
+  let afterJson: string | null = "UNSET";
   app.get("/test", (ctx) => {
-    beforeSetAtom = (ctx.state as Record<string | symbol, unknown>)[ATOM_HYDRATION_KEY];
-    setAtom(ctx as { state: unknown }, countAtom, 55);
-    afterSetAtom = (ctx.state as Record<string | symbol, unknown>)[ATOM_HYDRATION_KEY];
+    beforeJson = serializeAtomHydration(ctx);
+    setAtom(ctx, countAtom, 55);
+    afterJson = serializeAtomHydration(ctx);
     return new Response("ok");
   });
 
   const server = new FakeServer(app.handler());
   await server.get("/test");
 
-  assertEquals(beforeSetAtom, undefined);
-  assertEquals(afterSetAtom instanceof Map, true);
-  assertEquals((afterSetAtom as Map<string, unknown>).get("hydr7-lazy-count"), 55);
+  assertEquals(beforeJson, null);
+  assertEquals(afterJson, JSON.stringify({ "hydr7-lazy-count": 55 }));
 
   await app.dispose();
 });
@@ -300,11 +296,11 @@ Deno.test("HYDR-8: initAtomHydrationMap is idempotent — multiple apps share th
   let capturedJson: string | null = null;
   app.get("/test", (ctx) => {
     // Simulate a second app calling initAtomHydrationMap on the same ctx
-    initAtomHydrationMap(ctx as { state: unknown });
-    setAtom(ctx as { state: unknown }, countAtom, 42);
-    initAtomHydrationMap(ctx as { state: unknown }); // must not reset the map
-    setAtom(ctx as { state: unknown }, labelAtom, "merged");
-    capturedJson = serializeAtomHydration(ctx as { state: unknown });
+    initAtomHydrationMap(ctx);
+    setAtom(ctx, countAtom, 42);
+    initAtomHydrationMap(ctx); // must not reset the map
+    setAtom(ctx, labelAtom, "merged");
+    capturedJson = serializeAtomHydration(ctx);
     return new Response("ok");
   });
 
