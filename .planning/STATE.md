@@ -12,12 +12,12 @@ where you already write handlers.
 
 ## Current Position
 
-Phase: 14 of 17 (Typed App Composition) — plan 1/1 complete
-Plan: 1/1 complete in Phase 14
-Status: Phase 14 complete — WeakMap hydration, runEffect(), generic setAtom<A,S>, createCounterPlugin<S>, 8 integration tests; all 166 tests passing
-Last activity: 2026-03-01 — Phase 14 complete on branch worktree-typed-composition
+Phase: 15 of 17 (Plugin Formal Type) — plan 1/1 complete
+Plan: 1/1 complete in Phase 15
+Status: Phase 15 complete — Plugin<Config,S,R> interface, createPlugin() factory, App/EffectApp mountApp overloads, PLUG-03 type tests; 16 new tests passing
+Last activity: 2026-03-01 — Phase 15 complete on branch worktree-typed-composition
 
-Progress: [██░░░░░░░░] v3 started — Phase 14 (1/1) complete; Phases 15-17 pending
+Progress: [███░░░░░░░] v3 in progress — Phases 14-15 (2/2) complete; Phases 16-17 pending
 
 ## Performance Metrics
 
@@ -107,6 +107,10 @@ Recent decisions affecting current work:
 - [12-01]: setAtomHydrationHookForApp() is dead code — stored in App#atomHydrationHook but FreshRuntimeScript never calls it; deferred
 - [12-01]: Partials gap deferred — __FRSH_ATOM_STATE not emitted during Fresh Partial navigation; workaround: use RPC streams
 - [12-01]: hydration.ts duplication (plugin-effect has identical local copy of effect/src/hydration.ts) — deferred pending JSR constraint verification
+- [15-01]: Plugin<Config,S,R> phantom type via optional field (readonly _phantom?: R) — @fresh/core never imports Effect; R documents Effect service requirements at type level only
+- [15-01]: instanceof App discriminator for Plugin vs App — 'handler' in appInstance always true (prototype chain), instanceof App is correct runtime discriminator
+- [15-01]: createPlugin explicit return type required for JSR slow-types compliance
+- [15-01]: CounterServiceIdentifier = typeof CounterService — exports service tag as type alias for Plugin<Config, S, CounterServiceIdentifier>
 
 ### Pending Todos
 
@@ -126,6 +130,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-02-28T20:57:30Z
-Stopped at: Phase 12 plan 01 complete — 12-DECISION.md written, all SC verified (cf33045a)
+Last session: 2026-03-01T21:01:01Z
+Stopped at: Phase 15 plan 01 complete — Plugin<Config,S,R>, createPlugin(), mountApp overloads, 16 new tests (1cf9e68e, 533436f4)
 Resume file: None
