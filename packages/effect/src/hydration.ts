@@ -46,12 +46,13 @@ export function setAtom<A>(
   const key = serializable.key;
 
   const state = ctx.state as Record<string | symbol, unknown>;
-  const map = state[ATOM_HYDRATION_KEY] as Map<string, unknown> | undefined;
+  let map = state[ATOM_HYDRATION_KEY] as Map<string, unknown> | undefined;
   if (!map) {
-    throw new Error(
-      "setAtom() called but atomHydration map not initialized. " +
-        "Is createEffectApp() middleware active?",
-    );
+    // Lazily create the per-request Map on first setAtom call.
+    // This avoids allocating a Map on every request for routes that don't use atoms,
+    // and enables multiple EffectApp instances to share the same per-request Map.
+    map = new Map<string, unknown>();
+    state[ATOM_HYDRATION_KEY] = map;
   }
 
   if (map.has(key)) {
@@ -79,12 +80,7 @@ export function serializeAtomHydration(
 
   if (!map || map.size === 0) return null;
 
-  const obj: Record<string, unknown> = {};
-  for (const [key, encoded] of map) {
-    obj[key] = encoded;
-  }
-
-  return JSON.stringify(obj);
+  return JSON.stringify(Object.fromEntries(map));
 }
 
 /**
@@ -92,6 +88,8 @@ export function serializeAtomHydration(
  * Called automatically by createEffectApp() middleware before ctx.next().
  */
 export function initAtomHydrationMap(ctx: { state: unknown }): void {
-  (ctx.state as Record<string | symbol, unknown>)[ATOM_HYDRATION_KEY] =
-    new Map<string, unknown>();
+  const state = ctx.state as Record<string | symbol, unknown>;
+  if (!state[ATOM_HYDRATION_KEY]) {
+    state[ATOM_HYDRATION_KEY] = new Map<string, unknown>();
+  }
 }

@@ -18,7 +18,7 @@ import { App, type FreshConfig, type ListenOptions } from "@fresh/core";
 import type { Context } from "@fresh/core";
 import type { Middleware, MiddlewareFn } from "@fresh/core";
 import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
-import { setEffectRunner, setAtomHydrationHook, setAtomHydrationHookForApp } from "@fresh/core/internal";
+import { setEffectRunner, setAtomHydrationHook } from "@fresh/core/internal";
 import type { EffectRunner, Route, RouteComponent } from "@fresh/core/internal";
 import { ManagedRuntime, Layer, Effect } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
@@ -27,7 +27,7 @@ import { RpcServer, RpcSerialization } from "effect/unstable/rpc";
 import { Socket, SocketServer } from "effect/unstable/socket";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
-import { serializeAtomHydration, initAtomHydrationMap } from "./hydration.ts";
+import { serializeAtomHydration } from "./hydration.ts";
 
 /**
  * An Effect-aware middleware function. Can return a plain Response,
@@ -887,14 +887,9 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
 
   // Register atom hydration hook — called by FreshRuntimeScript during SSR
   // to serialize atom state into the __FRSH_ATOM_STATE script tag.
-  setAtomHydrationHook((ctx) => serializeAtomHydration(ctx));
-  // Also register per-app hook (infrastructure for future full isolation)
-  // deno-lint-ignore no-explicit-any
-  setAtomHydrationHookForApp(app as App<any>, (ctx) => serializeAtomHydration(ctx));
-
-  // Register initAtomHydrationMap as a built-in middleware that runs before
-  // user middlewares, so the per-request atom map is always available.
-  app.use((ctx) => { initAtomHydrationMap(ctx); return ctx.next(); });
+  // Multiple EffectApp instances naturally merge: setAtom() lazily initializes
+  // a shared per-request Map on ctx.state, so all apps contribute to the same Map.
+  setAtomHydrationHook(serializeAtomHydration);
 
   const effectApp = new EffectApp<State, AppR>(
     app,

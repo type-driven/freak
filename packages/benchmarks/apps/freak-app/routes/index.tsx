@@ -1,15 +1,13 @@
-import { Effect } from "effect";
 import { page } from "@fresh/core";
 import { setAtom } from "@fresh/effect";
 import Counter from "../islands/Counter.tsx";
 import { counterAtom } from "../atoms.ts";
 
 export const handler = {
-  GET: (ctx: unknown) =>
-    Effect.sync(() => {
-      setAtom(ctx as { state: unknown }, counterAtom, 42);
-      return page({});
-    }),
+  GET: (ctx: unknown) => {
+    setAtom(ctx as { state: unknown }, counterAtom, 42);
+    return page({});
+  },
 };
 
 export default function IndexPage() {

@@ -15,7 +15,7 @@
  * SIGINT/SIGTERM during the test run.
  */
 
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals, assertRejects } from "jsr:@std/assert@1";
 import { Effect, Layer, ServiceMap } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
@@ -23,6 +23,7 @@ import { FakeServer } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "../src/mod.ts";
 import {
   ATOM_HYDRATION_KEY,
+  initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
 } from "../src/hydration.ts";
@@ -136,7 +137,7 @@ Deno.test("SC-4: two EffectApp instances own independent runtimes", async () => 
 // HYDR: createEffectApp() atom hydration wiring
 // ============================================================================
 
-Deno.test("HYDR-1: createEffectApp() auto-initializes atom hydration map on every request", async () => {
+Deno.test("HYDR-1: atom hydration map is not created until setAtom is called (lazy init)", async () => {
   const app = createEffectApp<unknown, never>({ layer: Layer.empty });
 
   let capturedMap: unknown;
@@ -150,8 +151,8 @@ Deno.test("HYDR-1: createEffectApp() auto-initializes atom hydration map on ever
   const server = new FakeServer(app.handler());
   const res = await server.get("/test");
   assertEquals(res.status, 200);
-  assertEquals(capturedMap instanceof Map, true);
-  assertEquals((capturedMap as Map<string, unknown>).size, 0);
+  // No Map without setAtom — lazy initialization, not eager
+  assertEquals(capturedMap, undefined);
 
   await app.dispose();
 });
@@ -216,6 +217,103 @@ Deno.test("HYDR-4: serializeAtomHydration returns null when no setAtom calls in 
   await server.get("/test");
 
   assertEquals(capturedJson, null);
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-5: setAtom with non-serializable atom returns 500", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const plainAtom = Atom.make(0);
+
+  app.get("/test", (ctx) => {
+    // deno-lint-ignore no-explicit-any
+    setAtom(ctx as { state: unknown }, plainAtom as any, 0);
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  const res = await server.get("/test");
+  // Fresh catches synchronous handler errors and returns 500
+  assertEquals(res.status, 500);
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-6: setAtom with duplicate key returns 500", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const countAtom = Atom.serializable(Atom.make(0), {
+    key: "hydr6-count",
+    schema: Schema.Number,
+  });
+
+  app.get("/test", (ctx) => {
+    setAtom(ctx as { state: unknown }, countAtom, 1);
+    setAtom(ctx as { state: unknown }, countAtom, 2); // duplicate key
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  const res = await server.get("/test");
+  // Fresh catches synchronous handler errors and returns 500
+  assertEquals(res.status, 500);
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-7: setAtom lazily creates hydration map in request handler", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const countAtom = Atom.serializable(Atom.make(0), {
+    key: "hydr7-lazy-count",
+    schema: Schema.Number,
+  });
+
+  let beforeSetAtom: unknown;
+  let afterSetAtom: unknown;
+  app.get("/test", (ctx) => {
+    beforeSetAtom = (ctx.state as Record<string | symbol, unknown>)[ATOM_HYDRATION_KEY];
+    setAtom(ctx as { state: unknown }, countAtom, 55);
+    afterSetAtom = (ctx.state as Record<string | symbol, unknown>)[ATOM_HYDRATION_KEY];
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  await server.get("/test");
+
+  assertEquals(beforeSetAtom, undefined);
+  assertEquals(afterSetAtom instanceof Map, true);
+  assertEquals((afterSetAtom as Map<string, unknown>).get("hydr7-lazy-count"), 55);
+
+  await app.dispose();
+});
+
+Deno.test("HYDR-8: initAtomHydrationMap is idempotent — multiple apps share the same per-request Map", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const countAtom = Atom.serializable(Atom.make(0), {
+    key: "hydr8-count",
+    schema: Schema.Number,
+  });
+  const labelAtom = Atom.serializable(Atom.make(""), {
+    key: "hydr8-label",
+    schema: Schema.String,
+  });
+
+  let capturedJson: string | null = null;
+  app.get("/test", (ctx) => {
+    // Simulate a second app calling initAtomHydrationMap on the same ctx
+    initAtomHydrationMap(ctx as { state: unknown });
+    setAtom(ctx as { state: unknown }, countAtom, 42);
+    initAtomHydrationMap(ctx as { state: unknown }); // must not reset the map
+    setAtom(ctx as { state: unknown }, labelAtom, "merged");
+    capturedJson = serializeAtomHydration(ctx as { state: unknown });
+    return new Response("ok");
+  });
+
+  const server = new FakeServer(app.handler());
+  await server.get("/test");
+
+  const data = JSON.parse(capturedJson!) as Record<string, unknown>;
+  assertEquals(data["hydr8-count"], 42);
+  assertEquals(data["hydr8-label"], "merged");
 
   await app.dispose();
 });
