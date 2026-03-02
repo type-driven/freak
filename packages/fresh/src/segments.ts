@@ -2,7 +2,7 @@ import type { AnyComponent } from "preact";
 import type { MaybeLazyMiddleware, Middleware } from "./middlewares/mod.ts";
 import { type Method, patternToSegments } from "./router.ts";
 import type { LayoutConfig, Route } from "./types.ts";
-import { type Context, getInternals } from "./context.ts";
+import { type Context, getInternals, setAtomHydrationHookForCtx } from "./context.ts";
 import { recordSpanError, tracer } from "./otel.ts";
 import {
   type EffectRunner,
@@ -187,6 +187,8 @@ export async function renderRoute<State>(
   if (route.config?.skipInheritedLayouts) {
     internals.layouts = [];
   }
+
+  setAtomHydrationHookForCtx(ctx, atomHydrationHook ?? null);
 
   const method = ctx.req.method.toUpperCase() as Method;
 

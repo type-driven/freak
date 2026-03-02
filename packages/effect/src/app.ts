@@ -423,6 +423,10 @@ export class EffectApp<State, AppR> {
         // deno-lint-ignore no-explicit-any
         let request: any;
         try {
+          const contentLength = parseInt(ctx.req.headers.get("content-length") ?? "0", 10);
+          if (!isNaN(contentLength) && contentLength > 65536) {
+            return new Response("Request body too large", { status: 413 });
+          }
           const text = await ctx.req.text();
           request = JSON.parse(text.trim().split("\n")[0]);
         } catch {

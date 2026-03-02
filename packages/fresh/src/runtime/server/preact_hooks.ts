@@ -35,7 +35,7 @@ import { getCodeFrame } from "../../dev/middlewares/error_overlay/code_frame.ts"
 import { escapeScript } from "../../utils.ts";
 import { HeadContext } from "../head.ts";
 import { useContext } from "preact/hooks";
-import { getAtomHydrationHook } from "../../segments.ts";
+import type { Context } from "../../context.ts";
 
 interface InternalPreactOptions extends PreactOptions {
   [OptionsType.ATTR](name: string, value: unknown): string | void;
@@ -83,13 +83,17 @@ export class RenderState {
   renderedHtmlHead = false;
   hasRuntimeScript = false;
 
+  atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null;
+
   constructor(
     // deno-lint-ignore no-explicit-any
     public ctx: PageProps<any, any>,
     public buildCache: BuildCache,
     public partialId: string,
+    atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null = null,
   ) {
     this.nonce = crypto.randomUUID().replace(/-/g, "");
+    this.atomHydrationHook = atomHydrationHook;
   }
 
   clear() {
@@ -634,9 +638,10 @@ function FreshRuntimeScript() {
       `import { boot } from "${basePath}${runtimeUrl}";${islandImports}boot(${islandObj},${serializedProps});`;
 
     // Check if effectPlugin registered an atom hydration hook for this request.
-    // The hook returns server-generated JSON from schema-encoded values — not
-    // user input. escapeScript() prevents script tag breakout in the JSON.
-    const atomHook = getAtomHydrationHook();
+    // The hook is stored per-ctx in a WeakMap (set by renderRoute()) to avoid
+    // the last-writer-wins collision from the module-level global.
+    // escapeScript() prevents script tag breakout in the JSON.
+    const atomHook = RENDER_STATE?.atomHydrationHook ?? null;
     const atomJson = atomHook
       ? atomHook(ctx as unknown as Parameters<typeof atomHook>[0])
       : null;

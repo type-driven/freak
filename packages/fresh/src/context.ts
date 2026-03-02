@@ -56,6 +56,12 @@ export let getBuildCache: <T>(ctx: Context<T>) => BuildCache<T>;
 export let getInternals: <T>(ctx: Context<T>) => UiTree<unknown, T>;
 export let setAdditionalStyles: <T>(ctx: Context<T>, css: string[]) => void;
 
+// deno-lint-ignore no-explicit-any
+const _atomHooksByCtx = new WeakMap<Context<any>, ((ctx: Context<unknown>) => string | null) | null>();
+
+export let setAtomHydrationHookForCtx: <T>(ctx: Context<T>, hook: ((ctx: Context<unknown>) => string | null) | null) => void;
+export let getAtomHydrationHookForCtx: <T>(ctx: Context<T>) => ((ctx: Context<unknown>) => string | null) | null | undefined;
+
 /**
  * The context passed to every middleware. It is unique for every request.
  */
@@ -134,6 +140,8 @@ export class Context<State> {
     getBuildCache = <T>(ctx: Context<T>) => ctx.#buildCache;
     setAdditionalStyles = <T>(ctx: Context<T>, css: string[]) =>
       ctx.#additionalStyles = css;
+    setAtomHydrationHookForCtx = (ctx, hook) => _atomHooksByCtx.set(ctx, hook);
+    getAtomHydrationHookForCtx = (ctx) => _atomHooksByCtx.get(ctx);
   }
 
   constructor(
@@ -282,10 +290,12 @@ export class Context<State> {
 
     const html = tracer.startActiveSpan("render", (span) => {
       span.setAttribute("fresh.span_type", "render");
+      const atomHydrationHook = getAtomHydrationHookForCtx(this) ?? null;
       const state = new RenderState(
         this,
         this.#buildCache,
         partialId,
+        atomHydrationHook,
       );
 
       if (this.#additionalStyles !== null) {

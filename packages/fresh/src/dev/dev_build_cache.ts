@@ -201,7 +201,10 @@ export class MemoryBuildCache<State> implements DevBuildCache<State> {
       Array.from(this.islandModNameToChunk.entries()).map(
         async ([name, chunk]) => {
           const fileUrl = maybeToFileUrl(chunk.server);
-          const mod = await import(fileUrl);
+          const mod = await import(fileUrl).catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            throw new Error(`Failed to load island module "${fileUrl}": ${msg}`, { cause: err });
+          });
 
           if (chunk.browser === null) {
             throw new Error(`Unexpected missing browser chunk`);

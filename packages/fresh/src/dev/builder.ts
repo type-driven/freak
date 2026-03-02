@@ -238,18 +238,40 @@ export class Builder<State = any> {
    *   // ... your usual testing
    * })
    * ```
-   * @param options
+   * @param options.mode - Build mode ("development" | "production"). Default: "production".
+   * @param options.snapshot - Snapshot storage ("disk" | "memory"). Default: "disk".
+   * @param options.importApp - Optional async factory that returns the app. When
+   *   provided, island specifiers declared via `app.islands(..., specifier)` are
+   *   scanned and registered with esbuild so they are bundled into the production
+   *   build. Without this, only islands discovered by the file-system crawler
+   *   (the `islands/` directory) are included — plugin islands registered
+   *   programmatically via `app.islands()` would be silently dropped.
    * @returns Apply a snapshot to a particular {@linkcode App} instance.
    */
   async build(
     options?: {
       mode?: ResolvedBuildConfig["mode"];
       snapshot?: "disk" | "memory";
+      importApp?: () => Promise<App<State> | { app: unknown }>;
     },
   ): Promise<(app: App<State>) => void> {
     this.config.mode = options?.mode ?? "production";
 
     await this.#crawlFsItems();
+
+    // Scan island specifiers declared via app.islands(..., specifier) so esbuild
+    // can bundle them. In listen() this is automatic; in build() the caller must
+    // provide importApp for it to work.
+    if (options?.importApp) {
+      // deno-lint-ignore no-explicit-any
+      let rawApp: any = await options.importApp();
+      while (!(rawApp instanceof App) && rawApp != null && "app" in rawApp) {
+        rawApp = rawApp.app;
+      }
+      for (const spec of getIslandSpecifiers(rawApp as App<State>)) {
+        this.registerIsland(spec);
+      }
+    }
 
     const buildCache = options?.snapshot === "memory"
       ? new MemoryBuildCache(
