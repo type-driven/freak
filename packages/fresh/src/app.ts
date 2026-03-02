@@ -172,6 +172,9 @@ export let getAtomHydrationHookForApp: (
   app: App<unknown>,
 ) => ((ctx: Context<unknown>) => string | null) | null;
 
+/** Returns file specifiers registered via `app.islands(mod, chunkName, specifier)`. */
+export let getIslandSpecifiers: <State>(app: App<State>) => string[];
+
 const NOOP = () => {};
 
 /**
@@ -184,7 +187,7 @@ export class App<State> {
   #onError: (err: unknown) => void = NOOP;
   #effectRunner: EffectRunner | null = null;
   #atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null = null;
-  #islandRegistrations: Array<{ mod: Record<string, unknown>; chunkName: string }> = [];
+  #islandRegistrations: Array<{ mod: Record<string, unknown>; chunkName: string; specifier?: string }> = [];
 
   static {
     getBuildCache = (app) => app.#getBuildCache();
@@ -192,10 +195,15 @@ export class App<State> {
       app.config.root = cache.root;
       app.config.mode = mode;
       app.#getBuildCache = () => cache;
-      // Apply island components registered via app.islands() before the build cache was set
-      if (app.#islandRegistrations.length > 0) {
+      // Apply island components registered via app.islands() that have no file specifier.
+      // Islands with a specifier are bundled by the Builder and registered by the build cache
+      // (MemoryBuildCache.flush / DiskBuildCache.flush) with the correct browser bundle path.
+      const specifierless = app.#islandRegistrations.filter(({ specifier }) =>
+        specifier === undefined
+      );
+      if (specifierless.length > 0) {
         const preparer = new IslandPreparer();
-        for (const { mod, chunkName } of app.#islandRegistrations) {
+        for (const { mod, chunkName } of specifierless) {
           preparer.prepare(cache.islandRegistry, mod, chunkName, chunkName, []);
         }
       }
@@ -211,6 +219,10 @@ export class App<State> {
       app.#atomHydrationHook = hook;
     };
     getAtomHydrationHookForApp = (app) => app.#atomHydrationHook;
+    getIslandSpecifiers = (app) =>
+      app.#islandRegistrations
+        .filter(({ specifier }) => specifier !== undefined)
+        .map(({ specifier }) => specifier!);
   }
 
   /**
@@ -348,14 +360,23 @@ export class App<State> {
    *
    * @param mod A module object whose exported functions are island components.
    * @param chunkName The chunk name used for the generated client bundle.
+   * @param specifier The file specifier (URL or path) for the island module.
+   *   When provided, the Builder will include this module in the client JS bundle
+   *   so that islands hydrate in the browser. Without a specifier, islands are
+   *   SSR-only and will not hydrate. Use `import.meta.resolve("./islands/mod.ts")`
+   *   to obtain the specifier in Deno.
+   *   For production builds, also call `builder.registerIsland(specifier)` in
+   *   `dev.ts` since the app is not available until after `builder.build()` runs.
    *
    * @example
    * ```ts
-   * app.islands({ WorkflowList, WorkflowDetail }, "workflow-dashboard")
+   * import * as WorkflowIslands from "./islands/mod.ts";
+   * app.islands(WorkflowIslands, "workflow-islands",
+   *   import.meta.resolve("./islands/mod.ts"))
    * ```
    */
-  islands(mod: Record<string, unknown>, chunkName: string): this {
-    this.#islandRegistrations.push({ mod, chunkName });
+  islands(mod: Record<string, unknown>, chunkName: string, specifier?: string): this {
+    this.#islandRegistrations.push({ mod, chunkName, specifier });
     return this;
   }
 

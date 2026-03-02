@@ -1,4 +1,4 @@
-import { App, type ListenOptions, setBuildCache } from "../app.ts";
+import { App, type ListenOptions, setBuildCache, getIslandSpecifiers } from "../app.ts";
 import { fsAdapter } from "../fs.ts";
 import * as path from "@std/path";
 import * as colors from "@std/fmt/colors";
@@ -171,6 +171,12 @@ export class Builder<State = any> {
       rawApp = rawApp.app;
     }
     const app: App<State> = rawApp;
+
+    // Add island specifiers declared via app.islands(..., specifier) so esbuild
+    // can bundle them as client JS, enabling browser hydration.
+    for (const spec of getIslandSpecifiers(app)) {
+      this.registerIsland(spec);
+    }
 
     const buildCache = new MemoryBuildCache<State>(
       this.config,

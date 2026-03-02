@@ -123,6 +123,11 @@ export class Context<State> {
 
   Component!: FunctionComponent;
 
+  /** The island registry for this request's build cache. */
+  get islandRegistry(): ServerIslandRegistry {
+    return this.#buildCache.islandRegistry;
+  }
+
   static {
     // deno-lint-ignore no-explicit-any
     getInternals = <T>(ctx: Context<T>) => ctx.#internal as any;
