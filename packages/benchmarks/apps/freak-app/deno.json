@@ -7,6 +7,7 @@
     "@fresh/core/runtime": "../../../fresh/src/runtime/shared.ts",
     "@fresh/effect": "../../../effect/src/mod.ts",
     "@fresh/effect/island": "../../../effect/src/island.ts",
+    "@fresh/effect/island-atoms": "../../../effect/src/island-atoms.ts",
     "effect": "npm:effect@^4.0.0-beta.20",
     "effect/Schema": "npm:effect@^4.0.0-beta.20/Schema",
     "effect/unstable/reactivity/Atom": "npm:effect@^4.0.0-beta.20/unstable/reactivity/Atom",
