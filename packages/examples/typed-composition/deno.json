@@ -19,7 +19,11 @@
   "compilerOptions": {
     "lib": ["dom", "dom.asynciterable", "deno.ns", "deno.unstable"],
     "jsx": "precompile",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "preact",
+    "jsxPrecompileSkipElements": [
+      "a", "img", "source", "body", "html", "head", "title",
+      "meta", "script", "link", "style", "base", "noscript", "template"
+    ]
   },
   "tasks": {
     "dev": "deno run -A --watch=static/,routes/ dev.ts",
