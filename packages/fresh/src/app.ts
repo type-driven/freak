@@ -445,9 +445,20 @@ export class App<State> {
 
     if (!this.#effectRunner && inner.#effectRunner) {
       this.#effectRunner = inner.#effectRunner;
+    } else if (this.#effectRunner && inner.#effectRunner) {
+      // deno-lint-ignore no-console
+      console.warn(
+        "[freak] mountApp: inner app effectRunner ignored — outer already has one. " +
+          "Register services on the host layer instead.",
+      );
     }
     if (!this.#atomHydrationHook && inner.#atomHydrationHook) {
       this.#atomHydrationHook = inner.#atomHydrationHook;
+    } else if (this.#atomHydrationHook && inner.#atomHydrationHook) {
+      // deno-lint-ignore no-console
+      console.warn(
+        "[freak] mountApp: inner app atomHydrationHook ignored — outer already has one.",
+      );
     }
 
     return this;

@@ -92,8 +92,12 @@ export function serializeAtomHydration<S = unknown>(
 /**
  * Initialize the per-request atom hydration map on ctx.
  * Idempotent — a second call does not reset the map.
+ *
+ * @internal Not part of the public API. Use setAtom() directly — it lazily
+ * creates the map on first call. Only call this when you need to pre-register
+ * the map slot before any setAtom call (e.g., to merge maps across multiple apps).
  */
-export function initAtomHydrationMap<S = unknown>(ctx: { state: S }): void {
+export function _initAtomHydrationMap<S = unknown>(ctx: { state: S }): void {
   if (!hydrationMaps.has(ctx)) {
     hydrationMaps.set(ctx, new Map<string, unknown>());
   }
@@ -143,9 +147,9 @@ export function _setRequestRunner(
  *
  * @throws If called outside of an EffectApp request context.
  */
-export function runEffect<A, R = never>(
+export function runEffect<A>(
   ctx: object,
-  eff: Effect.Effect<A, unknown, R>,
+  eff: Effect.Effect<A, unknown, never>,
 ): Promise<A> {
   const runner = requestRunners.get(ctx);
   if (!runner) {
@@ -154,5 +158,5 @@ export function runEffect<A, R = never>(
         "Ensure the plugin is mounted on a host EffectApp.",
     );
   }
-  return runner(eff as Effect.Effect<unknown, unknown, never>) as Promise<A>;
+  return runner(eff as Effect.Effect<unknown, unknown, never>) as Promise<A>; // cast: runner erases A at runtime
 }

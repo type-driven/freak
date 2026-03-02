@@ -22,6 +22,7 @@ import {
   setBuildCache,
   setEffectRunner,
   setAtomHydrationHookForApp,
+  getAtomHydrationHookForApp,
 } from "../src/internals.ts";
 import { setAtomHydrationHook } from "../src/segments.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
@@ -226,37 +227,97 @@ Deno.test("mountApp: per-app atomHydrationHook propagates from inner to outer wh
   const outer = new App<unknown>();
   const inner = new App<unknown>();
 
-  // Set per-app hook on inner (not globally).
-  // (ctx: { state: unknown }) is assignable to the expected (ctx: Context<unknown>)
-  // because Context<unknown> structurally extends { state: unknown }.
   const mockHook = (ctx: { state: unknown }): string | null =>
     serializeAtomHydration(ctx);
   setAtomHydrationHookForApp(inner, mockHook);
 
-  // Before mountApp — outer has no hook
-  // (We can't directly test private fields, but we can test via handler behavior)
   outer.mountApp("/inner", inner);
 
-  // After mountApp, outer inherits the hook — test indirectly via a handler
-  // that uses it. The hook is captured in handler() as a closure.
+  // Hook must be non-null on outer after mounting
+  const propagated = getAtomHydrationHookForApp(outer);
+  expect(propagated).not.toBeNull();
+
+  // Hook works correctly when invoked — verifies it is the same fn as mockHook
   const countAtom = Atom.serializable(Atom.make(0), {
     key: "propagated-hook-count",
     schema: Schema.Number,
   });
+  const ctx = { state: {} };
+  setAtom(ctx, countAtom, 77);
+  // deno-lint-ignore no-explicit-any
+  expect(propagated!(ctx as any)).toBe(JSON.stringify({ "propagated-hook-count": 77 }));
+});
 
-  // Register a route BEFORE handler() is called so effectRunner + atomHook are captured
-  outer.get("/test", (ctx) => {
-    setAtom(ctx, countAtom, 77);
+// ---------------------------------------------------------------------------
+// 7. MOUNT RUNNER COLLISION — warn when inner runner dropped, outer wins
+// ---------------------------------------------------------------------------
+
+Deno.test("mountApp: warns and keeps outer runner when both apps have effectRunners", async () => {
+  const outer = new App<unknown>();
+  const inner = new App<unknown>();
+
+  const outerRuntime = ManagedRuntime.make(GreetLive);
+  const innerRuntime = ManagedRuntime.make(
+    Layer.succeed(GreetService, { hello: () => "from inner" }),
+  );
+  setEffectRunner(outer, createResolver(outerRuntime, {}));
+  setEffectRunner(inner, createResolver(innerRuntime, {}));
+
+  // Register route on inner BEFORE mountApp (commands are copied at mount time)
+  // deno-lint-ignore no-explicit-any
+  inner.get("/hello", (_ctx) =>
+    Effect.gen(function* () {
+      const svc = yield* GreetService;
+      return new Response(svc.hello());
+    }) as unknown as Response
+  );
+
+  const warns: string[] = [];
+  const origWarn = console.warn;
+  // deno-lint-ignore no-console
+  console.warn = (...args: unknown[]) => { warns.push(args.map(String).join(" ")); };
+
+  try {
+    outer.mountApp("/plugin", inner);
+  } finally {
+    // deno-lint-ignore no-console
+    console.warn = origWarn;
+  }
+
+  expect(warns.some((w) => w.includes("effectRunner ignored"))).toBe(true);
+
+  const res = await serve(outer, "/plugin/hello");
+  expect(res.status).toBe(200);
+  expect(await res.text()).toBe("hello from shared runtime");
+
+  await outerRuntime.dispose();
+  await innerRuntime.dispose();
+});
+
+// ---------------------------------------------------------------------------
+// 8. ctx.islandRegistry — getter returns island registry from build cache
+// ---------------------------------------------------------------------------
+
+Deno.test("ctx.islandRegistry: returns island registry with registered components", async () => {
+  function Widget() { return null; }
+
+  const app = new App<unknown>();
+  app.islands({ Widget }, "widget-chunk");
+
+  const cache = new MockBuildCache([], "production");
+  setBuildCache(app, cache, "production");
+
+  expect(cache.islandRegistry.has(Widget as ComponentType)).toBe(true);
+  expect(cache.islandRegistry.get(Widget as ComponentType)?.file).toBe("widget-chunk");
+
+  let capturedRegistry: unknown = undefined;
+  app.get("/check", (ctx) => {
+    capturedRegistry = ctx.islandRegistry;
     return new Response("ok");
   });
 
-  // handler() captures the propagated hook in its closure
-  const handler = outer.handler();
-  const ctx = { state: {} };
+  await serve(app, "/check");
 
-  // The atom hook is used internally — we just verify setAtom+serializeAtomHydration work
-  setAtom(ctx, countAtom, 77);
-  const json = serializeAtomHydration(ctx);
-  expect(json).toBe(JSON.stringify({ "propagated-hook-count": 77 }));
-  expect(typeof handler).toBe("function"); // handler was constructed successfully
+  expect(capturedRegistry).toBe(cache.islandRegistry);
+  expect((capturedRegistry as typeof cache.islandRegistry).has(Widget as ComponentType)).toBe(true);
 });

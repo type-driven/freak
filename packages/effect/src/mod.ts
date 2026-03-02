@@ -13,7 +13,6 @@ export type { Layer, ManagedRuntime } from "./types.ts";
 // Atom hydration helpers + plugin runner
 export {
   setAtom,
-  initAtomHydrationMap,
   serializeAtomHydration,
   runEffect,
 } from "./hydration.ts";

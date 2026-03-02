@@ -15,14 +15,16 @@
  * SIGINT/SIGTERM during the test run.
  */
 
-import { assertEquals, assertRejects } from "jsr:@std/assert@1";
+import { assertEquals } from "jsr:@std/assert@1";
 import { Effect, Layer, ServiceMap } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
+import { App } from "../../fresh/src/app.ts";
 import { FakeServer } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "../src/mod.ts";
 import {
-  initAtomHydrationMap,
+  _initAtomHydrationMap,
+  runEffect,
   serializeAtomHydration,
   setAtom,
 } from "../src/hydration.ts";
@@ -185,8 +187,8 @@ Deno.test("HYDR-3: atom hydration map is isolated per request", async () => {
 
   const jsons: (string | null)[] = [];
   app.get("/test", (ctx) => {
-    setAtom(ctx as { state: unknown }, countAtom, jsons.length);
-    jsons.push(serializeAtomHydration(ctx as { state: unknown }));
+    setAtom(ctx, countAtom, jsons.length);
+    jsons.push(serializeAtomHydration(ctx));
     return new Response("ok");
   });
 
@@ -201,30 +203,13 @@ Deno.test("HYDR-3: atom hydration map is isolated per request", async () => {
   await app.dispose();
 });
 
-Deno.test("HYDR-4: serializeAtomHydration returns null when no setAtom calls in handler", async () => {
-  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
-
-  let capturedJson: string | null | undefined = undefined;
-  app.get("/test", (ctx) => {
-    capturedJson = serializeAtomHydration(ctx as { state: unknown });
-    return new Response("ok");
-  });
-
-  const server = new FakeServer(app.handler());
-  await server.get("/test");
-
-  assertEquals(capturedJson, null);
-
-  await app.dispose();
-});
-
 Deno.test("HYDR-5: setAtom with non-serializable atom returns 500", async () => {
   const app = createEffectApp<unknown, never>({ layer: Layer.empty });
   const plainAtom = Atom.make(0);
 
   app.get("/test", (ctx) => {
     // deno-lint-ignore no-explicit-any
-    setAtom(ctx as { state: unknown }, plainAtom as any, 0);
+    setAtom(ctx, plainAtom as any, 0);
     return new Response("ok");
   });
 
@@ -244,8 +229,8 @@ Deno.test("HYDR-6: setAtom with duplicate key returns 500", async () => {
   });
 
   app.get("/test", (ctx) => {
-    setAtom(ctx as { state: unknown }, countAtom, 1);
-    setAtom(ctx as { state: unknown }, countAtom, 2); // duplicate key
+    setAtom(ctx, countAtom, 1);
+    setAtom(ctx, countAtom, 2); // duplicate key
     return new Response("ok");
   });
 
@@ -282,7 +267,7 @@ Deno.test("HYDR-7: setAtom lazily creates hydration map in request handler", asy
   await app.dispose();
 });
 
-Deno.test("HYDR-8: initAtomHydrationMap is idempotent — multiple apps share the same per-request Map", async () => {
+Deno.test("HYDR-8: _initAtomHydrationMap is idempotent — multiple apps share the same per-request Map", async () => {
   const app = createEffectApp<unknown, never>({ layer: Layer.empty });
   const countAtom = Atom.serializable(Atom.make(0), {
     key: "hydr8-count",
@@ -295,10 +280,10 @@ Deno.test("HYDR-8: initAtomHydrationMap is idempotent — multiple apps share th
 
   let capturedJson: string | null = null;
   app.get("/test", (ctx) => {
-    // Simulate a second app calling initAtomHydrationMap on the same ctx
-    initAtomHydrationMap(ctx);
+    // Simulate a second app calling _initAtomHydrationMap on the same ctx
+    _initAtomHydrationMap(ctx);
     setAtom(ctx, countAtom, 42);
-    initAtomHydrationMap(ctx); // must not reset the map
+    _initAtomHydrationMap(ctx); // must not reset the map
     setAtom(ctx, labelAtom, "merged");
     capturedJson = serializeAtomHydration(ctx);
     return new Response("ok");
@@ -338,4 +323,79 @@ Deno.test("SC-4: disposing one EffectApp does not affect the other", async () =>
   assertEquals(await resB.text(), "hello from B");
 
   await appB.dispose();
+});
+
+// ============================================================================
+// RUNE: runEffect() — happy path + error path
+// ============================================================================
+
+Deno.test("RUNE-1: runEffect runs Effect using host EffectApp runtime", async () => {
+  const app = createEffectApp<unknown, GreetR>({ layer: LayerA });
+
+  app.get("/run", async (ctx) => {
+    // Cast: runEffect accepts Effect<A, unknown, never>. Service requirements
+    // (GreetR) are satisfied at runtime by the host EffectApp's layer.
+    const greeting = await runEffect(
+      ctx,
+      Effect.gen(function* () {
+        const svc = yield* GreetingService;
+        return svc.greet();
+      }) as Effect.Effect<string, unknown, never>,
+    );
+    return new Response(greeting);
+  });
+
+  const server = new FakeServer(app.handler());
+  const res = await server.get("/run");
+  assertEquals(await res.text(), "hello from A");
+
+  await app.dispose();
+});
+
+Deno.test("RUNE-2: runEffect returns 500 when called outside EffectApp request context", async () => {
+  // Plain App — no EffectApp, no _setRequestRunner called
+  const app = new App<unknown>();
+  app.get("/plain", (ctx) => {
+    return runEffect(ctx as unknown as object, Effect.succeed("ok")).then(
+      (v) => new Response(v as string),
+    );
+  });
+
+  const server = new FakeServer(app.handler());
+  const res = await server.get("/plain");
+  assertEquals(res.status, 500);
+});
+
+// ============================================================================
+// HYDR-CONC: Concurrent requests have isolated hydration maps
+// ============================================================================
+
+Deno.test("HYDR-CONC: concurrent requests have isolated hydration maps", async () => {
+  const app = createEffectApp<unknown, never>({ layer: Layer.empty });
+  const numAtom = Atom.serializable(Atom.make(0), {
+    key: "conc-num",
+    schema: Schema.Number,
+  });
+
+  app.get("/n", (ctx) => {
+    const n = parseInt(new URL(ctx.req.url).searchParams.get("n") ?? "0");
+    setAtom(ctx, numAtom, n);
+    return new Response(serializeAtomHydration(ctx)!);
+  });
+
+  const server = new FakeServer(app.handler());
+  const responses = await Promise.all(
+    Array.from({ length: 10 }, (_, i) => server.get(`/n?n=${i}`)),
+  );
+  const bodies = await Promise.all(responses.map((r) => r.text()));
+
+  for (let i = 0; i < 10; i++) {
+    assertEquals(
+      JSON.parse(bodies[i])["conc-num"],
+      i,
+      `request ${i}: expected conc-num=${i}`,
+    );
+  }
+
+  await app.dispose();
 });

@@ -9,14 +9,14 @@
  * 5. setAtom throws on duplicate key in same request
  * 6. setAtom lazily creates hydration map on first call
  * 7. multiple atoms serialize correctly
- * 8. initAtomHydrationMap is idempotent — second call does not reset the map
+ * 8. _initAtomHydrationMap is idempotent — second call does not reset the map
  */
 
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
 import {
-  initAtomHydrationMap,
+  _initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
 } from "../src/hydration.ts";
@@ -28,7 +28,7 @@ Deno.test("setAtom stores encoded value in per-request map", () => {
   });
 
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
   setAtom(ctx, countAtom, 42);
 
   // Verify via the public API — the storage mechanism is an implementation detail.
@@ -42,7 +42,7 @@ Deno.test("serializeAtomHydration returns JSON string", () => {
   });
 
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
   setAtom(ctx, nameAtom, "Alice");
 
   const result = serializeAtomHydration(ctx);
@@ -51,7 +51,7 @@ Deno.test("serializeAtomHydration returns JSON string", () => {
 
 Deno.test("serializeAtomHydration returns null when no atoms set", () => {
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
 
   const result = serializeAtomHydration(ctx);
   assertEquals(result, null);
@@ -61,7 +61,7 @@ Deno.test("setAtom throws on non-serializable atom", () => {
   const plainAtom = Atom.make(0);
 
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
 
   assertThrows(
     () => setAtom(ctx, plainAtom, 5),
@@ -81,7 +81,7 @@ Deno.test("setAtom throws on duplicate key in same request", () => {
   });
 
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
   setAtom(ctx, atomA, 1);
 
   assertThrows(
@@ -98,7 +98,7 @@ Deno.test("setAtom lazily creates hydration map on first call", () => {
   });
 
   const ctx = { state: {} };
-  // Note: intentionally NOT calling initAtomHydrationMap(ctx)
+  // Note: intentionally NOT calling _initAtomHydrationMap(ctx)
 
   // Should not throw — lazily creates the Map
   setAtom(ctx, countAtom, 99);
@@ -107,18 +107,18 @@ Deno.test("setAtom lazily creates hydration map on first call", () => {
   assertEquals(json, JSON.stringify({ "lazy-count": 99 }));
 });
 
-Deno.test("initAtomHydrationMap is idempotent — second call does not reset the map", () => {
+Deno.test("_initAtomHydrationMap is idempotent — second call does not reset the map", () => {
   const countAtom = Atom.serializable(Atom.make(0), {
     key: "idem-count",
     schema: Schema.Number,
   });
 
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
   setAtom(ctx, countAtom, 42);
 
   // Second app / second call — must not reset the Map
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
 
   const json = serializeAtomHydration(ctx);
   assertEquals(json, JSON.stringify({ "idem-count": 42 }));
@@ -135,7 +135,7 @@ Deno.test("multiple atoms serialize correctly", () => {
   });
 
   const ctx = { state: {} };
-  initAtomHydrationMap(ctx);
+  _initAtomHydrationMap(ctx);
   setAtom(ctx, countAtom, 7);
   setAtom(ctx, labelAtom, "hello");
 
