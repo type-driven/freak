@@ -46,7 +46,9 @@ export const CounterLive = Layer.effect(
     return {
       get: () => count,
       increment: () => ++count,
-      reset: () => { count = 0; },
+      reset: () => {
+        count = 0;
+      },
     };
   }),
 );
@@ -64,7 +66,11 @@ export const counterAtom = Atom.serializable(Atom.make(0), {
 // Plugin app factory
 // ---------------------------------------------------------------------------
 
-export function createCounterPlugin<S = unknown>(): Plugin<Record<string, never>, S, CounterServiceShape> {
+export function createCounterPlugin<S = unknown>(): Plugin<
+  Record<string, never>,
+  S,
+  CounterServiceShape
+> {
   return createPlugin<Record<string, never>, S, CounterServiceShape>(
     {},
     (_config) => {
@@ -73,28 +79,34 @@ export function createCounterPlugin<S = unknown>(): Plugin<Record<string, never>
       app.islands({ CounterIsland }, "counter-island");
 
       app.get("/count", (ctx) =>
-        runEffect(ctx, Effect.gen(function* () {
-          const svc = yield* CounterService;
-          return Response.json({ count: svc.get() });
-        }))
-      );
+        runEffect(
+          ctx,
+          Effect.gen(function* () {
+            const svc = yield* CounterService;
+            return Response.json({ count: svc.get() });
+          }),
+        ));
 
       app.post("/increment", (ctx) =>
-        runEffect(ctx, Effect.gen(function* () {
-          const svc = yield* CounterService;
-          const newCount = svc.increment();
-          setAtom(ctx, counterAtom, newCount);
-          return Response.json({ count: newCount });
-        }))
-      );
+        runEffect(
+          ctx,
+          Effect.gen(function* () {
+            const svc = yield* CounterService;
+            const newCount = svc.increment();
+            setAtom(ctx, counterAtom, newCount);
+            return Response.json({ count: newCount });
+          }),
+        ));
 
       app.post("/reset", (ctx) =>
-        runEffect(ctx, Effect.gen(function* () {
-          const svc = yield* CounterService;
-          svc.reset();
-          return Response.json({ count: 0 });
-        }))
-      );
+        runEffect(
+          ctx,
+          Effect.gen(function* () {
+            const svc = yield* CounterService;
+            svc.reset();
+            return Response.json({ count: 0 });
+          }),
+        ));
 
       return app;
     },

@@ -45,7 +45,12 @@ const WatchTodos = Rpc.make("WatchTodos", {
 // Group
 // ---------------------------------------------------------------------------
 
-export const TodoRpc = RpcGroup.make(ListTodos, CreateTodo, DeleteTodo, WatchTodos);
+export const TodoRpc = RpcGroup.make(
+  ListTodos,
+  CreateTodo,
+  DeleteTodo,
+  WatchTodos,
+);
 
 // ---------------------------------------------------------------------------
 // Handler implementations

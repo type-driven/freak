@@ -55,7 +55,9 @@ completed: 2026-02-28
 
 # Phase 12 Plan 01: Atom-Based Island Hydration Decision Summary
 
-**Dual-channel hydration architecture decision: atom state (__FRSH_ATOM_STATE) layers on top of signal props (stringify/reviver), no breaking changes to setAtom/initAtomHydration API, 4 gaps documented with Accept/Defer**
+**Dual-channel hydration architecture decision: atom state (__FRSH_ATOM_STATE)
+layers on top of signal props (stringify/reviver), no breaking changes to
+setAtom/initAtomHydration API, 4 gaps documented with Accept/Defer**
 
 ## Performance
 
@@ -67,10 +69,15 @@ completed: 2026-02-28
 
 ## Accomplishments
 
-- Wrote 12-DECISION.md: full architectural decision for atom-based island hydration with all 7 sections
-- Documented both hydration channels from source (Channel 1: stringify/reviver signal pipeline, Channel 2: __FRSH_ATOM_STATE atom pipeline) with key file references
-- Assessed full API surface: setAtom(), initAtomHydration(), setAtomHydrationHook() — no breaking changes confirmed
-- Produced gap table with Accept/Defer decisions for all 4 gaps from 12-RESEARCH.md
+- Wrote 12-DECISION.md: full architectural decision for atom-based island
+  hydration with all 7 sections
+- Documented both hydration channels from source (Channel 1: stringify/reviver
+  signal pipeline, Channel 2: __FRSH_ATOM_STATE atom pipeline) with key file
+  references
+- Assessed full API surface: setAtom(), initAtomHydration(),
+  setAtomHydrationHook() — no breaking changes confirmed
+- Produced gap table with Accept/Defer decisions for all 4 gaps from
+  12-RESEARCH.md
 - Verified all 3 roadmap success criteria (SC-1, SC-2, SC-3 all PASS)
 
 ## Task Commits
@@ -78,24 +85,34 @@ completed: 2026-02-28
 Each task was committed atomically:
 
 1. **Task 1: Write 12-DECISION.md** - `cf33045a` (docs)
-2. **Task 2: Verify decision document against success criteria** - verification only, no new files (all SC grep checks passed)
+2. **Task 2: Verify decision document against success criteria** - verification
+   only, no new files (all SC grep checks passed)
 
 **Plan metadata:** see final commit below
 
 ## Files Created/Modified
 
-- `.planning/phases/12-atom-based-island-hydration/12-DECISION.md` — Full architectural decision document: dual-channel hydration architecture, API surface assessment, gap table, SC verification
+- `.planning/phases/12-atom-based-island-hydration/12-DECISION.md` — Full
+  architectural decision document: dual-channel hydration architecture, API
+  surface assessment, gap table, SC verification
 
 ## Decisions Made
 
-- Atom-based hydration layers on top of signal hydration (not replacement, not new protocol) — confirmed from Phase 04 source
-- No breaking changes to setAtom()/initAtomHydration()/setAtomHydrationHook() API surface; no migration required
-- 4 gaps each have explicit Accept/Defer: Partials gap (Defer), dead per-app hook (Defer), global last-writer-wins (Accept/document), hydration.ts duplication (Defer)
-- setAtomHydrationHookForApp() exists in app.ts but is never consumed by FreshRuntimeScript — confirmed dead code; deferred to future multi-app isolation work
+- Atom-based hydration layers on top of signal hydration (not replacement, not
+  new protocol) — confirmed from Phase 04 source
+- No breaking changes to setAtom()/initAtomHydration()/setAtomHydrationHook()
+  API surface; no migration required
+- 4 gaps each have explicit Accept/Defer: Partials gap (Defer), dead per-app
+  hook (Defer), global last-writer-wins (Accept/document), hydration.ts
+  duplication (Defer)
+- setAtomHydrationHookForApp() exists in app.ts but is never consumed by
+  FreshRuntimeScript — confirmed dead code; deferred to future multi-app
+  isolation work
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. Task 1 wrote the document; Task 2 verified it. All success criteria passed on first attempt.
+None — plan executed exactly as written. Task 1 wrote the document; Task 2
+verified it. All success criteria passed on first attempt.
 
 ## Issues Encountered
 
@@ -107,13 +124,17 @@ None — no external service configuration required.
 
 ## Next Phase Readiness
 
-- Phase 12 is complete: decision document written, all 3 success criteria verified
-- 4 gaps identified with explicit defer decisions — candidates for future phases if concrete use cases emerge:
-  - Partials atom delta updates (requires Partial branch extension in FreshRuntimeScript)
-  - Per-app hook wiring (requires RenderState changes to pass App instance through)
+- Phase 12 is complete: decision document written, all 3 success criteria
+  verified
+- 4 gaps identified with explicit defer decisions — candidates for future phases
+  if concrete use cases emerge:
+  - Partials atom delta updates (requires Partial branch extension in
+    FreshRuntimeScript)
+  - Per-app hook wiring (requires RenderState changes to pass App instance
+    through)
   - hydration.ts deduplication (verify JSR dependency constraints first)
 - No blockers for other phases
 
 ---
-*Phase: 12-atom-based-island-hydration*
-*Completed: 2026-02-28*
+
+_Phase: 12-atom-based-island-hydration_ _Completed: 2026-02-28_

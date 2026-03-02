@@ -11,8 +11,4 @@ export { isEffect } from "./resolver.ts";
 export type { Layer, ManagedRuntime } from "./types.ts";
 
 // Atom hydration helpers + plugin runner
-export {
-  setAtom,
-  serializeAtomHydration,
-  runEffect,
-} from "./hydration.ts";
+export { runEffect, serializeAtomHydration, setAtom } from "./hydration.ts";

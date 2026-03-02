@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * check_tools.ts — Verify required CLI tools are installed before running benchmarks.
  */
@@ -28,7 +29,9 @@ export async function checkTools(): Promise<void> {
       console.error(`  - ${tool.name}: ${tool.install}`);
     }
     throw new Error(
-      `Missing required tools: ${missing.map((t) => t.name).join(", ")}. Install them and try again.`,
+      `Missing required tools: ${
+        missing.map((t) => t.name).join(", ")
+      }. Install them and try again.`,
     );
   }
 }

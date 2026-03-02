@@ -1,0 +1,45 @@
+[     117ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8001/favicon.ico:0
+[  141611ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  156944ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  305503ms] [ERROR] WebSocket connection to 'ws://localhost:8001/rpc/todos/ws' failed: Error during WebSocket handshake: Unexpected response code: 400 @ :8
+[ 1597979ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1598131ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1598333ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1598584ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1598888ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1599240ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1599650ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1600108ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1600637ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1601170ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1601927ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1602760ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1603965ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1606243ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1609417ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1612775ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1618266ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1622467ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1626522ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1632472ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1637515ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1644519ms] [ERROR] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[ 1650960ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7

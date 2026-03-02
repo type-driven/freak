@@ -62,15 +62,14 @@ import type { Rpc } from "effect/unstable/rpc";
  * Covers both request/response procedures (return `Effect`) and streaming
  * procedures (return `Stream`), eliminating double-casts at call sites.
  */
-// deno-lint-ignore no-explicit-any
 type RpcProxyCall = Record<
   string,
-  // deno-lint-ignore no-explicit-any
   (
     payload?: unknown,
-  ) =>
-    | Effect.Effect<unknown, unknown, any>
-    | Stream.Stream<unknown, unknown, any>
+  ) => // deno-lint-ignore no-explicit-any
+  | Effect.Effect<unknown, unknown, any>
+  // deno-lint-ignore no-explicit-any
+  | Stream.Stream<unknown, unknown, any>
 >;
 
 /**
@@ -81,7 +80,8 @@ type RpcProxyCall = Record<
  * Exported so island authors can build a typed ManagedRuntime for mutations
  * that share the browser runtime's memoMap (same pattern as `useRpcQuery`).
  */
-export function makeRpcHttpLayer(url: string) {
+// deno-lint-ignore no-explicit-any
+export function makeRpcHttpLayer(url: string): Layer.Layer<any, never, never> {
   return RpcClient.layerProtocolHttp({ url }).pipe(
     Layer.provide(RpcSerialization.layerJson),
     Layer.provide(FetchHttpClient.layer),
@@ -157,7 +157,8 @@ function getBrowserRuntime(): ManagedRuntime.ManagedRuntime<any, never> {
  * Useful for island authors who want to run arbitrary effects using
  * the same runtime (and memoMap) as the built-in hooks.
  */
-export function useBrowserRuntime() {
+// deno-lint-ignore no-explicit-any
+export function useBrowserRuntime(): ManagedRuntime.ManagedRuntime<any, never> {
   return getBrowserRuntime();
 }
 
@@ -428,7 +429,6 @@ export function useMutation<A, E, Payload, Ctx = void>(
  * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
  * @param options.enabled - If false, skip automatic fetching (default: true)
  */
-// deno-lint-ignore no-explicit-any
 export function useRpcQuery<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: {
@@ -438,7 +438,7 @@ export function useRpcQuery<Rpcs extends Rpc.Any>(
     payload?: unknown;
     enabled?: boolean;
   },
-) {
+): { data: unknown; error: unknown; isLoading: boolean; refetch: () => void } {
   const layer = useMemo(() => makeRpcHttpLayer(options.url), [options.url]);
 
   // Create a ManagedRuntime per URL change, sharing the browser runtime's
@@ -522,7 +522,6 @@ export function useRpcQuery<Rpcs extends Rpc.Any>(
  * if (state._tag === "ok") return <ul>{state.value.map(t => <li>{t.text}</li>)}</ul>;
  * ```
  */
-// deno-lint-ignore no-explicit-any
 export function useRpcResult<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: { url: string },
@@ -578,7 +577,6 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
               >
             );
           }),
-          // deno-lint-ignore no-explicit-any
         ) as Effect.Effect<unknown, unknown, never>;
         const rt = runtimeRef.current;
         (rt ? rt.runPromise(effect) : Effect.runPromise(effect)).then(
@@ -593,6 +591,7 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
     });
   }
 
+  // deno-lint-ignore no-explicit-any
   return [state as RpcResultState<any, any>, proxyRef.current];
 }
 
@@ -614,7 +613,6 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
  * @param payload - Optional procedure payload
  * @param deps - useEffect dependency array (should list everything that changes layer/procedure/payload)
  */
-// deno-lint-ignore no-explicit-any
 function useStreamingRpc<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   // deno-lint-ignore no-explicit-any
@@ -635,7 +633,6 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
       memoMap: getBrowserRuntime().memoMap,
     });
 
-    // deno-lint-ignore no-explicit-any
     const effect: Effect.Effect<void, unknown, never> = Effect.scoped(
       Effect.gen(function* () {
         // deno-lint-ignore no-explicit-any
@@ -665,6 +662,7 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
+  // deno-lint-ignore no-explicit-any
   return state as RpcStreamState<any, any>;
 }
 
@@ -721,16 +719,16 @@ function resolveWsUrl(url: string): string {
  * }
  * ```
  */
-// deno-lint-ignore no-explicit-any
 export function useRpcStream<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: { url: string; procedure: string; payload?: unknown },
+  // deno-lint-ignore no-explicit-any
 ): RpcStreamState<any, any> {
   const wsUrl = resolveWsUrl(options.url);
-  // deno-lint-ignore no-explicit-any
   const layer = RpcClient.layerProtocolSocket().pipe(
     Layer.provide(RpcSerialization.layerNdjson),
     Layer.provide(BrowserSocket.layerWebSocket(wsUrl)),
+    // deno-lint-ignore no-explicit-any
   ) as unknown as Layer.Layer<any, any, never>;
   return useStreamingRpc(
     group,
@@ -765,10 +763,10 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
  * @param options.procedure - The name of the streaming procedure
  * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
  */
-// deno-lint-ignore no-explicit-any
 export function useRpcHttpStream<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: { url: string; procedure: string; payload?: unknown },
+  // deno-lint-ignore no-explicit-any
 ): RpcStreamState<any, any> {
   // layerNdjson (includesFraming=true) → server streams chunks, client reads r.stream.
   const layer = RpcClient.layerProtocolHttp({ url: options.url }).pipe(
@@ -815,7 +813,6 @@ export function useRpcHttpStream<Rpcs extends Rpc.Any>(
  * @param options.procedure - The procedure name (e.g., "WatchTodos")
  * @param options.payload - Optional payload to send as ?payload=<json>
  */
-// deno-lint-ignore no-explicit-any
 export function useRpcSse(
   groupOrOptions: unknown,
   maybeOptions?: { url: string; procedure: string; payload?: unknown },
@@ -907,7 +904,6 @@ export function useRpcSse(
  * @param options.interval - Poll interval in milliseconds (default: 2000)
  * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
  */
-// deno-lint-ignore no-explicit-any
 export function useRpcPolled<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: {
@@ -934,7 +930,6 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
     const intervalMs = options.interval ?? 2000;
 
     const runPoll = () => {
-      // deno-lint-ignore no-explicit-any
       const effect = Effect.scoped(
         Effect.gen(function* () {
           // deno-lint-ignore no-explicit-any
@@ -945,7 +940,6 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
             ) as Effect.Effect<unknown, unknown, never>
           );
         }),
-        // deno-lint-ignore no-explicit-any
       ) as Effect.Effect<unknown, unknown, never>;
 
       runtime.runPromise(effect).then(

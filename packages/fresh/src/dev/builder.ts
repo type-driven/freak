@@ -1,4 +1,9 @@
-import { App, type ListenOptions, setBuildCache, getIslandSpecifiers } from "../app.ts";
+import {
+  App,
+  getIslandSpecifiers,
+  type ListenOptions,
+  setBuildCache,
+} from "../app.ts";
 import { fsAdapter } from "../fs.ts";
 import * as path from "@std/path";
 import * as colors from "@std/fmt/colors";

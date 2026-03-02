@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * bench_bundle.ts — Bundle size calculator.
  *
@@ -21,7 +22,10 @@ async function gzipSize(data: Uint8Array): Promise<number> {
   // Use Response + CompressionStream to avoid TypeScript generic variance issues
   // Deno.readFile returns Uint8Array<ArrayBufferLike>, but CompressionStream.writable
   // expects ArrayBuffer-backed data. We create a new ArrayBuffer-backed copy.
-  const buf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const buf = data.buffer.slice(
+    data.byteOffset,
+    data.byteOffset + data.byteLength,
+  ) as ArrayBuffer;
   const bufView = new Uint8Array(buf);
   const cs = new CompressionStream("gzip");
   const writer = cs.writable.getWriter();

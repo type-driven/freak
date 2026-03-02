@@ -154,7 +154,13 @@ Deno.test("mountApp — outer routes are unaffected by inner app mount", async (
 Deno.test("App.islands() — non-function exports are skipped", () => {
   const app = new App();
   // Mix of function and non-function exports
-  app.islands({ MyIsland, notAComponent: "a string", alsoNot: 42 } as Record<string, unknown>, "mixed-chunk");
+  app.islands(
+    { MyIsland, notAComponent: "a string", alsoNot: 42 } as Record<
+      string,
+      unknown
+    >,
+    "mixed-chunk",
+  );
 
   const cache = makeBuildCache();
   setBuildCache(app, cache, "production");

@@ -25,7 +25,7 @@ import { App } from "@fresh/core";
 import { createEffectApp } from "@fresh/effect";
 import * as Layer from "effect/Layer";
 import { CounterLive, createCounterPlugin } from "./counter_plugin.tsx";
-import { GreetingLive, createGreetingPlugin } from "./greeting_plugin.tsx";
+import { createGreetingPlugin, GreetingLive } from "./greeting_plugin.tsx";
 
 // ---------------------------------------------------------------------------
 // Shared auth state type (mirrors main.ts)
@@ -47,8 +47,8 @@ interface AuthState {
  */
 function makeApp() {
   const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
-  type AppR = typeof combinedLayer extends Layer.Layer<infer A, infer _E, infer _R>
-    ? A
+  type AppR = typeof combinedLayer extends
+    Layer.Layer<infer A, infer _E, infer _R> ? A
     : never;
 
   const effectApp = createEffectApp<AuthState, AppR>({ layer: combinedLayer });
@@ -79,8 +79,7 @@ function makeApp() {
   </ul>
 </body></html>`,
       { headers: { "content-type": "text/html; charset=utf-8" } },
-    )
-  );
+    ));
   effectApp.mountApp("", indexApp);
 
   return { handler: effectApp.handler(), dispose: () => effectApp.dispose() };
@@ -89,12 +88,17 @@ function makeApp() {
 /**
  * Start Deno.serve on a random port and return the base URL and a stop fn.
  */
-async function startServer(): Promise<{ base: string; stop: () => Promise<void> }> {
+function startServer(): { base: string; stop: () => Promise<void> } {
   const { handler, dispose } = makeApp();
   const aborter = new AbortController();
 
   const server = Deno.serve(
-    { hostname: "localhost", port: 0, signal: aborter.signal, onListen: () => {} },
+    {
+      hostname: "localhost",
+      port: 0,
+      signal: aborter.signal,
+      onListen: () => {},
+    },
     handler,
   );
 
@@ -111,13 +115,15 @@ async function startServer(): Promise<{ base: string; stop: () => Promise<void> 
  * Launch a headless browser.
  * --disable-web-security allows page.evaluate() to fetch to same-origin localhost.
  */
-async function openBrowser() {
+function openBrowser() {
   return launch({
     headless: true,
     args: [
       "--disable-web-security",
       "--allow-insecure-localhost",
-      ...((Deno.env.get("CI") && Deno.build.os === "linux") ? ["--no-sandbox"] : []),
+      ...((Deno.env.get("CI") && Deno.build.os === "linux")
+        ? ["--no-sandbox"]
+        : []),
     ],
   });
 }
@@ -143,7 +149,12 @@ async function measureLatency(
   }
   times.sort((a, b) => a - b);
   const mean = times.reduce((s, t) => s + t, 0) / times.length;
-  return { p50: percentile(times, 50), p95: percentile(times, 95), p99: percentile(times, 99), mean };
+  return {
+    p50: percentile(times, 50),
+    p95: percentile(times, 95),
+    p99: percentile(times, 99),
+    mean,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -189,7 +200,9 @@ Deno.test({
       await page.goto(base, { waitUntil: "load" });
 
       const links = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("a")).map((a) => a.getAttribute("href"))
+        Array.from(document.querySelectorAll("a")).map((a) =>
+          a.getAttribute("href")
+        )
       );
 
       expect(links).toContain("/counter/count");
@@ -368,7 +381,8 @@ Deno.test({
 // ---------------------------------------------------------------------------
 
 Deno.test({
-  name: "browser: navigating to counter/count after increments reflects updated count",
+  name:
+    "browser: navigating to counter/count after increments reflects updated count",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
@@ -427,7 +441,8 @@ Deno.test({
 // ---------------------------------------------------------------------------
 
 Deno.test({
-  name: "browser: counter and greeting routes respond independently (no conflicts)",
+  name:
+    "browser: counter and greeting routes respond independently (no conflicts)",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
@@ -468,13 +483,23 @@ Deno.test({
       await page.goto(base, { waitUntil: "load" });
 
       // Fire 10 concurrent requests across both plugins from the browser
-      const results = await page.evaluate(async (url: string) => {
+      const results = await page.evaluate((url: string) => {
         const reqs = [
-          ...Array.from({ length: 5 }, () =>
-            fetch(`${url}/counter/count`).then((r) => ({ plugin: "counter", status: r.status }))
+          ...Array.from(
+            { length: 5 },
+            () =>
+              fetch(`${url}/counter/count`).then((r) => ({
+                plugin: "counter",
+                status: r.status,
+              })),
           ),
-          ...Array.from({ length: 5 }, () =>
-            fetch(`${url}/greeting/greet`).then((r) => ({ plugin: "greeting", status: r.status }))
+          ...Array.from(
+            { length: 5 },
+            () =>
+              fetch(`${url}/greeting/greet`).then((r) => ({
+                plugin: "greeting",
+                status: r.status,
+              })),
           ),
         ];
         return Promise.all(reqs);
@@ -536,7 +561,9 @@ Deno.test({
 
       // deno-lint-ignore no-console
       console.log(
-        `GET /counter/count — p50=${stats.p50.toFixed(2)}ms  p95=${stats.p95.toFixed(2)}ms  p99=${stats.p99.toFixed(2)}ms  mean=${stats.mean.toFixed(2)}ms`,
+        `GET /counter/count — p50=${stats.p50.toFixed(2)}ms  p95=${
+          stats.p95.toFixed(2)
+        }ms  p99=${stats.p99.toFixed(2)}ms  mean=${stats.mean.toFixed(2)}ms`,
       );
 
       // Generous budget: p99 < 200ms in-process
@@ -562,7 +589,9 @@ Deno.test({
 
       // deno-lint-ignore no-console
       console.log(
-        `GET /greeting/greet — p50=${stats.p50.toFixed(2)}ms  p95=${stats.p95.toFixed(2)}ms  p99=${stats.p99.toFixed(2)}ms  mean=${stats.mean.toFixed(2)}ms`,
+        `GET /greeting/greet — p50=${stats.p50.toFixed(2)}ms  p95=${
+          stats.p95.toFixed(2)
+        }ms  p99=${stats.p99.toFixed(2)}ms  mean=${stats.mean.toFixed(2)}ms`,
       );
 
       expect(stats.p99).toBeLessThan(200);
@@ -581,13 +610,17 @@ Deno.test({
 
     try {
       const stats = await measureLatency(async () => {
-        const res = await fetch(`${base}/counter/increment`, { method: "POST" });
+        const res = await fetch(`${base}/counter/increment`, {
+          method: "POST",
+        });
         await res.body?.cancel();
       }, 50);
 
       // deno-lint-ignore no-console
       console.log(
-        `POST /counter/increment — p50=${stats.p50.toFixed(2)}ms  p95=${stats.p95.toFixed(2)}ms  p99=${stats.p99.toFixed(2)}ms  mean=${stats.mean.toFixed(2)}ms`,
+        `POST /counter/increment — p50=${stats.p50.toFixed(2)}ms  p95=${
+          stats.p95.toFixed(2)
+        }ms  p99=${stats.p99.toFixed(2)}ms  mean=${stats.mean.toFixed(2)}ms`,
       );
 
       expect(stats.p99).toBeLessThan(200);
@@ -598,7 +631,8 @@ Deno.test({
 });
 
 Deno.test({
-  name: "perf: concurrent requests — both plugins, 20 parallel, report throughput",
+  name:
+    "perf: concurrent requests — both plugins, 20 parallel, report throughput",
   sanitizeOps: false,
   sanitizeResources: false,
   fn: async () => {
@@ -612,11 +646,13 @@ Deno.test({
       for (let round = 0; round < ROUNDS; round++) {
         const t0 = performance.now();
         await Promise.all([
-          ...Array.from({ length: CONCURRENCY / 2 }, () =>
-            fetch(`${base}/counter/count`).then((r) => r.body?.cancel())
+          ...Array.from(
+            { length: CONCURRENCY / 2 },
+            () => fetch(`${base}/counter/count`).then((r) => r.body?.cancel()),
           ),
-          ...Array.from({ length: CONCURRENCY / 2 }, () =>
-            fetch(`${base}/greeting/greet`).then((r) => r.body?.cancel())
+          ...Array.from(
+            { length: CONCURRENCY / 2 },
+            () => fetch(`${base}/greeting/greet`).then((r) => r.body?.cancel()),
           ),
         ]);
         roundTimes.push(performance.now() - t0);
@@ -627,7 +663,9 @@ Deno.test({
 
       // deno-lint-ignore no-console
       console.log(
-        `Concurrent ${CONCURRENCY} requests — avg batch=${avgMs.toFixed(2)}ms  ~${rps} req/s`,
+        `Concurrent ${CONCURRENCY} requests — avg batch=${
+          avgMs.toFixed(2)
+        }ms  ~${rps} req/s`,
       );
 
       // At least 100 req/s in-process

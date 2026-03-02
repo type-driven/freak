@@ -16,7 +16,9 @@ import { TodoRpc } from "../services/rpc.ts";
 export default function RpcDemo() {
   const [result, client] = useRpcResult(TodoRpc, { url: "/rpc/todos" });
   const streamState = useRpcStream(TodoRpc, {
-    url: `ws://${typeof window !== "undefined" ? window.location.host : "localhost:8000"}/rpc/todos/ws`,
+    url: `ws://${
+      typeof window !== "undefined" ? window.location.host : "localhost:8000"
+    }/rpc/todos/ws`,
     procedure: "WatchTodos",
   });
   const [text, setText] = useState("");
@@ -45,10 +47,10 @@ export default function RpcDemo() {
           placeholder="New todo text..."
           style="margin-right: 0.5rem; padding: 0.25rem"
         />
-        <button onClick={createTodo} style="margin-right: 0.5rem">
+        <button type="button" onClick={createTodo} style="margin-right: 0.5rem">
           Add
         </button>
-        <button onClick={loadTodos}>Refresh</button>
+        <button type="button" onClick={loadTodos}>Refresh</button>
       </div>
 
       {result._tag === "idle" && (
@@ -62,9 +64,12 @@ export default function RpcDemo() {
               <li key={todo.id} style="margin-bottom: 0.25rem">
                 <span style={todo.done ? "text-decoration: line-through" : ""}>
                   {todo.text}
-                </span>
-                {" "}
-                <button onClick={deleteTodo(todo.id)} style="font-size: 0.8em">
+                </span>{" "}
+                <button
+                  type="button"
+                  onClick={deleteTodo(todo.id)}
+                  style="font-size: 0.8em"
+                >
                   Delete
                 </button>
               </li>
@@ -90,8 +95,7 @@ export default function RpcDemo() {
       )}
       {streamState._tag === "connected" && (
         <p style="color: green">
-          Live todo count:{" "}
-          {streamState.latest !== null
+          Live todo count: {streamState.latest !== null
             ? (streamState.latest as unknown[]).length
             : "—"}
         </p>

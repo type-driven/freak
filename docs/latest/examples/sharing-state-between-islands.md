@@ -39,9 +39,9 @@ Instantiating several counters gives each its own state:
 
 ## Shared State Between Islands
 
-When multiple islands need to react to the same value, define a
-module-level atom and import it in each island. Because atoms live
-at module scope, all islands on the page share the same instance.
+When multiple islands need to react to the same value, define a module-level
+atom and import it in each island. Because atoms live at module scope, all
+islands on the page share the same instance.
 
 ```ts atoms/slider.ts
 import { Atom } from "effect/unstable/reactivity";
@@ -68,8 +68,8 @@ export default function SynchronizedSlider() {
 }
 ```
 
-Rendering several instances automatically keeps them in sync — they all read
-and write the same atom:
+Rendering several instances automatically keeps them in sync — they all read and
+write the same atom:
 
 ```tsx routes/index.tsx
 <SynchronizedSlider />
@@ -102,14 +102,15 @@ export default function AddToCart(props: { product: string }) {
   const [cart, setCart] = useAtom(cartAtom);
   return (
     <button onClick={() => setCart([...cart, props.product])}>
-      Add{cart.includes(props.product) ? " another" : ""} "{props.product}" to cart
+      Add{cart.includes(props.product) ? " another" : ""}{" "}
+      "{props.product}" to cart
     </button>
   );
 }
 ```
 
 ```tsx islands/Cart.tsx
-import { useAtomValue, useAtomSet } from "@fresh/effect/island";
+import { useAtomSet, useAtomValue } from "@fresh/effect/island";
 import { cartAtom } from "../atoms/cart.ts";
 
 export default function Cart() {

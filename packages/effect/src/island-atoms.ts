@@ -86,6 +86,7 @@ export function initAtomHydration(serialized?: string): void {
     data = JSON.parse(json);
   } catch {
     if (typeof globalThis.console !== "undefined") {
+      // deno-lint-ignore no-console
       console.warn("[fresh-effect] Malformed atom hydration data, skipping.");
     }
     return;

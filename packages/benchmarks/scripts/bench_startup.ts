@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * bench_startup.ts — Startup time measurement.
  *
@@ -108,7 +109,9 @@ export async function runStartupBench(
 
     const meanMs = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
     results.push({ name: app.name, meanMs, runs: times.length });
-    console.log(`[startup] ${app.name}: mean=${meanMs}ms over ${times.length} runs`);
+    console.log(
+      `[startup] ${app.name}: mean=${meanMs}ms over ${times.length} runs`,
+    );
   }
 
   return results;

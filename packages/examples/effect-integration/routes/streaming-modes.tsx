@@ -36,27 +36,43 @@ export default function StreamingModesPage() {
         <tbody>
           <tr style="border-bottom: 1px solid #f3f4f6">
             <td style="padding: 0.5rem 0.75rem">WebSocket</td>
-            <td style="padding: 0.5rem 0.75rem; font-family: monospace">useRpcStream</td>
+            <td style="padding: 0.5rem 0.75rem; font-family: monospace">
+              useRpcStream
+            </td>
             <td style="padding: 0.5rem 0.75rem">ws:// bidirectional</td>
-            <td style="padding: 0.5rem 0.75rem">Full-duplex, low-latency push</td>
+            <td style="padding: 0.5rem 0.75rem">
+              Full-duplex, low-latency push
+            </td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6">
             <td style="padding: 0.5rem 0.75rem">HTTP-stream</td>
-            <td style="padding: 0.5rem 0.75rem; font-family: monospace">useRpcHttpStream</td>
+            <td style="padding: 0.5rem 0.75rem; font-family: monospace">
+              useRpcHttpStream
+            </td>
             <td style="padding: 0.5rem 0.75rem">POST + NDJSON body</td>
-            <td style="padding: 0.5rem 0.75rem">Streaming where WebSocket is unavailable</td>
+            <td style="padding: 0.5rem 0.75rem">
+              Streaming where WebSocket is unavailable
+            </td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6">
             <td style="padding: 0.5rem 0.75rem">SSE</td>
-            <td style="padding: 0.5rem 0.75rem; font-family: monospace">useRpcSse</td>
+            <td style="padding: 0.5rem 0.75rem; font-family: monospace">
+              useRpcSse
+            </td>
             <td style="padding: 0.5rem 0.75rem">GET text/event-stream</td>
-            <td style="padding: 0.5rem 0.75rem">Auto-reconnect, proxy-friendly</td>
+            <td style="padding: 0.5rem 0.75rem">
+              Auto-reconnect, proxy-friendly
+            </td>
           </tr>
           <tr>
             <td style="padding: 0.5rem 0.75rem">Polling</td>
-            <td style="padding: 0.5rem 0.75rem; font-family: monospace">useRpcPolled</td>
+            <td style="padding: 0.5rem 0.75rem; font-family: monospace">
+              useRpcPolled
+            </td>
             <td style="padding: 0.5rem 0.75rem">POST on interval</td>
-            <td style="padding: 0.5rem 0.75rem">Simple, no persistent connection</td>
+            <td style="padding: 0.5rem 0.75rem">
+              Simple, no persistent connection
+            </td>
           </tr>
         </tbody>
       </table>

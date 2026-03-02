@@ -45,6 +45,7 @@ export default function Counter(props: CounterProps) {
 function RoundedButton(props: JSX.HTMLAttributes<HTMLButtonElement>) {
   return (
     <button
+      type="button"
       style={{
         touchAction: "manipulation",
       }}

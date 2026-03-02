@@ -65,12 +65,12 @@ function makeTestTodoLayer(): Layer.Layer<any> {
  * down the HTTP listener. The order matters: dispose first so that
  * Deno.serve's shutdown doesn't block waiting for Effect.never fibers.
  */
-async function startServer(): Promise<{
+function startServer(): {
   port: number;
   httpBase: string;
   wsBase: string;
   stop: () => Promise<void>;
-}> {
+} {
   const testLayer = makeTestTodoLayer();
   // deno-lint-ignore no-explicit-any
   const rpcHandlers = Layer.provide(TodoRpcHandlers, testLayer as any);
@@ -136,7 +136,12 @@ async function connectWs(url: string): Promise<WebSocket> {
 }
 
 /** Send a RPC request message over a WebSocket (NDJSON: one JSON line). */
-function sendRpc(ws: WebSocket, tag: string, payload: unknown = null, id = "1"): void {
+function sendRpc(
+  ws: WebSocket,
+  tag: string,
+  payload: unknown = null,
+  id = "1",
+): void {
   ws.send(
     JSON.stringify({ _tag: "Request", id, tag, payload, headers: [] }) + "\n",
   );
@@ -165,7 +170,11 @@ function nextMessage(ws: WebSocket): Promise<any> {
 // deno-lint-ignore no-explicit-any
 function ackChunk(ws: WebSocket, chunk: any): void {
   ws.send(
-    JSON.stringify({ _tag: "Ack", requestId: chunk.requestId, length: chunk.values.length }) + "\n",
+    JSON.stringify({
+      _tag: "Ack",
+      requestId: chunk.requestId,
+      length: chunk.values.length,
+    }) + "\n",
   );
 }
 
@@ -173,12 +182,22 @@ function ackChunk(ws: WebSocket, chunk: any): void {
  * POST a RPC request to the HTTP endpoint and return the first Exit from the response.
  * (Queue.collect beta bug doubles responses; we take arr[0].)
  */
-// deno-lint-ignore no-explicit-any
-async function httpRpc(base: string, tag: string, payload: unknown = null): Promise<any> {
+async function httpRpc(
+  base: string,
+  tag: string,
+  payload: unknown = null,
+  // deno-lint-ignore no-explicit-any
+): Promise<any> {
   const res = await fetch(`${base}/rpc/todos`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ _tag: "Request", id: "1", tag, payload, headers: [] }),
+    body: JSON.stringify({
+      _tag: "Request",
+      id: "1",
+      tag,
+      payload,
+      headers: [],
+    }),
   });
   const text = await res.text();
   const arr = JSON.parse(text);
@@ -191,115 +210,142 @@ const e2eOpts = { sanitizeOps: false, sanitizeResources: false };
 // WS streaming — WatchTodos
 // ---------------------------------------------------------------------------
 
-Deno.test("E2E WS: connects and receives initial WatchTodos emission", e2eOpts, async () => {
-  const { wsBase, stop } = await startServer();
-  try {
+Deno.test(
+  "E2E WS: connects and receives initial WatchTodos emission",
+  e2eOpts,
+  async () => {
+    const { wsBase, stop } = await startServer();
+    try {
+      const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
+      sendRpc(ws, "WatchTodos");
+
+      const msg = await nextMessage(ws);
+
+      // First message for a streaming RPC should be a Chunk carrying the initial
+      // snapshot of the todo list (empty store → values[0] = [])
+      assertEquals(msg._tag, "Chunk");
+      assertEquals(Array.isArray(msg.values), true);
+      assertEquals(msg.values[0], []);
+
+      ws.close();
+    } finally {
+      await stop();
+    }
+  },
+);
+
+Deno.test(
+  "E2E WS: stream reflects todos created via HTTP",
+  e2eOpts,
+  async () => {
+    const { httpBase, wsBase, stop } = await startServer();
+    try {
+      // Create a todo via HTTP before opening the WS stream
+      const createExit = await httpRpc(httpBase, "CreateTodo", {
+        text: "E2E todo",
+      });
+      assertEquals(createExit.exit._tag, "Success");
+      const createdId: string = createExit.exit.value.id;
+
+      // Connect WS and subscribe to WatchTodos
+      const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
+      sendRpc(ws, "WatchTodos");
+
+      const msg = await nextMessage(ws);
+
+      assertEquals(msg._tag, "Chunk");
+      assertEquals(msg.values[0].length, 1);
+      assertEquals(msg.values[0][0].id, createdId);
+      assertEquals(msg.values[0][0].text, "E2E todo");
+
+      ws.close();
+    } finally {
+      await stop();
+    }
+  },
+);
+
+Deno.test(
+  "E2E WS: subsequent tick reflects mutation made between ticks",
+  e2eOpts,
+  async () => {
+    const { httpBase, wsBase, stop } = await startServer();
+    try {
+      const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
+      sendRpc(ws, "WatchTodos");
+
+      // First emission: empty list
+      const first = await nextMessage(ws);
+      assertEquals(first._tag, "Chunk");
+      assertEquals(first.values[0], []);
+
+      // Acknowledge the first Chunk so the server will send the next one
+      // (layerProtocolSocketServer has supportsAck: true)
+      ackChunk(ws, first);
+
+      // Create a todo between ticks
+      const createExit = await httpRpc(httpBase, "CreateTodo", {
+        text: "Between ticks",
+      });
+      const createdId: string = createExit.exit.value.id;
+
+      // Second emission (after ~2 s real clock tick): should include the new todo
+      const second = await nextMessage(ws);
+      assertEquals(second._tag, "Chunk");
+      assertEquals(second.values[0].length, 1);
+      assertEquals(second.values[0][0].id, createdId);
+
+      ws.close();
+    } finally {
+      await stop();
+    }
+    // Note: this test waits up to 2 s for the WatchTodos schedule tick.
+  },
+);
+
+Deno.test(
+  "E2E WS: dispose() completes without hanging with active connection",
+  e2eOpts,
+  async () => {
+    const { wsBase, stop } = await startServer();
+
     const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
     sendRpc(ws, "WatchTodos");
 
-    const msg = await nextMessage(ws);
+    // Confirm the connection is live by waiting for the first Chunk
+    await nextMessage(ws);
 
-    // First message for a streaming RPC should be a Chunk carrying the initial
-    // snapshot of the todo list (empty store → values[0] = [])
-    assertEquals(msg._tag, "Chunk");
-    assertEquals(Array.isArray(msg.values), true);
-    assertEquals(msg.values[0], []);
+    // Track whether the WS receives a close event after stop()
+    const closedPromise = new Promise<void>((resolve) => {
+      ws.addEventListener("close", () => resolve(), { once: true });
+    });
 
-    ws.close();
-  } finally {
+    // stop() calls effectApp.dispose() THEN server.shutdown().
+    // effectApp.dispose() drains #activeWsRuntimes (closes the connection runtime,
+    // interrupting Effect.never). server.shutdown() should then complete quickly
+    // because there are no blocking fibers left.
+    const t0 = Date.now();
     await stop();
-  }
-});
+    const elapsed = Date.now() - t0;
 
-Deno.test("E2E WS: stream reflects todos created via HTTP", e2eOpts, async () => {
-  const { httpBase, wsBase, stop } = await startServer();
-  try {
-    // Create a todo via HTTP before opening the WS stream
-    const createExit = await httpRpc(httpBase, "CreateTodo", { text: "E2E todo" });
-    assertEquals(createExit.exit._tag, "Success");
-    const createdId: string = createExit.exit.value.id;
+    // stop() should complete in well under 5 s — if Effect.never was not interrupted
+    // by dispose(), server.shutdown() would block until the OS kills the socket.
+    assertEquals(
+      elapsed < 5000,
+      true,
+      `stop() took ${elapsed}ms — likely hung`,
+    );
 
-    // Connect WS and subscribe to WatchTodos
-    const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
-    sendRpc(ws, "WatchTodos");
-
-    const msg = await nextMessage(ws);
-
-    assertEquals(msg._tag, "Chunk");
-    assertEquals(msg.values[0].length, 1);
-    assertEquals(msg.values[0][0].id, createdId);
-    assertEquals(msg.values[0][0].text, "E2E todo");
-
-    ws.close();
-  } finally {
-    await stop();
-  }
-});
-
-Deno.test("E2E WS: subsequent tick reflects mutation made between ticks", e2eOpts, async () => {
-  const { httpBase, wsBase, stop } = await startServer();
-  try {
-    const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
-    sendRpc(ws, "WatchTodos");
-
-    // First emission: empty list
-    const first = await nextMessage(ws);
-    assertEquals(first._tag, "Chunk");
-    assertEquals(first.values[0], []);
-
-    // Acknowledge the first Chunk so the server will send the next one
-    // (layerProtocolSocketServer has supportsAck: true)
-    ackChunk(ws, first);
-
-    // Create a todo between ticks
-    const createExit = await httpRpc(httpBase, "CreateTodo", { text: "Between ticks" });
-    const createdId: string = createExit.exit.value.id;
-
-    // Second emission (after ~2 s real clock tick): should include the new todo
-    const second = await nextMessage(ws);
-    assertEquals(second._tag, "Chunk");
-    assertEquals(second.values[0].length, 1);
-    assertEquals(second.values[0][0].id, createdId);
-
-    ws.close();
-  } finally {
-    await stop();
-  }
-  // Note: this test waits up to 2 s for the WatchTodos schedule tick.
-});
-
-Deno.test("E2E WS: dispose() completes without hanging with active connection", e2eOpts, async () => {
-  const { wsBase, stop } = await startServer();
-
-  const ws = await connectWs(`${wsBase}/rpc/todos/ws`);
-  sendRpc(ws, "WatchTodos");
-
-  // Confirm the connection is live by waiting for the first Chunk
-  await nextMessage(ws);
-
-  // Track whether the WS receives a close event after stop()
-  const closedPromise = new Promise<void>((resolve) => {
-    ws.addEventListener("close", () => resolve(), { once: true });
-  });
-
-  // stop() calls effectApp.dispose() THEN server.shutdown().
-  // effectApp.dispose() drains #activeWsRuntimes (closes the connection runtime,
-  // interrupting Effect.never). server.shutdown() should then complete quickly
-  // because there are no blocking fibers left.
-  const t0 = Date.now();
-  await stop();
-  const elapsed = Date.now() - t0;
-
-  // stop() should complete in well under 5 s — if Effect.never was not interrupted
-  // by dispose(), server.shutdown() would block until the OS kills the socket.
-  assertEquals(elapsed < 5000, true, `stop() took ${elapsed}ms — likely hung`);
-
-  // WS should close (either from runtime dispose or server shutdown)
-  await Promise.race([
-    closedPromise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("WS not closed within 3s after stop()")), 3000)
-    ),
-  ]);
-  assertEquals(ws.readyState, WebSocket.CLOSED);
-});
+    // WS should close (either from runtime dispose or server shutdown)
+    await Promise.race([
+      closedPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("WS not closed within 3s after stop()")),
+          3000,
+        )
+      ),
+    ]);
+    assertEquals(ws.readyState, WebSocket.CLOSED);
+  },
+);

@@ -36,7 +36,9 @@ import type { Effect } from "effect";
  * E is fixed to `unknown` — not a generic parameter.
  */
 export interface EffectHandlerFn<Data, State, R> {
-  (ctx: Context<State>): Effect.Effect<Response | PageResponse<Data>, unknown, R>;
+  (
+    ctx: Context<State>,
+  ): Effect.Effect<Response | PageResponse<Data>, unknown, R>;
 }
 
 /**
@@ -61,7 +63,11 @@ export type EffectRouteHandler<Data, State, R> =
 export interface EffectDefine<State, R> {
   handlers<
     Data,
-    Handlers extends EffectRouteHandler<Data, State, R> = EffectRouteHandler<Data, State, R>,
+    Handlers extends EffectRouteHandler<Data, State, R> = EffectRouteHandler<
+      Data,
+      State,
+      R
+    >,
   >(handlers: Handlers): typeof handlers;
 }
 
@@ -84,7 +90,10 @@ export interface EffectDefine<State, R> {
  * const define = createEffectDefine<AppState, typeof DbService>();
  * ```
  */
-export function createEffectDefine<State = unknown, R = never>(): EffectDefine<State, R> {
+export function createEffectDefine<State = unknown, R = never>(): EffectDefine<
+  State,
+  R
+> {
   return {
     handlers(handlers) {
       return handlers;

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /** @jsxImportSource preact */
 /**
  * Quick demo: run this to see island markers in SSR output.
@@ -23,14 +24,15 @@ inner.islands({ DemoCounter }, "plugin-counter");
 inner.get("/widget", (ctx) =>
   ctx.render(
     <html>
-      <head><title>Demo</title></head>
+      <head>
+        <title>Demo</title>
+      </head>
       <body>
         <h1>Plugin Widget</h1>
         <DemoCounter count={42} />
       </body>
     </html>,
-  )
-);
+  ));
 
 // Mount inner plugin onto outer app
 outer.mountApp("/plugin", inner);
@@ -46,7 +48,9 @@ const html = await res.text();
 
 console.log("=== Island registry after setBuildCache ===");
 for (const [fn, entry] of cache.islandRegistry) {
-  console.log(`  ${fn.name} → { file: "${entry.file}", name: "${entry.name}", exportName: "${entry.exportName}" }`);
+  console.log(
+    `  ${fn.name} → { file: "${entry.file}", name: "${entry.name}", exportName: "${entry.exportName}" }`,
+  );
 }
 
 console.log("\n=== SSR HTML (full) ===");

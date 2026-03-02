@@ -77,7 +77,11 @@ export default function QueryMutationDemo() {
     {
       onMutate: (text) => {
         const prev = getCacheData<Todo[]>(TODOS_KEY);
-        const optimistic: Todo = { id: `temp-${Date.now()}`, text, done: false };
+        const optimistic: Todo = {
+          id: `temp-${Date.now()}`,
+          text,
+          done: false,
+        };
         setCacheData(TODOS_KEY, [...(prev ?? []), optimistic]);
         return { prev };
       },
@@ -133,6 +137,7 @@ export default function QueryMutationDemo() {
           ? <span style="color:#f59e0b">⟳ saving…</span>
           : <span style="color:#22c55e">✓ up to date</span>}
         <button
+          type="button"
           onClick={refetch}
           style="margin-left:auto;font-size:0.85em;cursor:pointer;background:none;border:1px solid #d1d5db;border-radius:4px;padding:0.1rem 0.4rem;color:#374151"
         >
@@ -148,7 +153,10 @@ export default function QueryMutationDemo() {
       )}
 
       {/* Add form */}
-      <form onSubmit={handleAdd} style="display:flex;gap:0.5rem;margin-bottom:1rem">
+      <form
+        onSubmit={handleAdd}
+        style="display:flex;gap:0.5rem;margin-bottom:1rem"
+      >
         <input
           type="text"
           value={newText}
@@ -169,7 +177,11 @@ export default function QueryMutationDemo() {
       {isLoading && list.length === 0
         ? <p style="color:#9ca3af;font-size:0.9em">Loading…</p>
         : list.length === 0
-        ? <p style="color:#9ca3af;font-size:0.9em">No todos yet. Add one above!</p>
+        ? (
+          <p style="color:#9ca3af;font-size:0.9em">
+            No todos yet. Add one above!
+          </p>
+        )
         : (
           <ul style="list-style:none;padding:0;margin:0">
             {list.map((todo) => {
@@ -181,7 +193,13 @@ export default function QueryMutationDemo() {
                     isTemp ? "opacity:0.55" : ""
                   }`}
                 >
-                  <span style={`flex:1;font-size:0.9em;${todo.done ? "text-decoration:line-through;color:#9ca3af" : ""}`}>
+                  <span
+                    style={`flex:1;font-size:0.9em;${
+                      todo.done
+                        ? "text-decoration:line-through;color:#9ca3af"
+                        : ""
+                    }`}
+                  >
                     {todo.text}
                     {isTemp && (
                       <span style="margin-left:0.4rem;font-size:0.7em;color:#d97706">
@@ -190,6 +208,7 @@ export default function QueryMutationDemo() {
                     )}
                   </span>
                   <button
+                    type="button"
                     onClick={() => !isTemp && deleteMutation.mutate(todo.id)}
                     disabled={isTemp || deleteMutation.isPending}
                     style="font-size:0.75em;color:#ef4444;background:none;border:none;cursor:pointer;padding:0"
@@ -207,25 +226,28 @@ export default function QueryMutationDemo() {
         <summary style="cursor:pointer;user-select:none">How it works</summary>
         <ul style="margin-top:0.5rem;padding-left:1.2rem;line-height:1.8">
           <li>
-            <code>useRpcQuery</code> fetches <code>ListTodos</code> on mount and
-            caches it under <code>"todos"</code>.
+            <code>useRpcQuery</code> fetches <code>ListTodos</code>{" "}
+            on mount and caches it under <code>"todos"</code>.
           </li>
           <li>
             <code>useMutation</code> (Create) calls <code>onMutate</code>{" "}
-            synchronously — appends a placeholder via <code>setCacheData</code>{" "}
+            synchronously — appends a placeholder via <code>setCacheData</code>
+            {" "}
             before the server responds.
           </li>
           <li>
-            On success, <code>invalidates: ["todos"]</code> marks the cache stale
-            → <code>useRpcQuery</code> refetches and replaces the placeholder.
+            On success, <code>invalidates: ["todos"]</code>{" "}
+            marks the cache stale → <code>useRpcQuery</code>{" "}
+            refetches and replaces the placeholder.
           </li>
           <li>
-            On error, <code>onError</code> calls <code>setCacheData(prev)</code>{" "}
+            On error, <code>onError</code> calls <code>setCacheData(prev)</code>
+            {" "}
             to roll back the optimistic change.
           </li>
           <li>
-            Delete works the same way: removes the item optimistically, rolls back
-            if the server call fails.
+            Delete works the same way: removes the item optimistically, rolls
+            back if the server call fails.
           </li>
         </ul>
       </details>

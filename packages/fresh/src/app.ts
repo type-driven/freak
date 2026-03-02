@@ -10,7 +10,7 @@ import {
 import { Context } from "./context.ts";
 import { mergePath, type Method, UrlPatternRouter } from "./router.ts";
 import type { FreshConfig, ResolvedFreshConfig } from "./config.ts";
-import { IslandPreparer, type BuildCache } from "./build_cache.ts";
+import { type BuildCache, IslandPreparer } from "./build_cache.ts";
 import { HttpError } from "./error.ts";
 import type { LayoutConfig, MaybeLazy, Route, RouteConfig } from "./types.ts";
 import type { RouteComponent } from "./segments.ts";
@@ -29,7 +29,7 @@ import {
   newRouteCmd,
 } from "./commands.ts";
 import { MockBuildCache } from "./test_utils.ts";
-import { type EffectRunner } from "./handlers.ts";
+import type { EffectRunner } from "./handlers.ts";
 import type { Plugin } from "./plugin.ts";
 
 // TODO: Completed type clashes in older Deno versions
@@ -187,7 +187,9 @@ export class App<State> {
   #onError: (err: unknown) => void = NOOP;
   #effectRunner: EffectRunner | null = null;
   #atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null = null;
-  #islandRegistrations: Array<{ mod: Record<string, unknown>; chunkName: string; specifier?: string }> = [];
+  #islandRegistrations: Array<
+    { mod: Record<string, unknown>; chunkName: string; specifier?: string }
+  > = [];
 
   static {
     getBuildCache = (app) => app.#getBuildCache();
@@ -375,7 +377,11 @@ export class App<State> {
    *   import.meta.resolve("./islands/mod.ts"))
    * ```
    */
-  islands(mod: Record<string, unknown>, chunkName: string, specifier?: string): this {
+  islands(
+    mod: Record<string, unknown>,
+    chunkName: string,
+    specifier?: string,
+  ): this {
     this.#islandRegistrations.push({ mod, chunkName, specifier });
     return this;
   }
@@ -409,7 +415,10 @@ export class App<State> {
    */
   mountApp<Config, R>(path: string, plugin: Plugin<Config, State, R>): this;
   mountApp(path: string, app: App<State>): this;
-  mountApp(path: string, appOrPlugin: App<State> | Plugin<unknown, State, unknown>): this {
+  mountApp(
+    path: string,
+    appOrPlugin: App<State> | Plugin<unknown, State, unknown>,
+  ): this {
     const inner: App<State> = !(appOrPlugin instanceof App)
       ? (appOrPlugin as Plugin<unknown, State, unknown>).app
       : appOrPlugin;
@@ -420,7 +429,11 @@ export class App<State> {
       if (cmd.type !== CommandType.App && cmd.type !== CommandType.NotFound) {
         let effectivePattern = cmd.pattern;
         if (inner.config.basePath) {
-          effectivePattern = mergePath(inner.config.basePath, cmd.pattern, false);
+          effectivePattern = mergePath(
+            inner.config.basePath,
+            cmd.pattern,
+            false,
+          );
         }
 
         const clone = {
@@ -548,7 +561,12 @@ export class App<State> {
       try {
         if (handlers.length === 0) return await next();
 
-        const result = await runMiddlewares(handlers, ctx, this.#onError, effectRunner);
+        const result = await runMiddlewares(
+          handlers,
+          ctx,
+          this.#onError,
+          effectRunner,
+        );
         if (!(result instanceof Response)) {
           throw new Error(
             `Expected a "Response" instance to be returned, but got: ${result}`,

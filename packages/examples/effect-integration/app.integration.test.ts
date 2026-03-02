@@ -117,7 +117,13 @@ function httpRpc(tag: string, payload: unknown = null): Request {
   return new Request("http://localhost/rpc/todos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ _tag: "Request", id: "1", tag, payload, headers: [] }),
+    body: JSON.stringify({
+      _tag: "Request",
+      id: "1",
+      tag,
+      payload,
+      headers: [],
+    }),
   });
 }
 
@@ -179,7 +185,9 @@ Deno.test("HTTP: created todo appears in ListTodos", opts, async () => {
     );
     const id: string = createExit.exit.value.id;
 
-    const listExit = firstExit(await (await handler(httpRpc("ListTodos"))).text());
+    const listExit = firstExit(
+      await (await handler(httpRpc("ListTodos"))).text(),
+    );
     assertEquals(listExit.exit.value.length, 1);
     assertEquals(listExit.exit.value[0].id, id);
   } finally {
@@ -187,63 +195,80 @@ Deno.test("HTTP: created todo appears in ListTodos", opts, async () => {
   }
 });
 
-Deno.test("HTTP: DeleteTodo removes the todo from ListTodos", opts, async () => {
-  const { handler, dispose } = makeTestApp();
-  try {
-    const createExit = firstExit(
-      await (await handler(httpRpc("CreateTodo", { text: "Gone soon" }))).text(),
-    );
-    const id: string = createExit.exit.value.id;
+Deno.test(
+  "HTTP: DeleteTodo removes the todo from ListTodos",
+  opts,
+  async () => {
+    const { handler, dispose } = makeTestApp();
+    try {
+      const createExit = firstExit(
+        await (await handler(httpRpc("CreateTodo", { text: "Gone soon" })))
+          .text(),
+      );
+      const id: string = createExit.exit.value.id;
 
-    await handler(httpRpc("DeleteTodo", { id }));
+      await handler(httpRpc("DeleteTodo", { id }));
 
-    const listExit = firstExit(await (await handler(httpRpc("ListTodos"))).text());
-    assertEquals(listExit.exit.value, []);
-  } finally {
-    await dispose();
-  }
-});
+      const listExit = firstExit(
+        await (await handler(httpRpc("ListTodos"))).text(),
+      );
+      assertEquals(listExit.exit.value, []);
+    } finally {
+      await dispose();
+    }
+  },
+);
 
 // ---------------------------------------------------------------------------
 // HTTP-stream — /rpc/todos/stream
 // ---------------------------------------------------------------------------
 
-Deno.test("HTTP-stream: POST returns application/x-ndjson content-type", opts, async () => {
-  const { handler, dispose } = makeTestApp();
-  try {
-    const controller = new AbortController();
-    const res = await handler(
-      new Request("http://localhost/rpc/todos/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ _tag: "Request", id: "1", tag: "WatchTodos", payload: null, headers: [] }),
-        signal: controller.signal,
-      }),
-    );
-    assertEquals(res.status, 200);
-    assertStringIncludes(res.headers.get("content-type") ?? "", "ndjson");
+Deno.test(
+  "HTTP-stream: POST returns application/x-ndjson content-type",
+  opts,
+  async () => {
+    const { handler, dispose } = makeTestApp();
+    try {
+      const controller = new AbortController();
+      const res = await handler(
+        new Request("http://localhost/rpc/todos/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            _tag: "Request",
+            id: "1",
+            tag: "WatchTodos",
+            payload: null,
+            headers: [],
+          }),
+          signal: controller.signal,
+        }),
+      );
+      assertEquals(res.status, 200);
+      assertStringIncludes(res.headers.get("content-type") ?? "", "ndjson");
 
-    // Read until the first complete NDJSON line
-    const reader = res.body!.getReader();
-    const dec = new TextDecoder();
-    let buf = "";
-    while (!buf.includes("\n")) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value);
+      // Read until the first complete NDJSON line
+      const reader = res.body!.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      while (!buf.includes("\n")) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value);
+      }
+      controller.abort(); // triggers server-side Effect.async cleanup
+      await reader.cancel();
+
+      const firstLine = JSON.parse(buf.split("\n")[0]);
+      assertEquals(firstLine._tag, "Chunk");
+      // requestId is a BigInt serialized as string by BigInt replacer
+      assertEquals(typeof firstLine.requestId, "string");
+      assertEquals(Array.isArray(firstLine.values), true);
+    } finally {
+      await dispose();
     }
-    controller.abort(); // triggers server-side Effect.async cleanup
-    await reader.cancel();
-
-    const firstLine = JSON.parse(buf.split("\n")[0]);
-    assertEquals(firstLine._tag, "Chunk");
-    // requestId is a BigInt serialized as string by BigInt replacer
-    assertEquals(typeof firstLine.requestId, "string");
-    assertEquals(Array.isArray(firstLine.values), true);
-  } finally {
-    await dispose();
-  }
-});
+  },
+);
 
 Deno.test("HTTP-stream: GET returns 405", opts, async () => {
   const { handler, dispose } = makeTestApp();
@@ -271,7 +296,10 @@ Deno.test("SSE: GET returns text/event-stream content-type", opts, async () => {
       }),
     );
     assertEquals(res.status, 200);
-    assertStringIncludes(res.headers.get("content-type") ?? "", "text/event-stream");
+    assertStringIncludes(
+      res.headers.get("content-type") ?? "",
+      "text/event-stream",
+    );
 
     // Read until the first complete SSE event (terminated by "\n\n")
     const reader = res.body!.getReader();
@@ -339,51 +367,63 @@ Deno.test("WS: GET with disallowed Origin returns 403", opts, async () => {
   }
 });
 
-Deno.test("WS: GET with no Origin returns 403 when allowedOrigins configured", opts, async () => {
-  const { handler, dispose } = makeTestApp({
-    allowedOrigins: ["http://trusted.example.com"],
-  });
-  try {
-    const res = await handler(
-      new Request("http://localhost/rpc/todos/ws"),
-    );
-    assertEquals(res.status, 403);
-  } finally {
-    await dispose();
-  }
-});
+Deno.test(
+  "WS: GET with no Origin returns 403 when allowedOrigins configured",
+  opts,
+  async () => {
+    const { handler, dispose } = makeTestApp({
+      allowedOrigins: ["http://trusted.example.com"],
+    });
+    try {
+      const res = await handler(
+        new Request("http://localhost/rpc/todos/ws"),
+      );
+      assertEquals(res.status, 403);
+    } finally {
+      await dispose();
+    }
+  },
+);
 
-Deno.test("WS: GET with correct Origin passes the Origin check", opts, async () => {
-  // We cannot perform a real WS upgrade without a TCP connection,
-  // but we can verify the Origin check is bypassed (response is not 403).
-  // Deno.upgradeWebSocket throws on a non-upgrade request → Fresh returns 500.
-  const { handler, dispose } = makeTestApp({
-    allowedOrigins: ["http://trusted.example.com"],
-  });
-  try {
-    const res = await handler(
-      new Request("http://localhost/rpc/todos/ws", {
-        headers: { Origin: "http://trusted.example.com" },
-      }),
-    );
-    assertNotEquals(res.status, 403);
-  } finally {
-    await dispose();
-  }
-});
+Deno.test(
+  "WS: GET with correct Origin passes the Origin check",
+  opts,
+  async () => {
+    // We cannot perform a real WS upgrade without a TCP connection,
+    // but we can verify the Origin check is bypassed (response is not 403).
+    // Deno.upgradeWebSocket throws on a non-upgrade request → Fresh returns 500.
+    const { handler, dispose } = makeTestApp({
+      allowedOrigins: ["http://trusted.example.com"],
+    });
+    try {
+      const res = await handler(
+        new Request("http://localhost/rpc/todos/ws", {
+          headers: { Origin: "http://trusted.example.com" },
+        }),
+      );
+      assertNotEquals(res.status, 403);
+    } finally {
+      await dispose();
+    }
+  },
+);
 
-Deno.test("WS: no Origin check when allowedOrigins not configured", opts, async () => {
-  // Default: all origins accepted. A GET (without upgrade) hits Deno.upgradeWebSocket
-  // which throws → 500, but not 403.
-  const { handler, dispose } = makeTestApp(); // no allowedOrigins
-  try {
-    const res = await handler(
-      new Request("http://localhost/rpc/todos/ws", {
-        headers: { Origin: "http://any-origin.example.com" },
-      }),
-    );
-    assertNotEquals(res.status, 403);
-  } finally {
-    await dispose();
-  }
-});
+Deno.test(
+  "WS: no Origin check when allowedOrigins not configured",
+  opts,
+  async () => {
+    // Default: all origins accepted. A GET (without upgrade) hits Deno.upgradeWebSocket
+    // which throws → 500, but not 403.
+    const { handler, dispose } = makeTestApp(); // no allowedOrigins
+    try {
+      const res = await handler(
+        new Request("http://localhost/rpc/todos/ws", {
+          headers: { Origin: "http://any-origin.example.com" },
+        }),
+      );
+      assertNotEquals(res.status, 403);
+    } finally {
+      await dispose();
+    }
+  },
+);

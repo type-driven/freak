@@ -38,15 +38,15 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as ServiceMap from "effect/ServiceMap";
 import {
+  counterAtom,
   CounterIsland,
   CounterLive,
-  counterAtom,
   createCounterPlugin,
 } from "./counter_plugin.tsx";
 import {
-  GreetingLive,
-  greetingAtom,
   createGreetingPlugin,
+  greetingAtom,
+  GreetingLive,
 } from "./greeting_plugin.tsx";
 
 // ---------------------------------------------------------------------------
@@ -63,14 +63,14 @@ const PingLive = Layer.succeed(PingService, { ping: () => "pong" });
 // Test helpers
 // ---------------------------------------------------------------------------
 
-async function get(
+function get(
   handler: (r: Request) => Promise<Response>,
   path: string,
 ): Promise<Response> {
   return handler(new Request(`http://localhost${path}`));
 }
 
-async function post(
+function post(
   handler: (r: Request) => Promise<Response>,
   path: string,
 ): Promise<Response> {
@@ -99,7 +99,9 @@ Deno.test("composition: plugin's island registrations appear in host islandRegis
   // Cast to ComponentType (preact's base component type) for Map.has/get — the island
   // was stored under this key by IslandPreparer.prepare().
   expect(cache.islandRegistry.has(CounterIsland as ComponentType)).toBe(true);
-  expect(cache.islandRegistry.get(CounterIsland as ComponentType)?.file).toBe("counter-island");
+  expect(cache.islandRegistry.get(CounterIsland as ComponentType)?.file).toBe(
+    "counter-island",
+  );
 
   // Dispose to remove signal listeners registered by createEffectApp
   await hostApp.dispose();
@@ -198,7 +200,9 @@ Deno.test("composition: atom state from plugin handler is request-isolated", asy
   expect(res1.status).toBe(200);
   expect(res2.status).toBe(200);
 
-  const bodies = await Promise.all([res1.json(), res2.json()]) as Array<{ count: number }>;
+  const bodies = await Promise.all([res1.json(), res2.json()]) as Array<
+    { count: number }
+  >;
   // Each request increments independently — counts may vary by order but must be 1 and 2
   const counts = bodies.map((b) => b.count).sort();
   expect(counts).toEqual([1, 2]);
@@ -212,9 +216,12 @@ Deno.test("composition: atom state from plugin handler is request-isolated", asy
 
 Deno.test("composition: plugin factory is generic — composes with typed host state", async () => {
   // Typed host state — plugin is parameterized over it
-  interface HostState { requestId: string }
+  interface HostState {
+    requestId: string;
+  }
 
-  type HostR = typeof CounterLive extends Layer.Layer<infer A, infer _E, infer _R> ? A : never;
+  type HostR = typeof CounterLive extends
+    Layer.Layer<infer A, infer _E, infer _R> ? A : never;
   const hostApp = createEffectApp<HostState, HostR>({ layer: CounterLive });
   const plugin = createCounterPlugin<HostState>();
 
@@ -241,8 +248,7 @@ Deno.test("composition: two plugins mounted on the same host app", async () => {
     effectRoute(Effect.gen(function* () {
       const svc = yield* PingService;
       return new Response(svc.ping());
-    }))
-  );
+    })));
 
   // Host provides BOTH CounterService and PingService via Layer.mergeAll
   const combinedLayer = Layer.mergeAll(CounterLive, PingLive);
@@ -272,7 +278,11 @@ Deno.test("composition: two plugins mounted on the same host app", async () => {
 // ---------------------------------------------------------------------------
 
 Deno.test("composition: PLUG-03 — mounting plugin with incompatible state is a type error", () => {
-  const incompatiblePlugin = createPlugin<Record<string, never>, { count: number }, never>(
+  const incompatiblePlugin = createPlugin<
+    Record<string, never>,
+    { count: number },
+    never
+  >(
     {},
     (_config) => new App<{ count: number }>(),
   );
@@ -282,7 +292,11 @@ Deno.test("composition: PLUG-03 — mounting plugin with incompatible state is a
 });
 
 Deno.test("composition: PLUG-03 — mounting plugin with incompatible state on EffectApp is a type error", async () => {
-  const incompatiblePlugin = createPlugin<Record<string, never>, { count: number }, never>(
+  const incompatiblePlugin = createPlugin<
+    Record<string, never>,
+    { count: number },
+    never
+  >(
     {},
     (_config) => new App<{ count: number }>(),
   );
@@ -300,10 +314,14 @@ Deno.test("DEMO-01: plugins receive typed AuthState — requestId and userId acc
   // S = AuthState: ctx.state.requestId and ctx.state.userId are typed.
   // This is the compile-time proof: TypeScript accepts ctx.state.requestId without cast
   // when the plugin is parameterized as createGreetingPlugin<AuthState>().
-  interface AuthState { requestId: string; userId: string }
+  interface AuthState {
+    requestId: string;
+    userId: string;
+  }
 
   const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
-  type AppR = typeof combinedLayer extends Layer.Layer<infer A, infer _E, infer _R> ? A : never;
+  type AppR = typeof combinedLayer extends
+    Layer.Layer<infer A, infer _E, infer _R> ? A : never;
   const hostApp = createEffectApp<AuthState, AppR>({ layer: combinedLayer });
 
   hostApp.use((ctx) => {
@@ -319,15 +337,23 @@ Deno.test("DEMO-01: plugins receive typed AuthState — requestId and userId acc
   const handler = hostApp.handler();
 
   // CounterPlugin responds at /counter/count
-  const counterRes = await handler(new Request("http://localhost/counter/count"));
+  const counterRes = await handler(
+    new Request("http://localhost/counter/count"),
+  );
   expect(counterRes.status).toBe(200);
   const counterBody = await counterRes.json() as { count: number };
   expect(typeof counterBody.count).toBe("number");
 
   // GreetingPlugin responds at /greeting/greet and echoes state fields
-  const greetRes = await handler(new Request("http://localhost/greeting/greet"));
+  const greetRes = await handler(
+    new Request("http://localhost/greeting/greet"),
+  );
   expect(greetRes.status).toBe(200);
-  const greetBody = await greetRes.json() as { greeting: string; requestId: string; userId: string };
+  const greetBody = await greetRes.json() as {
+    greeting: string;
+    requestId: string;
+    userId: string;
+  };
   expect(greetBody.greeting).toBe("Hello, World!");
   expect(greetBody.requestId).toBe("req-abc");
   expect(greetBody.userId).toBe("user-xyz");
@@ -368,8 +394,8 @@ Deno.test("DEMO-03: setAtom from both plugins serializes into one merged blob", 
   // Simulate two plugin handlers setting atoms on the same request ctx.
   // counterAtom key = "counter", greetingAtom key = "greeting" — distinct, no collision.
   const ctx = { state: {} };
-  setAtom(ctx, counterAtom, 5);          // from CounterPlugin
-  setAtom(ctx, greetingAtom, "Hi");      // from GreetingPlugin
+  setAtom(ctx, counterAtom, 5); // from CounterPlugin
+  setAtom(ctx, greetingAtom, "Hi"); // from GreetingPlugin
 
   const blob = serializeAtomHydration(ctx);
   expect(blob).toBe(JSON.stringify({ counter: 5, greeting: "Hi" }));

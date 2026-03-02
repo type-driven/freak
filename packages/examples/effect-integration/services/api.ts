@@ -50,27 +50,27 @@ export const TodoApi = HttpApi.make("todoApi").add(
 // Group implementation
 // ---------------------------------------------------------------------------
 
-export const TodosLive = HttpApiBuilder.group(TodoApi, "todos", (handlers) =>
-  handlers
-    .handle("list", () =>
-      Effect.gen(function* () {
-        const svc = yield* TodoService;
-        return yield* svc.list();
-      })
-    )
-    .handle("getById", ({ params }) =>
-      Effect.gen(function* () {
-        const svc = yield* TodoService;
-        const todos = yield* svc.list();
-        const todo = todos.find((t) => t.id === params.id);
-        if (!todo) return yield* new HttpApiError.NotFound({});
-        return todo;
-      })
-    )
-    .handle("create", ({ payload }) =>
-      Effect.gen(function* () {
-        const svc = yield* TodoService;
-        return yield* svc.create(payload.text);
-      })
-    )
+export const TodosLive = HttpApiBuilder.group(
+  TodoApi,
+  "todos",
+  (handlers) =>
+    handlers
+      .handle("list", () =>
+        Effect.gen(function* () {
+          const svc = yield* TodoService;
+          return yield* svc.list();
+        }))
+      .handle("getById", ({ params }) =>
+        Effect.gen(function* () {
+          const svc = yield* TodoService;
+          const todos = yield* svc.list();
+          const todo = todos.find((t) => t.id === params.id);
+          if (!todo) return yield* new HttpApiError.NotFound({});
+          return todo;
+        }))
+      .handle("create", ({ payload }) =>
+        Effect.gen(function* () {
+          const svc = yield* TodoService;
+          return yield* svc.create(payload.text);
+        })),
 );

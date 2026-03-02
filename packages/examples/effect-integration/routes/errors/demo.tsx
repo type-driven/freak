@@ -20,8 +20,8 @@ export default function ErrorDemoPage() {
       <h1 class="text-2xl font-bold mb-4">Error Demo</h1>
       <p>This page deliberately triggers a typed Effect error.</p>
       <p class="mt-2 text-gray-600">
-        Check the server console for the Cause.pretty() output showing
-        the full error trace including the tagged NotFoundError.
+        Check the server console for the Cause.pretty() output showing the full
+        error trace including the tagged NotFoundError.
       </p>
     </div>
   );

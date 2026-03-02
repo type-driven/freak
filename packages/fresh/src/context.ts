@@ -56,11 +56,19 @@ export let getBuildCache: <T>(ctx: Context<T>) => BuildCache<T>;
 export let getInternals: <T>(ctx: Context<T>) => UiTree<unknown, T>;
 export let setAdditionalStyles: <T>(ctx: Context<T>, css: string[]) => void;
 
-// deno-lint-ignore no-explicit-any
-const _atomHooksByCtx = new WeakMap<Context<any>, ((ctx: Context<unknown>) => string | null) | null>();
+const _atomHooksByCtx = new WeakMap<
+  // deno-lint-ignore no-explicit-any
+  Context<any>,
+  ((ctx: Context<unknown>) => string | null) | null
+>();
 
-export let setAtomHydrationHookForCtx: <T>(ctx: Context<T>, hook: ((ctx: Context<unknown>) => string | null) | null) => void;
-export let getAtomHydrationHookForCtx: <T>(ctx: Context<T>) => ((ctx: Context<unknown>) => string | null) | null | undefined;
+export let setAtomHydrationHookForCtx: <T>(
+  ctx: Context<T>,
+  hook: ((ctx: Context<unknown>) => string | null) | null,
+) => void;
+export let getAtomHydrationHookForCtx: <T>(
+  ctx: Context<T>,
+) => ((ctx: Context<unknown>) => string | null) | null | undefined;
 
 /**
  * The context passed to every middleware. It is unique for every request.

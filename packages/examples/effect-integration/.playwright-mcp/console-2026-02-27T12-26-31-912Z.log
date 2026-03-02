@@ -1,0 +1,77 @@
+[      26ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[   29704ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[   29855ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[   30406ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  283931ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  284083ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  284514ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  288257ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  288409ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  288788ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  344004ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  344155ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  344567ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  347390ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  347541ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  347954ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  350472ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  351023ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  393821ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  393973ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  394397ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[  809656ms] [ERROR] WebSocket connection to 'ws://localhost:8000/_frsh/alive' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ :8
+[  810203ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7

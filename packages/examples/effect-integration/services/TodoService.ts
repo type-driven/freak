@@ -17,8 +17,7 @@ export type TodoServiceR = ServiceMap.Service.Identifier<typeof TodoService>;
 const store = new Map<string, Todo>();
 
 export const TodoLayer = Layer.succeed(TodoService, {
-  list: () =>
-    Effect.sync(() => Array.from(store.values())),
+  list: () => Effect.sync(() => Array.from(store.values())),
 
   create: (text: string) =>
     Effect.sync(() => {

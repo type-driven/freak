@@ -2,7 +2,11 @@ import type { AnyComponent } from "preact";
 import type { MaybeLazyMiddleware, Middleware } from "./middlewares/mod.ts";
 import { type Method, patternToSegments } from "./router.ts";
 import type { LayoutConfig, Route } from "./types.ts";
-import { type Context, getInternals, setAtomHydrationHookForCtx } from "./context.ts";
+import {
+  type Context,
+  getInternals,
+  setAtomHydrationHookForCtx,
+} from "./context.ts";
 import { recordSpanError, tracer } from "./otel.ts";
 import {
   type EffectRunner,
@@ -155,7 +159,13 @@ export function segmentToMiddlewares<State>(
         }
 
         if (errorRoute !== null) {
-          return await renderRoute(ctx, errorRoute, status, effectRunner, atomHydrationHook);
+          return await renderRoute(
+            ctx,
+            errorRoute,
+            status,
+            effectRunner,
+            atomHydrationHook,
+          );
         }
 
         throw err;

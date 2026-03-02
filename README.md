@@ -1,15 +1,17 @@
 # freak
 
-**Fresh 2 + Effect-TS.** A fork of [@fresh/core](https://jsr.io/@fresh/core) that adds first-class [Effect](https://effect.website/) integration for typed services, structured errors, and full-stack RPC.
+**Fresh 2 + Effect-TS.** A fork of [@fresh/core](https://jsr.io/@fresh/core)
+that adds first-class [Effect](https://effect.website/) integration for typed
+services, structured errors, and full-stack RPC.
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`@fresh/core`](./packages/fresh/) | Fresh 2 framework (forked) |
-| [`@fresh/effect`](./packages/effect/) | Effect integration — `createEffectApp`, HTTP API, RPC, atom hydration, client hooks |
-| [`@fresh/plugin-effect`](./packages/plugin-effect/) | Re-export shim (backward compat — prefer `@fresh/effect`) |
-| [`@fresh/plugin-tailwindcss`](./packages/plugin-tailwindcss/) | Tailwind CSS v4 plugin |
+| Package                                                       | Description                                                                         |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`@fresh/core`](./packages/fresh/)                            | Fresh 2 framework (forked)                                                          |
+| [`@fresh/effect`](./packages/effect/)                         | Effect integration — `createEffectApp`, HTTP API, RPC, atom hydration, client hooks |
+| [`@fresh/plugin-effect`](./packages/plugin-effect/)           | Re-export shim (backward compat — prefer `@fresh/effect`)                           |
+| [`@fresh/plugin-tailwindcss`](./packages/plugin-tailwindcss/) | Tailwind CSS v4 plugin                                                              |
 
 ## Getting started
 
@@ -38,6 +40,7 @@ export const appInstance = app
 ```
 
 `createEffectApp({ layer })` creates a `ManagedRuntime` from your Layer and:
+
 - Registers an `EffectRunner` so any handler can return an `Effect` directly
 - Wires atom hydration automatically (no manual `setAtomHydrationHook` needed)
 - Registers SIGINT/SIGTERM signal handlers for clean disposal
@@ -62,31 +65,40 @@ export const handlers = define.handlers({
 });
 ```
 
-Plain handlers (`Response`, `PageResponse`, `Promise`) continue to work unchanged — Effect support is additive.
+Plain handlers (`Response`, `PageResponse`, `Promise`) continue to work
+unchanged — Effect support is additive.
 
 ### 3. Mount an HttpApi
 
 ```ts
-import { HttpApi, HttpApiGroup, HttpApiEndpoint } from "effect/unstable/httpapi";
+import {
+  HttpApi,
+  HttpApiEndpoint,
+  HttpApiGroup,
+} from "effect/unstable/httpapi";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { Schema } from "effect";
 
 const Api = HttpApi.make("todos").add(
   HttpApiGroup.make("todos").prefix("/todos").add(
     HttpApiEndpoint.get("list", "/", { success: Schema.Array(TodoSchema) }),
-    HttpApiEndpoint.post("create", "/", { payload: Schema.Struct({ text: Schema.String }), success: TodoSchema }),
+    HttpApiEndpoint.post("create", "/", {
+      payload: Schema.Struct({ text: Schema.String }),
+      success: TodoSchema,
+    }),
   ),
 );
 
 const TodosLive = HttpApiBuilder.group(Api, "todos", (h) =>
   h
-    .handle("list", () => Effect.gen(function* () {
-      return yield* (yield* TodoService).list();
-    }))
-    .handle("create", ({ payload }) => Effect.gen(function* () {
-      return yield* (yield* TodoService).create(payload.text);
-    })),
-);
+    .handle("list", () =>
+      Effect.gen(function* () {
+        return yield* (yield* TodoService).list();
+      }))
+    .handle("create", ({ payload }) =>
+      Effect.gen(function* () {
+        return yield* (yield* TodoService).create(payload.text);
+      })));
 
 app.httpApi("/api", Api, Layer.provide(TodosLive, AppLayer));
 ```
@@ -100,7 +112,7 @@ Define procedures once; get typed client hooks automatically.
 ```ts
 // services/rpc.ts
 import { Rpc, RpcGroup, RpcSchema } from "effect/unstable/rpc";
-import { Schema, Stream, Schedule, Effect } from "effect";
+import { Effect, Schedule, Schema, Stream } from "effect";
 
 const ListTodos = Rpc.make("ListTodos", { success: Schema.Array(TodoSchema) });
 const CreateTodo = Rpc.make("CreateTodo", {
@@ -130,9 +142,24 @@ export const TodoRpcHandlers = TodoRpc.toLayer({
 // main.ts
 const RpcWithDeps = Layer.provide(TodoRpcHandlers, AppLayer);
 
-app.rpc({ group: TodoRpc, path: "/rpc/todos", protocol: "http", handlerLayer: RpcWithDeps });
-app.rpc({ group: TodoRpc, path: "/rpc/todos/ws", protocol: "websocket", handlerLayer: RpcWithDeps });
-app.rpc({ group: TodoRpc, path: "/rpc/todos/sse", protocol: "sse", handlerLayer: RpcWithDeps });
+app.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos",
+  protocol: "http",
+  handlerLayer: RpcWithDeps,
+});
+app.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos/ws",
+  protocol: "websocket",
+  handlerLayer: RpcWithDeps,
+});
+app.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos/sse",
+  protocol: "sse",
+  handlerLayer: RpcWithDeps,
+});
 ```
 
 **Client (island):**
@@ -155,7 +182,9 @@ export default function TodoApp() {
   return (
     <div>
       <button onClick={() => client.ListTodos()}>Load</button>
-      {state._tag === "ok" && <ul>{state.value.map((t) => <li>{t.text}</li>)}</ul>}
+      {state._tag === "ok" && (
+        <ul>{state.value.map((t) => <li>{t.text}</li>)}</ul>
+      )}
       {stream._tag === "connected" && stream.latest && (
         <p>Live count: {stream.latest.length}</p>
       )}
@@ -168,36 +197,38 @@ export default function TodoApp() {
 
 Four transports, identical client-side interface (`RpcStreamState`):
 
-| Protocol | Mount option | Client hook | Best for |
-|---|---|---|---|
-| HTTP request/response | `protocol: "http"` | `useRpcResult`, `useRpcQuery` | CRUD operations |
-| WebSocket streaming | `protocol: "websocket"` | `useRpcStream` | Low-latency push, full-duplex |
-| HTTP NDJSON streaming | `protocol: "http-stream"` | `useRpcHttpStream` | Streaming without WS upgrade |
-| Server-Sent Events | `protocol: "sse"` | `useRpcSse` | Auto-reconnect, proxies |
+| Protocol              | Mount option              | Client hook                   | Best for                      |
+| --------------------- | ------------------------- | ----------------------------- | ----------------------------- |
+| HTTP request/response | `protocol: "http"`        | `useRpcResult`, `useRpcQuery` | CRUD operations               |
+| WebSocket streaming   | `protocol: "websocket"`   | `useRpcStream`                | Low-latency push, full-duplex |
+| HTTP NDJSON streaming | `protocol: "http-stream"` | `useRpcHttpStream`            | Streaming without WS upgrade  |
+| Server-Sent Events    | `protocol: "sse"`         | `useRpcSse`                   | Auto-reconnect, proxies       |
 
 ## Client hooks
 
 ```ts
 import {
-  useQuery,         // Data fetching with cache + deduplication
-  useMutation,      // Mutations with optimistic update support
-  useRpcQuery,      // Typed RPC fetching built on useQuery
-  useRpcResult,     // Request/response RPC — returns [state, client proxy]
-  useRpcStream,     // WebSocket streaming
+  getCacheData, // Read cached value
+  invalidateQuery, // Trigger refetch for a cache key
+  setCacheData, // Optimistic writes
+  useMutation, // Mutations with optimistic update support
+  useQuery, // Data fetching with cache + deduplication
   useRpcHttpStream, // HTTP NDJSON streaming
-  useRpcSse,        // SSE streaming
-  useRpcPolled,     // Polling on a schedule
-  invalidateQuery,  // Trigger refetch for a cache key
-  setCacheData,     // Optimistic writes
-  getCacheData,     // Read cached value
+  useRpcPolled, // Polling on a schedule
+  useRpcQuery, // Typed RPC fetching built on useQuery
+  useRpcResult, // Request/response RPC — returns [state, client proxy]
+  useRpcSse, // SSE streaming
+  useRpcStream, // WebSocket streaming
 } from "@fresh/effect/island";
 ```
 
-All hooks share a module-level `ManagedRuntime` backed by `FetchHttpClient`. Per-URL runtimes share the same `memoMap` so services are built once per page.
+All hooks share a module-level `ManagedRuntime` backed by `FetchHttpClient`.
+Per-URL runtimes share the same `memoMap` so services are built once per page.
 
 ## Atom hydration
 
-Seed client-side state from the server without prop drilling. No setup required — `createEffectApp` wires the hydration hook automatically.
+Seed client-side state from the server without prop drilling. No setup required
+— `createEffectApp` wires the hydration hook automatically.
 
 ```ts
 // routes/index.tsx (server)
@@ -230,17 +261,29 @@ export default function TodoApp() {
 
 **Core architecture:**
 
-- `@fresh/core` knows nothing about Effect. It defines an `EffectLike` structural type (duck-typed on `"~effect/Effect"`) and an `EffectRunner` callback slot per `App` instance.
-- `createEffectApp({ layer })` builds a `ManagedRuntime`, creates a resolver, and registers it via `setEffectRunner`. Any handler returning an Effect-like value is automatically run through the runtime.
-- `EffectApp` wraps `App<State>` (composition, not inheritance) and proxies all builder methods with Effect-compatible types. The `.app` getter exposes the inner `App<State>` required by `Builder.listen()`.
+- `@fresh/core` knows nothing about Effect. It defines an `EffectLike`
+  structural type (duck-typed on `"~effect/Effect"`) and an `EffectRunner`
+  callback slot per `App` instance.
+- `createEffectApp({ layer })` builds a `ManagedRuntime`, creates a resolver,
+  and registers it via `setEffectRunner`. Any handler returning an Effect-like
+  value is automatically run through the runtime.
+- `EffectApp` wraps `App<State>` (composition, not inheritance) and proxies all
+  builder methods with Effect-compatible types. The `.app` getter exposes the
+  inner `App<State>` required by `Builder.listen()`.
 
 **WebSocket isolation:**
 
-Each WebSocket connection gets a fresh `ManagedRuntime` with `Layer.fresh(RpcServer.layerProtocolSocketServer)` — bypassing the shared memoMap to prevent stale protocol state across reconnections. Shared services (e.g., database pools) remain memoized and reused.
+Each WebSocket connection gets a fresh `ManagedRuntime` with
+`Layer.fresh(RpcServer.layerProtocolSocketServer)` — bypassing the shared
+memoMap to prevent stale protocol state across reconnections. Shared services
+(e.g., database pools) remain memoized and reused.
 
 ## Project status
 
-Built on [Effect v4 beta](https://github.com/Effect-TS/effect). The core integration patterns are stable and tested, but the upstream Effect API is still evolving. Not recommended for production until Effect v4 reaches a stable release.
+Built on [Effect v4 beta](https://github.com/Effect-TS/effect). The core
+integration patterns are stable and tested, but the upstream Effect API is still
+evolving. Not recommended for production until Effect v4 reaches a stable
+release.
 
 ## License
 

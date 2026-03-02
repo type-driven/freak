@@ -96,8 +96,7 @@ Deno.test("ISLD-02: SSR HTML from plugin route contains frsh:island markers", as
             <CounterIsland count={7} />
           </body>
         </html>,
-      )
-    );
+      ));
     return app;
   });
 
@@ -168,8 +167,7 @@ Deno.test("ISLD-03: two plugins with distinct islands both produce SSR markers",
             <CounterIsland count={10} />
           </body>
         </html>,
-      )
-    );
+      ));
     return app;
   });
 
@@ -183,8 +181,7 @@ Deno.test("ISLD-03: two plugins with distinct islands both produce SSR markers",
             <GreetIsland name="world" />
           </body>
         </html>,
-      )
-    );
+      ));
     return app;
   });
 

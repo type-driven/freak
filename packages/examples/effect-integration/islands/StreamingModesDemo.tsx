@@ -14,18 +14,20 @@
  */
 
 import {
+  type RpcStreamState,
   useRpcHttpStream,
   useRpcPolled,
   useRpcSse,
   useRpcStream,
-  type RpcStreamState,
 } from "@fresh/effect/island";
 import { TodoRpc } from "../services/rpc.ts";
 import type { Todo } from "../types.ts";
 
 // WebSocket URL built at runtime — switches ws/wss based on page protocol.
 const wsBase = typeof window !== "undefined"
-  ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`
+  ? `${
+    window.location.protocol === "https:" ? "wss" : "ws"
+  }://${window.location.host}`
   : "ws://localhost:8000";
 
 function StatusBadge({ state }: { state: RpcStreamState<unknown, unknown> }) {
@@ -37,7 +39,9 @@ function StatusBadge({ state }: { state: RpcStreamState<unknown, unknown> }) {
   };
   return (
     <span
-      style={`${styles[state._tag] ?? ""};padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75em;font-weight:600`}
+      style={`${
+        styles[state._tag] ?? ""
+      };padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75em;font-weight:600`}
     >
       {state._tag}
     </span>
@@ -49,7 +53,11 @@ function TodoList({ state }: { state: RpcStreamState<unknown, unknown> }) {
     return <p style="color:#9ca3af;font-size:0.85em;margin:0">—</p>;
   }
   if (state._tag === "error") {
-    return <p style="color:#ef4444;font-size:0.8em;margin:0">Error: {String((state as { error: unknown }).error)}</p>;
+    return (
+      <p style="color:#ef4444;font-size:0.8em;margin:0">
+        Error: {String((state as { error: unknown }).error)}
+      </p>
+    );
   }
   const todos = state.latest as Todo[];
   if (todos.length === 0) {
@@ -60,7 +68,9 @@ function TodoList({ state }: { state: RpcStreamState<unknown, unknown> }) {
       {todos.map((t) => (
         <li
           key={t.id}
-          style={`padding:0.2rem 0;${t.done ? "text-decoration:line-through;color:#9ca3af" : ""}`}
+          style={`padding:0.2rem 0;${
+            t.done ? "text-decoration:line-through;color:#9ca3af" : ""
+          }`}
         >
           {t.text}
         </li>
@@ -131,8 +141,7 @@ export default function StreamingModesDemo() {
     <div style="font-family:sans-serif">
       <p style="color:#6b7280;margin:0 0 1.25rem;font-size:0.9em">
         All four panels subscribe to the same todo list. Add or delete todos on
-        the{" "}
-        <a href="/rpc-demo" style="color:#3b82f6">RPC Demo page</a>{" "}
+        the <a href="/rpc-demo" style="color:#3b82f6">RPC Demo page</a>{" "}
         to see all four update within ~2 seconds.
       </p>
       <div style="display:flex;gap:1rem;flex-wrap:wrap">

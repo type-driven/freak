@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * bench_ssr.ts — SSR page throughput benchmark via oha.
  *

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * bench_throughput.ts — HTTP throughput benchmark via oha.
  *
@@ -69,7 +70,9 @@ export async function runThroughputBench(
     // Kill any existing process on port
     await killPort(app.port);
 
-    console.log(`[throughput] Starting server for ${app.name} on :${app.port}...`);
+    console.log(
+      `[throughput] Starting server for ${app.name} on :${app.port}...`,
+    );
 
     // Start server
     const server = new Deno.Command("deno", {
@@ -96,8 +99,10 @@ export async function runThroughputBench(
       // Warmup
       const warmupCmd = new Deno.Command("oha", {
         args: [
-          "-n", "2000",
-          "-c", "10",
+          "-n",
+          "2000",
+          "-c",
+          "10",
           "--no-tui",
           "--ipv4",
           `http://127.0.0.1:${app.port}/api/todos`,
@@ -112,11 +117,14 @@ export async function runThroughputBench(
       // Measurement
       const measureCmd = new Deno.Command("oha", {
         args: [
-          "-n", "10000",
-          "-c", "50",
+          "-n",
+          "10000",
+          "-c",
+          "50",
           "--no-tui",
           "--ipv4",
-          "--output-format", "json",
+          "--output-format",
+          "json",
           `http://127.0.0.1:${app.port}/api/todos`,
         ],
         stdout: "piped",
@@ -142,7 +150,9 @@ export async function runThroughputBench(
       });
 
       console.log(
-        `[throughput] ${app.name}: ${requestsPerSec.toFixed(0)} req/s, p50=${latencyP50.toFixed(2)}ms`,
+        `[throughput] ${app.name}: ${requestsPerSec.toFixed(0)} req/s, p50=${
+          latencyP50.toFixed(2)
+        }ms`,
       );
     } finally {
       server.kill("SIGTERM");

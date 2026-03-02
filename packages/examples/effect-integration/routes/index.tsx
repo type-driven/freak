@@ -24,8 +24,8 @@ export default function IndexPage(_props: PageProps<{ todos: Todo[] }>) {
     <div class="max-w-2xl mx-auto py-8 px-4">
       <h1 class="text-3xl font-bold mb-2">Fresh + Effect v4</h1>
       <p class="text-gray-600 mb-8">
-        Todo app demonstrating Effect-returning handlers, typed Layers,
-        atom hydration, and Preact island hooks.
+        Todo app demonstrating Effect-returning handlers, typed Layers, atom
+        hydration, and Preact island hooks.
       </p>
       <TodoApp />
       <footer class="mt-12 pt-4 border-t border-gray-200 text-sm text-gray-500 flex flex-wrap gap-x-4 gap-y-1">

@@ -9,14 +9,14 @@ import { expect } from "@std/expect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Effect from "effect/Effect";
 import { createEffectApp } from "@fresh/effect";
-import { setAtom, serializeAtomHydration } from "../../effect/src/hydration.ts";
+import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
 
 // Importing these will fail until greeting_plugin.tsx exists
 import {
+  createGreetingPlugin,
+  greetingAtom,
   GreetingLive,
   GreetingService,
-  greetingAtom,
-  createGreetingPlugin,
 } from "./greeting_plugin.tsx";
 
 // ---------------------------------------------------------------------------

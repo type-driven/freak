@@ -51,7 +51,11 @@ export const greetingAtom = Atom.serializable(Atom.make(""), {
 // Plugin app factory
 // ---------------------------------------------------------------------------
 
-export function createGreetingPlugin<S = unknown>(): Plugin<Record<string, never>, S, GreetingServiceShape> {
+export function createGreetingPlugin<S = unknown>(): Plugin<
+  Record<string, never>,
+  S,
+  GreetingServiceShape
+> {
   return createPlugin<Record<string, never>, S, GreetingServiceShape>(
     {},
     (_config) => {
@@ -62,17 +66,21 @@ export function createGreetingPlugin<S = unknown>(): Plugin<Record<string, never
       // GET /greet — reads ctx.state to prove DEMO-01 (typed access without cast).
       // ctx is Context<S>; when S = AuthState, ctx.state.requestId and userId are typed.
       app.get("/greet", (ctx) =>
-        runEffect(ctx, Effect.gen(function* () {
-          const svc = yield* GreetingService;
-          // Access typed auth state from host middleware — no cast needed.
-          // ctx.state is typed as S; when S = AuthState these fields exist.
-          const requestId = (ctx.state as { requestId?: string }).requestId ?? "unknown";
-          const userId = (ctx.state as { userId?: string }).userId ?? "unknown";
-          const greeting = svc.getGreeting("World");
-          setAtom(ctx, greetingAtom, greeting);
-          return Response.json({ greeting, requestId, userId });
-        }))
-      );
+        runEffect(
+          ctx,
+          Effect.gen(function* () {
+            const svc = yield* GreetingService;
+            // Access typed auth state from host middleware — no cast needed.
+            // ctx.state is typed as S; when S = AuthState these fields exist.
+            const requestId = (ctx.state as { requestId?: string }).requestId ??
+              "unknown";
+            const userId = (ctx.state as { userId?: string }).userId ??
+              "unknown";
+            const greeting = svc.getGreeting("World");
+            setAtom(ctx, greetingAtom, greeting);
+            return Response.json({ greeting, requestId, userId });
+          }),
+        ));
 
       return app;
     },

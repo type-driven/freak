@@ -1,4 +1,5 @@
 #!/usr/bin/env -S deno run -A
+// deno-lint-ignore-file no-console
 /**
  * Patches effect@4.0.0-beta.20's json.decode in RpcSerialization.js.
  *
@@ -22,15 +23,19 @@ const target = join(
 
 let src = await Deno.readTextFile(target);
 
-const before = `      decode: bytes => [JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes))],`;
-const after  = `      decode: bytes => { const parsed = JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes)); return Array.isArray(parsed) ? parsed : [parsed]; },`;
+const before =
+  `      decode: bytes => [JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes))],`;
+const after =
+  `      decode: bytes => { const parsed = JSON.parse(typeof bytes === "string" ? bytes : decoder.decode(bytes)); return Array.isArray(parsed) ? parsed : [parsed]; },`;
 
 if (src.includes(after)) {
   console.log("✓ effect json.decode patch already applied");
   Deno.exit(0);
 }
 if (!src.includes(before)) {
-  console.error("✗ Could not find the target line — effect version may have changed, check the patch.");
+  console.error(
+    "✗ Could not find the target line — effect version may have changed, check the patch.",
+  );
   Deno.exit(1);
 }
 

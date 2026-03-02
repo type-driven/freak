@@ -8,26 +8,30 @@ description: |
 
 # Migrating from Fresh 2 to Freak
 
-Freak is a fork of `@fresh/core` that adds first-class [Effect](https://effect.website/) integration. The migration is **incremental** — existing routes, islands, middleware, and Tailwind config all continue to work. You add Effect features where you need them.
+Freak is a fork of `@fresh/core` that adds first-class
+[Effect](https://effect.website/) integration. The migration is **incremental**
+— existing routes, islands, middleware, and Tailwind config all continue to
+work. You add Effect features where you need them.
 
 ## What changes
 
-| Area | Fresh 2 | Freak |
-|---|---|---|
-| App entry point | `new App(config)` | `createEffectApp({ layer })` |
-| `main.ts` export | `export default app` | `export const app = effectApp….` |
-| Route handlers | Return `Response \| PageResponse \| Promise` | Can also return `Effect` |
-| `utils.ts` define | `createDefine<State>()` | `createEffectDefine<State, R>()` |
-| Island local state | `useSignal` (`@preact/signals`) | `useState` / `useAtom` (Effect atoms) |
-| SSR → island hydration | Manual serialization / signals | `setAtom(ctx, atom, value)` + `useAtom` |
-| API routes (optional) | Manual handler functions | Can mount `HttpApi` or `RpcGroup` |
-| Data fetching (optional) | Manual `fetch` | `useRpcResult`, `useQuery`, etc. |
+| Area                     | Fresh 2                                      | Freak                                   |
+| ------------------------ | -------------------------------------------- | --------------------------------------- |
+| App entry point          | `new App(config)`                            | `createEffectApp({ layer })`            |
+| `main.ts` export         | `export default app`                         | `export const app = effectApp….`        |
+| Route handlers           | Return `Response \| PageResponse \| Promise` | Can also return `Effect`                |
+| `utils.ts` define        | `createDefine<State>()`                      | `createEffectDefine<State, R>()`        |
+| Island local state       | `useSignal` (`@preact/signals`)              | `useState` / `useAtom` (Effect atoms)   |
+| SSR → island hydration   | Manual serialization / signals               | `setAtom(ctx, atom, value)` + `useAtom` |
+| API routes (optional)    | Manual handler functions                     | Can mount `HttpApi` or `RpcGroup`       |
+| Data fetching (optional) | Manual `fetch`                               | `useRpcResult`, `useQuery`, etc.        |
 
 ## What stays the same
 
 - File-system routing (`routes/` directory, all URL pattern conventions)
 - Islands (`islands/` directory, island boundaries, props serialization)
-- `@fresh/core` exports (`page`, `PageResponse`, `HttpError`, `Middleware`, `staticFiles`, etc.)
+- `@fresh/core` exports (`page`, `PageResponse`, `HttpError`, `Middleware`,
+  `staticFiles`, etc.)
 - `@fresh/plugin-tailwindcss` — no changes needed
 - `_app.tsx`, `_error.tsx`, layouts, middleware files
 
@@ -35,7 +39,8 @@ Freak is a fork of `@fresh/core` that adds first-class [Effect](https://effect.w
 
 ## Step 1 — Update `deno.json`
 
-Add `@fresh/effect` to your imports. The forked `@fresh/core` is a drop-in replacement — swap the JSR version for the Freak fork.
+Add `@fresh/effect` to your imports. The forked `@fresh/core` is a drop-in
+replacement — swap the JSR version for the Freak fork.
 
 ```json deno.json
 {
@@ -54,7 +59,8 @@ Add `@fresh/effect` to your imports. The forked `@fresh/core` is a drop-in repla
 
 ## Step 2 — Create your service layer
 
-Freak apps centre on an Effect `Layer` that provides your services. Create this before touching `main.ts`.
+Freak apps centre on an Effect `Layer` that provides your services. Create this
+before touching `main.ts`.
 
 ```ts services/layers.ts
 import { Layer } from "effect";
@@ -114,7 +120,9 @@ export const app = effectApp
   .fsRoutes();
 ```
 
-`Builder.listen()` automatically unwraps `EffectApp` to its inner `App<State>` — no `.app` suffix needed. The `.app` getter is still available for advanced use (e.g. calling `@fresh/core/internal` functions directly).
+`Builder.listen()` automatically unwraps `EffectApp` to its inner `App<State>` —
+no `.app` suffix needed. The `.app` getter is still available for advanced use
+(e.g. calling `@fresh/core/internal` functions directly).
 
 ---
 
@@ -138,13 +146,16 @@ import type { TodoService } from "./services/TodoService.ts";
 export const define = createEffectDefine<State, TodoService>();
 ```
 
-Plain `createDefine` still works if you have routes that don't use Effect. `createEffectDefine` is a superset — it accepts both plain and Effect-returning handlers.
+Plain `createDefine` still works if you have routes that don't use Effect.
+`createEffectDefine` is a superset — it accepts both plain and Effect-returning
+handlers.
 
 ---
 
 ## Step 5 — Migrate route handlers (incremental)
 
-Plain handlers continue to work with zero changes. Migrate to Effect where you want typed services and structured errors.
+Plain handlers continue to work with zero changes. Migrate to Effect where you
+want typed services and structured errors.
 
 **Before (plain handler):**
 
@@ -176,7 +187,8 @@ export const handlers = define.handlers({
 });
 ```
 
-Both forms can coexist in the same app — even in the same file (GET can be plain, POST can be Effect).
+Both forms can coexist in the same app — even in the same file (GET can be
+plain, POST can be Effect).
 
 ### Returning pages from Effect handlers
 
@@ -208,7 +220,9 @@ export default define.page<{ todos: Todo[] }>(({ data }) => (
 
 ## Step 6 — Replace `@preact/signals` with atoms
 
-Freak does **not** use `@preact/signals`. Use Effect atoms (`effect/unstable/reactivity/Atom`) with the `useAtom`, `useAtomValue`, and `useAtomSet` hooks from `@fresh/effect/island`.
+Freak does **not** use `@preact/signals`. Use Effect atoms
+(`effect/unstable/reactivity/Atom`) with the `useAtom`, `useAtomValue`, and
+`useAtomSet` hooks from `@fresh/effect/island`.
 
 ### Local island state
 
@@ -234,7 +248,8 @@ export default function Counter() {
 }
 ```
 
-For purely local state with no cross-island sharing, `useState` is the right tool. Use atoms when you need shared state or SSR hydration.
+For purely local state with no cross-island sharing, `useState` is the right
+tool. Use atoms when you need shared state or SSR hydration.
 
 ### Shared / cross-island state with atoms
 
@@ -260,7 +275,10 @@ import { Schema } from "effect";
 
 // For cross-island sharing + optional SSR hydration, use serializable atoms.
 // The key must be unique across your app.
-export const countAtom = Atom.serializable({ key: "count", schema: Schema.Number })(0);
+export const countAtom = Atom.serializable({
+  key: "count",
+  schema: Schema.Number,
+})(0);
 
 // For islands-only shared state (no SSR hydration needed):
 export const localAtom = Atom.make(0);
@@ -350,7 +368,8 @@ export default function TodoApp() {
 }
 ```
 
-`createEffectApp` registers the atom hydration hook automatically — no manual setup required.
+`createEffectApp` registers the atom hydration hook automatically — no manual
+setup required.
 
 ---
 
@@ -370,7 +389,8 @@ const effectApp = createEffectApp({ layer: AppLayer });
 effectApp.httpApi("/api", TodoApi, ApiLayer);
 ```
 
-See the [`@effect/platform` HttpApi docs](https://effect.website/) for defining `HttpApiGroup` and `HttpApiEndpoint`.
+See the [`@effect/platform` HttpApi docs](https://effect.website/) for defining
+`HttpApiGroup` and `HttpApiEndpoint`.
 
 ---
 
@@ -382,7 +402,7 @@ Replace `fetch` calls in islands with typed RPC:
 
 ```ts services/rpc.ts
 import { Rpc, RpcGroup, RpcSchema } from "effect/unstable/rpc";
-import { Schema, Stream, Schedule, Effect } from "effect";
+import { Effect, Schedule, Schema, Stream } from "effect";
 
 const ListTodos = Rpc.make("ListTodos", { success: Schema.Array(TodoSchema) });
 const CreateTodo = Rpc.make("CreateTodo", {
@@ -409,9 +429,19 @@ export const TodoRpcHandlers = TodoRpc.toLayer({
 ```ts main.ts
 const RpcWithDeps = Layer.provide(TodoRpcHandlers, AppLayer);
 
-effectApp.rpc({ group: TodoRpc, path: "/rpc/todos", protocol: "http", handlerLayer: RpcWithDeps });
+effectApp.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos",
+  protocol: "http",
+  handlerLayer: RpcWithDeps,
+});
 // Add WebSocket, SSE, or HTTP-stream transports as needed:
-effectApp.rpc({ group: TodoRpc, path: "/rpc/todos/ws", protocol: "websocket", handlerLayer: RpcWithDeps });
+effectApp.rpc({
+  group: TodoRpc,
+  path: "/rpc/todos/ws",
+  protocol: "websocket",
+  handlerLayer: RpcWithDeps,
+});
 ```
 
 **Client (island):**
@@ -447,7 +477,9 @@ export default function TodoApp() {
 
 ### Forgetting to export as `app`
 
-`Builder.listen(() => import("./main.ts"))` looks for a named `app` export. `export default` does NOT work — it produces a `{ default: ... }` module shape that the builder can't unwrap.
+`Builder.listen(() => import("./main.ts"))` looks for a named `app` export.
+`export default` does NOT work — it produces a `{ default: ... }` module shape
+that the builder can't unwrap.
 
 ```ts
 // CORRECT
@@ -479,11 +511,15 @@ export default function MyIsland() {
 
 ### Forgetting `Atom.serializable` for hydrated atoms
 
-`Atom.make(initialValue)` creates a plain atom — fine for islands-only state. For SSR hydration (used with `setAtom` on the server), the atom **must** be created with `Atom.serializable({ key, schema })(initialValue)`. Without a key and schema, `setAtom` cannot serialize the value into the HTML.
+`Atom.make(initialValue)` creates a plain atom — fine for islands-only state.
+For SSR hydration (used with `setAtom` on the server), the atom **must** be
+created with `Atom.serializable({ key, schema })(initialValue)`. Without a key
+and schema, `setAtom` cannot serialize the value into the HTML.
 
 ### Using `{}` as payload for no-arg RPC procedures
 
-Procedures with no `payload` option default to `Schema.Void`. Call them with `undefined` (or no argument), not `{}`:
+Procedures with no `payload` option default to `Schema.Void`. Call them with
+`undefined` (or no argument), not `{}`:
 
 ```ts
 // WRONG
@@ -503,8 +539,11 @@ client.ListTodos(undefined);
 - [ ] Create service `Layer` in `services/layers.ts`
 - [ ] Rewrite `main.ts` to use `createEffectApp({ layer })`
 - [ ] Export as `app` (named export or default)
-- [ ] Update `utils.ts` to use `createEffectDefine` (or keep `createDefine` if no Effect handlers yet)
+- [ ] Update `utils.ts` to use `createEffectDefine` (or keep `createDefine` if
+      no Effect handlers yet)
 - [ ] Remove `@preact/signals` imports — replace with `useState` or `useAtom`
-- [ ] Convert hydrated data from props-drilling to `setAtom` / `useAtom` (optional, incremental)
-- [ ] Migrate handlers to return `Effect` where you want typed services (optional, incremental)
+- [ ] Convert hydrated data from props-drilling to `setAtom` / `useAtom`
+      (optional, incremental)
+- [ ] Migrate handlers to return `Effect` where you want typed services
+      (optional, incremental)
 - [ ] Mount `HttpApi` or `RpcGroup` if replacing ad-hoc API routes (optional)

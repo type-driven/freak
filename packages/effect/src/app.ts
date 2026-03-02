@@ -14,20 +14,26 @@
  * This ensures the Effect runner is registered before any requests are processed.
  */
 
-import { App, type FreshConfig, type ListenOptions, type Plugin } from "@fresh/core";
+import {
+  App,
+  type FreshConfig,
+  type ListenOptions,
+  type Plugin,
+  type ResolvedFreshConfig,
+} from "@fresh/core";
 import type { Context } from "@fresh/core";
-import type { Middleware, MiddlewareFn } from "@fresh/core";
-import type { MaybeLazy, RouteConfig, LayoutConfig } from "@fresh/core";
-import { setEffectRunner, setAtomHydrationHook } from "@fresh/core/internal";
+import type { Middleware } from "@fresh/core";
+import type { LayoutConfig, MaybeLazy, RouteConfig } from "@fresh/core";
+import { setAtomHydrationHook, setEffectRunner } from "@fresh/core/internal";
 import type { EffectRunner, Route, RouteComponent } from "@fresh/core/internal";
-import { ManagedRuntime, Layer, Effect } from "effect";
+import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
-import { RpcServer, RpcSerialization } from "effect/unstable/rpc";
+import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Socket, SocketServer } from "effect/unstable/socket";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
-import { serializeAtomHydration, _setRequestRunner } from "./hydration.ts";
+import { _setRequestRunner, serializeAtomHydration } from "./hydration.ts";
 
 /**
  * An Effect-aware middleware function. Can return a plain Response,
@@ -77,7 +83,8 @@ export class EffectApp<State, AppR> {
   #httpApiDisposers: Array<() => Promise<void>> = [];
   #rpcDisposers: Array<() => Promise<void>> = [];
   // deno-lint-ignore no-explicit-any
-  #activeWsRuntimes: Map<ManagedRuntime.ManagedRuntime<any, any>, WebSocket> = new Map();
+  #activeWsRuntimes: Map<ManagedRuntime.ManagedRuntime<any, any>, WebSocket> =
+    new Map();
 
   constructor(
     app: App<State>,
@@ -106,7 +113,7 @@ export class EffectApp<State, AppR> {
   /**
    * The resolved Fresh configuration.
    */
-  get config() {
+  get config(): ResolvedFreshConfig {
     return this.#app.config;
   }
 
@@ -122,7 +129,10 @@ export class EffectApp<State, AppR> {
    * Add one or more Effect-aware middlewares at the top or specified path.
    */
   use(...middleware: MaybeLazyEffectMiddleware<State, AppR>[]): this;
-  use(path: string, ...middleware: MaybeLazyEffectMiddleware<State, AppR>[]): this;
+  use(
+    path: string,
+    ...middleware: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this;
   use(
     pathOrMiddleware: string | MaybeLazyEffectMiddleware<State, AppR>,
     ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
@@ -143,7 +153,10 @@ export class EffectApp<State, AppR> {
   /**
    * Set the app's error handler for a given path.
    */
-  onError(path: string, routeOrMiddleware: Route<State> | Middleware<State>): this {
+  onError(
+    path: string,
+    routeOrMiddleware: Route<State> | Middleware<State>,
+  ): this {
     this.#app.onError(path, routeOrMiddleware as Route<State>);
     return this;
   }
@@ -159,7 +172,11 @@ export class EffectApp<State, AppR> {
   /**
    * Register a layout component for a given path.
    */
-  layout(path: string, component: RouteComponent<State>, config?: LayoutConfig): this {
+  layout(
+    path: string,
+    component: RouteComponent<State>,
+    config?: LayoutConfig,
+  ): this {
     this.#app.layout(path, component as RouteComponent<State>, config);
     return this;
   }
@@ -167,7 +184,11 @@ export class EffectApp<State, AppR> {
   /**
    * Register a file-based route module at a given path.
    */
-  route(path: string, route: MaybeLazy<Route<State>>, config?: RouteConfig): this {
+  route(
+    path: string,
+    route: MaybeLazy<Route<State>>,
+    config?: RouteConfig,
+  ): this {
     this.#app.route(path, route as MaybeLazy<Route<State>>, config);
     return this;
   }
@@ -194,9 +215,15 @@ export class EffectApp<State, AppR> {
    *   provided by this app's Layer (AppR). Mounting a plugin that requires
    *   services the host layer does not provide is a compile-time error.
    */
-  mountApp<Config, PluginR extends AppR>(path: string, plugin: Plugin<Config, State, PluginR>): this;
+  mountApp<Config, PluginR extends AppR>(
+    path: string,
+    plugin: Plugin<Config, State, PluginR>,
+  ): this;
   mountApp(path: string, app: App<State>): this;
-  mountApp(path: string, appOrPlugin: App<State> | Plugin<unknown, State, unknown>): this {
+  mountApp(
+    path: string,
+    appOrPlugin: App<State> | Plugin<unknown, State, unknown>,
+  ): this {
     const inner: App<State> = !(appOrPlugin instanceof App)
       ? (appOrPlugin as Plugin<unknown, State, unknown>).app
       : appOrPlugin;
@@ -333,11 +360,12 @@ export class EffectApp<State, AppR> {
    * });
    * ```
    */
-  // deno-lint-ignore no-explicit-any
   rpc(options: {
+    // deno-lint-ignore no-explicit-any
     group: any;
     path: string;
     protocol: "http" | "http-stream" | "sse" | "websocket";
+    // deno-lint-ignore no-explicit-any
     handlerLayer: any;
     /**
      * Optional list of allowed origins for WebSocket connections.
@@ -351,11 +379,11 @@ export class EffectApp<State, AppR> {
   }): this {
     if (options.protocol === "http") {
       // HTTP protocol: layerHttp + HttpRouter.toWebHandler (request/response)
-      // deno-lint-ignore no-explicit-any
       const serverLayer = (RpcServer.layerHttp({
         group: options.group,
         path: "/", // Routes are relative to the mount prefix; Fresh handles the outer path
         protocol: "http",
+        // deno-lint-ignore no-explicit-any
       }) as any).pipe(
         Layer.provide(options.handlerLayer),
         Layer.provide(RpcSerialization.layerJson),
@@ -417,23 +445,31 @@ export class EffectApp<State, AppR> {
       // on "path/" (trailing slash). Register both forms — same as the "http" protocol.
       const httpStreamHandler = async (ctx: Context<State>) => {
         if (ctx.req.method !== "POST") {
-          return new Response("Method Not Allowed — HTTP-stream endpoints require POST", {
-            status: 405,
-          });
+          return new Response(
+            "Method Not Allowed — HTTP-stream endpoints require POST",
+            {
+              status: 405,
+            },
+          );
         }
 
         // Parse the request body (one JSON line from layerNdjson client).
         // deno-lint-ignore no-explicit-any
         let request: any;
         try {
-          const contentLength = parseInt(ctx.req.headers.get("content-length") ?? "0", 10);
+          const contentLength = parseInt(
+            ctx.req.headers.get("content-length") ?? "0",
+            10,
+          );
           if (!isNaN(contentLength) && contentLength > 65536) {
             return new Response("Request body too large", { status: 413 });
           }
           const text = await ctx.req.text();
           request = JSON.parse(text.trim().split("\n")[0]);
         } catch {
-          return new Response("Bad Request — expected JSON body", { status: 400 });
+          return new Response("Bad Request — expected JSON body", {
+            status: 400,
+          });
         }
 
         const procedure = request.tag ?? "";
@@ -447,7 +483,9 @@ export class EffectApp<State, AppR> {
         const enc = new TextEncoder();
         let closed = false;
         let resolveDone: (() => void) | undefined;
-        const done = new Promise<void>((resolve) => { resolveDone = resolve; });
+        const done = new Promise<void>((resolve) => {
+          resolveDone = resolve;
+        });
 
         const close = () => {
           if (!closed) {
@@ -457,24 +495,30 @@ export class EffectApp<State, AppR> {
           }
         };
 
-        // deno-lint-ignore no-explicit-any
         const effect = Effect.scoped(Effect.gen(function* () {
           // deno-lint-ignore no-explicit-any
-          const server = yield* (RpcServer.makeNoSerialization as any)(options.group, {
-            // deno-lint-ignore no-explicit-any
-            onFromServer: (response: any) =>
-              Effect.sync(() => {
-                if (closed) return;
-                // Serialize with BigInt-safe replacer.
-                const line = JSON.stringify(
-                  response,
-                  (_k, v) => typeof v === "bigint" ? String(v) : v,
-                );
-                writer.write(enc.encode(line + "\n")).catch(() => { close(); });
-                // Non-streaming procedures complete with a single Exit response.
-                if (response._tag === "Exit" || response._tag === "Defect") close();
-              }),
-          });
+          const server = yield* (RpcServer.makeNoSerialization as any)(
+            options.group,
+            {
+              // deno-lint-ignore no-explicit-any
+              onFromServer: (response: any) =>
+                Effect.sync(() => {
+                  if (closed) return;
+                  // Serialize with BigInt-safe replacer.
+                  const line = JSON.stringify(
+                    response,
+                    (_k, v) => typeof v === "bigint" ? String(v) : v,
+                  );
+                  writer.write(enc.encode(line + "\n")).catch(() => {
+                    close();
+                  });
+                  // Non-streaming procedures complete with a single Exit response.
+                  if (response._tag === "Exit" || response._tag === "Defect") {
+                    close();
+                  }
+                }),
+            },
+          );
 
           // Send the request to the server. requestId was parsed from the request body.
           // deno-lint-ignore no-explicit-any
@@ -489,7 +533,11 @@ export class EffectApp<State, AppR> {
           // Block until the stream ends (Exit/Defect received) or the client disconnects.
           yield* Effect.callback<void>((resume) => {
             done.then(() => resume(Effect.void));
-            ctx.req.signal?.addEventListener("abort", () => resume(Effect.void), { once: true });
+            ctx.req.signal?.addEventListener(
+              "abort",
+              () => resume(Effect.void),
+              { once: true },
+            );
             if (ctx.req.signal?.aborted) resume(Effect.void);
           });
         })).pipe(
@@ -497,6 +545,7 @@ export class EffectApp<State, AppR> {
           Effect.provide(options.handlerLayer as any),
         );
 
+        // deno-lint-ignore no-explicit-any
         appRuntime.runFork(effect as any);
 
         return new Response(readable, {
@@ -527,11 +576,14 @@ export class EffectApp<State, AppR> {
       // BigInt fields (requestId) are serialized as strings in the SSE data.
       // Compatible with browser EventSource API (GET-only).
       const appRuntime = this.#runtime;
-      this.#app.all(options.path, async (ctx) => {
+      this.#app.all(options.path, (ctx) => {
         if (ctx.req.method !== "GET") {
-          return new Response("Method Not Allowed — SSE endpoints require GET", {
-            status: 405,
-          });
+          return new Response(
+            "Method Not Allowed — SSE endpoints require GET",
+            {
+              status: 405,
+            },
+          );
         }
 
         const url = new URL(ctx.req.url);
@@ -552,26 +604,30 @@ export class EffectApp<State, AppR> {
           }
         };
 
-        // deno-lint-ignore no-explicit-any
         const effect = Effect.scoped(Effect.gen(function* () {
           // deno-lint-ignore no-explicit-any
-          const server = yield* (RpcServer.makeNoSerialization as any)(options.group, {
-            // deno-lint-ignore no-explicit-any
-            onFromServer: (response: any) =>
-              Effect.sync(() => {
-                if (closed) return;
-                // Serialize with BigInt-safe replacer (requestId is a branded bigint).
-                const data = JSON.stringify(
-                  response,
-                  (_k, v) => typeof v === "bigint" ? String(v) : v,
-                );
-                writer.write(enc.encode(`data: ${data}\n\n`)).catch(() => {
-                  closed = true;
-                });
-                // Stream over for non-streaming procedures (single Exit response).
-                if (response._tag === "Exit" || response._tag === "Defect") close();
-              }),
-          });
+          const server = yield* (RpcServer.makeNoSerialization as any)(
+            options.group,
+            {
+              // deno-lint-ignore no-explicit-any
+              onFromServer: (response: any) =>
+                Effect.sync(() => {
+                  if (closed) return;
+                  // Serialize with BigInt-safe replacer (requestId is a branded bigint).
+                  const data = JSON.stringify(
+                    response,
+                    (_k, v) => typeof v === "bigint" ? String(v) : v,
+                  );
+                  writer.write(enc.encode(`data: ${data}\n\n`)).catch(() => {
+                    closed = true;
+                  });
+                  // Stream over for non-streaming procedures (single Exit response).
+                  if (response._tag === "Exit" || response._tag === "Defect") {
+                    close();
+                  }
+                }),
+            },
+          );
 
           // Send the initial RPC request to the server.
           // id is a RequestId (branded bigint) — BigInt(1) satisfies the brand at runtime.
@@ -630,21 +686,23 @@ export class EffectApp<State, AppR> {
       if (!allowedOrigins || allowedOrigins.length === 0) {
         const isDev = this.#app.config.mode !== "production";
         if (isDev) {
+          // deno-lint-ignore no-console
           console.warn(
             `[EffectApp] WebSocket endpoint at "${options.path}" has no allowedOrigins configured — ` +
-            `any origin can connect. Set allowedOrigins to restrict access in production.`,
+              `any origin can connect. Set allowedOrigins to restrict access in production.`,
           );
         }
       }
-      // deno-lint-ignore no-explicit-any
-      this.#app.get(options.path, async (ctx) => {
+      this.#app.get(options.path, (ctx) => {
         // Optional Origin validation — prevents cross-origin WebSocket connections.
         // Any site can open a WS to a permissive server, bypassing CORS. When
         // allowedOrigins is provided, enforce an exact match on the Origin header.
         if (allowedOrigins !== undefined && allowedOrigins.length > 0) {
           const origin = ctx.req.headers.get("Origin");
           if (origin === null || !allowedOrigins.includes(origin)) {
-            return new Response("Forbidden — origin not allowed", { status: 403 });
+            return new Response("Forbidden — origin not allowed", {
+              status: 403,
+            });
           }
         }
 
@@ -666,8 +724,10 @@ export class EffectApp<State, AppR> {
         // still memoized and shared across HTTP and WebSocket handlers.
         // deno-lint-ignore no-explicit-any
         const rpcBaseLayer = (RpcServer.layer(options.group) as any).pipe(
-          // deno-lint-ignore no-explicit-any
-          Layer.provide(Layer.fresh(RpcServer.layerProtocolSocketServer as any)),
+          Layer.provide(
+            // deno-lint-ignore no-explicit-any
+            Layer.fresh(RpcServer.layerProtocolSocketServer as any),
+          ),
           Layer.provide(options.handlerLayer),
           Layer.provide(RpcSerialization.layerNdjson),
         );
@@ -684,7 +744,11 @@ export class EffectApp<State, AppR> {
             ),
             (sock) =>
               SocketServer.SocketServer.of({
-                address: { _tag: "TcpAddress" as const, hostname: "localhost", port: 0 },
+                address: {
+                  _tag: "TcpAddress" as const,
+                  hostname: "localhost",
+                  port: 0,
+                },
                 // deno-lint-ignore no-explicit-any
                 run: (handler: any): any =>
                   Effect.flatMap(handler(sock), () => Effect.never),
@@ -709,19 +773,26 @@ export class EffectApp<State, AppR> {
         // Running Effect.never causes the runtime to eagerly build connectionLayer
         // (starting the SocketServer + RPC background fibers) and stay alive until
         // the connection is torn down.
-        this.#activeWsRuntimes.set(connectionRuntime, denoWs as unknown as WebSocket);
+        this.#activeWsRuntimes.set(
+          connectionRuntime,
+          denoWs as unknown as WebSocket,
+        );
+        // deno-lint-ignore no-explicit-any
         connectionRuntime.runFork(Effect.never as any);
 
         // Dispose the runtime when the WebSocket closes, which closes the scope and
         // interrupts all background fibers (SocketServer run loop, RPC fiber).
         // wasActive is false when dispose() already cleared the map and is handling
         // disposal itself — skip the redundant second dispose() in that case.
-        // deno-lint-ignore no-explicit-any
         denoWs.addEventListener("close", () => {
           const wasActive = this.#activeWsRuntimes.delete(connectionRuntime);
           if (wasActive) {
             connectionRuntime.dispose().catch((err) => {
-              console.error("[EffectApp] WS connection runtime dispose error:", err);
+              // deno-lint-ignore no-console
+              console.error(
+                "[EffectApp] WS connection runtime dispose error:",
+                err,
+              );
             });
           }
         });
@@ -735,7 +806,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for GET requests at the given path.
    */
-  get(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  get(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.get(path, ...middlewares as any[]);
     return this;
@@ -744,7 +818,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for POST requests at the given path.
    */
-  post(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  post(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.post(path, ...middlewares as any[]);
     return this;
@@ -753,7 +830,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for PATCH requests at the given path.
    */
-  patch(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  patch(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.patch(path, ...middlewares as any[]);
     return this;
@@ -762,7 +842,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for PUT requests at the given path.
    */
-  put(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  put(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.put(path, ...middlewares as any[]);
     return this;
@@ -771,7 +854,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for DELETE requests at the given path.
    */
-  delete(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  delete(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.delete(path, ...middlewares as any[]);
     return this;
@@ -780,7 +866,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for HEAD requests at the given path.
    */
-  head(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  head(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.head(path, ...middlewares as any[]);
     return this;
@@ -789,7 +878,10 @@ export class EffectApp<State, AppR> {
   /**
    * Add Effect-aware middlewares for all HTTP verbs at the given path.
    */
-  all(path: string, ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]): this {
+  all(
+    path: string,
+    ...middlewares: MaybeLazyEffectMiddleware<State, AppR>[]
+  ): this {
     // deno-lint-ignore no-explicit-any
     this.#app.all(path, ...middlewares as any[]);
     return this;
@@ -800,7 +892,10 @@ export class EffectApp<State, AppR> {
    * The EffectRunner was registered at createEffectApp() time, so Effects
    * in handlers will be dispatched correctly.
    */
-  handler(): (request: Request, info?: Deno.ServeHandlerInfo) => Promise<Response> {
+  handler(): (
+    request: Request,
+    info?: Deno.ServeHandlerInfo,
+  ) => Promise<Response> {
     return this.#app.handler();
   }
 
@@ -836,9 +931,15 @@ export class EffectApp<State, AppR> {
     this.#activeWsRuntimes.clear();
     await Promise.all(
       activeEntries.map(async ([rt, ws]) => {
-        try { ws.close(); } catch { /* ignore if already closed */ }
+        try {
+          ws.close();
+        } catch { /* ignore if already closed */ }
         await rt.dispose().catch((err) => {
-          console.error("[EffectApp] WS connection runtime dispose error during shutdown:", err);
+          // deno-lint-ignore no-console
+          console.error(
+            "[EffectApp] WS connection runtime dispose error during shutdown:",
+            err,
+          );
         });
       }),
     );
@@ -896,7 +997,8 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
     resolverOptions.mapError = options.mapError;
   }
   const resolver = createResolver(runtime, resolverOptions);
-  const runner: EffectRunner = (value, ctx) => resolver(value, ctx) as Promise<unknown>;
+  const runner: EffectRunner = (value, ctx) =>
+    resolver(value, ctx) as Promise<unknown>;
   // deno-lint-ignore no-explicit-any
   setEffectRunner(app as App<any>, runner);
 

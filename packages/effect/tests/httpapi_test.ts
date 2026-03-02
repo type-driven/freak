@@ -61,18 +61,19 @@ const Api = HttpApi.make("testApi").add(
 const ItemsLive = HttpApiBuilder.group(Api, "items", (handlers) =>
   handlers
     .handle("list", () =>
-      Effect.succeed([{ id: "1", name: "Widget" }, { id: "2", name: "Gadget" }])
-    )
+      Effect.succeed([{ id: "1", name: "Widget" }, {
+        id: "2",
+        name: "Gadget",
+      }]))
     .handle("search", ({ query }) =>
-      Effect.succeed([{ id: "1", name: `Page ${query.page}` }])
-    )
+      Effect.succeed([{ id: "1", name: `Page ${query.page}` }]))
     .handle("getById", ({ params }) =>
       Effect.gen(function* () {
-        if (params.id === "1") return { id: "1", name: "Widget" };
+        if (params.id === "1") {
+          return { id: "1", name: "Widget" };
+        }
         return yield* new HttpApiError.NotFound({});
-      })
-    )
-);
+      })));
 
 // ============================================================================
 // Shared app factory — creates a fresh EffectApp for each test
@@ -94,7 +95,10 @@ Deno.test("SC-1: GET to mounted HttpApi endpoint returns expected JSON body", as
   const res = await server.get("/api/items/");
   assertEquals(res.status, 200);
   const body = await res.json();
-  assertEquals(body, [{ id: "1", name: "Widget" }, { id: "2", name: "Gadget" }]);
+  assertEquals(body, [{ id: "1", name: "Widget" }, {
+    id: "2",
+    name: "Gadget",
+  }]);
   await app.dispose();
 });
 

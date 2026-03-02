@@ -233,8 +233,11 @@ export type RouteData<
  * imports: `app.ts` → `commands.ts` → `segments.ts` would be circular if
  * `segments.ts` imported from `app.ts`.
  */
-// deno-lint-ignore no-explicit-any
-export type EffectRunner = (value: unknown, ctx: Context<any>) => Promise<unknown>;
+export type EffectRunner = (
+  value: unknown,
+  // deno-lint-ignore no-explicit-any
+  ctx: Context<any>,
+) => Promise<unknown>;
 
 /**
  * Returns true if the value is an Effect-like value (duck-typed on the

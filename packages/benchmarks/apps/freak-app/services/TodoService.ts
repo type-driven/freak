@@ -1,7 +1,9 @@
 import { Effect, Layer, ServiceMap } from "effect";
 
 export const TodoService = ServiceMap.Service<{
-  readonly list: () => Effect.Effect<Array<{ id: string; text: string; done: boolean }>>;
+  readonly list: () => Effect.Effect<
+    Array<{ id: string; text: string; done: boolean }>
+  >;
 }>("TodoService");
 
 export type TodoServiceR = ServiceMap.Service.Identifier<typeof TodoService>;

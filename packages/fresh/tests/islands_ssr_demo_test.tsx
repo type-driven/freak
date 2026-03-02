@@ -64,8 +64,7 @@ Deno.test("SSR: island NOT in registry → no island markers in HTML", async () 
           <DemoCounter count={5} />
         </body>
       </html>,
-    )
-  );
+    ));
 
   const html = await renderPage(app, "/");
   expect(html).toContain("5"); // SSR content present
@@ -91,8 +90,7 @@ Deno.test("SSR: app.islands() → island markers appear in ctx.render() output",
           <DemoCounter count={42} />
         </body>
       </html>,
-    )
-  );
+    ));
 
   const html = await renderPage(app, "/");
 
@@ -118,8 +116,7 @@ Deno.test("SSR: mountApp propagates island registrations — inner app islands h
           <DemoCounter count={99} />
         </body>
       </html>,
-    )
-  );
+    ));
 
   // Mount inner onto outer — propagates island registrations
   outer.mountApp("/plugin", inner);

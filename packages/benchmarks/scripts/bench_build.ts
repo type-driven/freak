@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * bench_build.ts — Build time benchmark via hyperfine.
  *
@@ -29,11 +30,15 @@ export async function runBuildTimeBench(
 
     const cmd = new Deno.Command("hyperfine", {
       args: [
-        "--warmup", "1",
-        "--runs", "5",
-        "--prepare", `rm -rf ${appDir}/_fresh`,
+        "--warmup",
+        "1",
+        "--runs",
+        "5",
+        "--prepare",
+        `rm -rf ${appDir}/_fresh`,
         `deno run -A ${appDir}/dev.ts build`,
-        "--export-json", tmpFile,
+        "--export-json",
+        tmpFile,
       ],
       cwd: benchRoot,
       stdout: "inherit",
@@ -59,7 +64,9 @@ export async function runBuildTimeBench(
     });
 
     console.log(
-      `[build] ${app.name}: mean=${r.mean.toFixed(2)}s stddev=${r.stddev.toFixed(2)}s`,
+      `[build] ${app.name}: mean=${r.mean.toFixed(2)}s stddev=${
+        r.stddev.toFixed(2)
+      }s`,
     );
   }
 

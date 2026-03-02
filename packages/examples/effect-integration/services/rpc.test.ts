@@ -181,7 +181,7 @@ Deno.test("DeleteTodo: only removes the targeted todo", async () => {
   await Effect.scoped(
     Effect.gen(function* () {
       const client = yield* RpcTest.makeClient(TodoRpc);
-      const a = yield* client.CreateTodo({ text: "Keep" });
+      yield* client.CreateTodo({ text: "Keep" });
       const b = yield* client.CreateTodo({ text: "Remove" });
 
       yield* client.DeleteTodo({ id: b.id });
@@ -215,7 +215,11 @@ Deno.test("WatchTodos: emits current todo list on each tick", async () => {
 
       // Fork the stream consumer so we can advance the TestClock
       const fiber = yield* Stream.runForEach(
-        stream.pipe(Stream.take(3)) as Stream.Stream<readonly Todo[], never, never>,
+        stream.pipe(Stream.take(3)) as Stream.Stream<
+          readonly Todo[],
+          never,
+          never
+        >,
         (todos: readonly Todo[]) => Effect.sync(() => collected.push(todos)),
       ).pipe(Effect.forkChild);
 
@@ -260,7 +264,11 @@ Deno.test("WatchTodos: reflects mutations between emissions", async () => {
       const collected: Array<readonly Todo[]> = [];
 
       const fiber = yield* Stream.runForEach(
-        stream.pipe(Stream.take(3)) as Stream.Stream<readonly Todo[], never, never>,
+        stream.pipe(Stream.take(3)) as Stream.Stream<
+          readonly Todo[],
+          never,
+          never
+        >,
         (todos: readonly Todo[]) => Effect.sync(() => collected.push(todos)),
       ).pipe(Effect.forkChild);
 

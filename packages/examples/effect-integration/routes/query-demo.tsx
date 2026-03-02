@@ -14,15 +14,16 @@ export default function QueryDemoPage() {
       <h1>useQuery + useMutation Demo</h1>
       <p style="color:#6b7280;margin-bottom:1.5rem">
         The list loads automatically on mount (<code>useRpcQuery</code>). Adding
-        and deleting todos use <code>useMutation</code> with optimistic updates —
-        the UI updates before the server responds and rolls back on error.
+        and deleting todos use <code>useMutation</code>{" "}
+        with optimistic updates — the UI updates before the server responds and
+        rolls back on error.
       </p>
       <QueryMutationDemo />
       <p style="margin-top: 2rem; font-size: 0.9em">
         <a href="/rpc-demo">RPC Demo (useRpcResult / useRpcStream)</a>
-        {" "}&mdash;{" "}
+        {" \u2014 "}
         <a href="/streaming-modes">Streaming Modes Demo</a>
-        {" "}&mdash;{" "}
+        {" \u2014 "}
         <a href="/">Home</a>
       </p>
     </div>

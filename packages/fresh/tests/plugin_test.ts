@@ -2,7 +2,7 @@
  * plugin_test.ts — type-level and runtime tests for Plugin<Config, S, R> and createPlugin().
  */
 import { expect } from "@std/expect";
-import { App, createPlugin, type Plugin } from "../src/mod.ts";
+import { App, createPlugin } from "../src/mod.ts";
 
 Deno.test("Plugin: createPlugin returns Plugin with config and app", () => {
   const plugin = createPlugin({ port: 3000 }, (config) => {
@@ -16,7 +16,9 @@ Deno.test("Plugin: createPlugin returns Plugin with config and app", () => {
 });
 
 Deno.test("Plugin: createPlugin with typed state", () => {
-  interface MyState { userId: string }
+  interface MyState {
+    userId: string;
+  }
   const plugin = createPlugin<{ prefix: string }, MyState>(
     { prefix: "/api" },
     (_config) => new App<MyState>(),

@@ -2,7 +2,17 @@
 phase: 16-islands-in-plugins
 plan: 01
 subsystem: testing
-tags: [fresh, plugin, islands, preact, jsx, ssr, buildcache, createPlugin, mountApp]
+tags: [
+  fresh,
+  plugin,
+  islands,
+  preact,
+  jsx,
+  ssr,
+  buildcache,
+  createPlugin,
+  mountApp,
+]
 
 # Dependency graph
 requires:
@@ -46,7 +56,9 @@ completed: 2026-03-01
 
 # Phase 16 Plan 01: Plugin Islands Requirement Tests Summary
 
-**Five ISLD-0x tests proving that Plugin<Config,S,R> islands reach the host BuildCache, produce SSR markers, and avoid name collisions — no production source changes needed**
+**Five ISLD-0x tests proving that Plugin<Config,S,R> islands reach the host
+BuildCache, produce SSR markers, and avoid name collisions — no production
+source changes needed**
 
 ## Performance
 
@@ -57,29 +69,46 @@ completed: 2026-03-01
 - **Files modified:** 1 (created)
 
 ## Accomplishments
-- Created `packages/fresh/tests/plugin_islands_test.tsx` with 5 tests covering ISLD-01, ISLD-02, ISLD-03
-- Confirmed no production source changes required — island aggregation was already implemented in Phase 14
-- All 5 new tests pass; all 19 regression tests pass (plugin_test.ts, islands_test.ts, islands_ssr_demo_test.tsx)
+
+- Created `packages/fresh/tests/plugin_islands_test.tsx` with 5 tests covering
+  ISLD-01, ISLD-02, ISLD-03
+- Confirmed no production source changes required — island aggregation was
+  already implemented in Phase 14
+- All 5 new tests pass; all 19 regression tests pass (plugin_test.ts,
+  islands_test.ts, islands_ssr_demo_test.tsx)
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Create plugin_islands_test.tsx with ISLD-01, ISLD-02, ISLD-03 tests** - `c7823435` (test)
+1. **Task 1: Create plugin_islands_test.tsx with ISLD-01, ISLD-02, ISLD-03
+   tests** - `c7823435` (test)
 
 **Plan metadata:** _(pending — included in final commit)_
 
 ## Files Created/Modified
-- `packages/fresh/tests/plugin_islands_test.tsx` - 5 formal requirement tests for plugin island integration (ISLD-01, ISLD-02, ISLD-03); JSX test file with fixture components CounterIsland, GreetIsland, CounterIsland2
+
+- `packages/fresh/tests/plugin_islands_test.tsx` - 5 formal requirement tests
+  for plugin island integration (ISLD-01, ISLD-02, ISLD-03); JSX test file with
+  fixture components CounterIsland, GreetIsland, CounterIsland2
 
 ## Decisions Made
-- No production source changes needed — `app.ts` mountApp already merges island registrations (lines 421-423) and `build_cache.ts` IslandPreparer already handles aggregation; Phase 16 plan 01 is tests-only
-- ISLD-03 collision scenario tested with two distinct function references both named "CounterIsland" via `{ CounterIsland: CounterIsland2 }` re-export syntax — BuildCache keys on ComponentType (function ref), so distinct refs never collide regardless of export name
-- frsh:island SSR markers assert the component export name string (e.g., "CounterIsland"), not the chunk name — matches actual Fresh behavior confirmed in islands_ssr_demo_test.tsx
+
+- No production source changes needed — `app.ts` mountApp already merges island
+  registrations (lines 421-423) and `build_cache.ts` IslandPreparer already
+  handles aggregation; Phase 16 plan 01 is tests-only
+- ISLD-03 collision scenario tested with two distinct function references both
+  named "CounterIsland" via `{ CounterIsland: CounterIsland2 }` re-export syntax
+  — BuildCache keys on ComponentType (function ref), so distinct refs never
+  collide regardless of export name
+- frsh:island SSR markers assert the component export name string (e.g.,
+  "CounterIsland"), not the chunk name — matches actual Fresh behavior confirmed
+  in islands_ssr_demo_test.tsx
 
 ## Deviations from Plan
 
-None - plan executed exactly as written. Research had correctly identified that no production source changes were needed.
+None - plan executed exactly as written. Research had correctly identified that
+no production source changes were needed.
 
 ## Issues Encountered
 
@@ -90,10 +119,11 @@ None. Tests passed on first run.
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Phase 16 plan 01 complete — ISLD-01, ISLD-02, ISLD-03 formally verified
 - Phase 17 demo app can build on top of this verified foundation
 - No blockers or concerns
 
 ---
-*Phase: 16-islands-in-plugins*
-*Completed: 2026-03-01*
+
+_Phase: 16-islands-in-plugins_ _Completed: 2026-03-01_

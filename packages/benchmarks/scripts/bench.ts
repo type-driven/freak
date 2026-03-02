@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-console
 /**
  * bench.ts — Main benchmark orchestrator.
  *

@@ -25,8 +25,12 @@ import { App, createPlugin } from "@fresh/core";
 // Shared service definitions
 // ============================================================================
 
-const DbService = ServiceMap.Service<{ query: (sql: string) => string }>("DbService");
-const EmailService = ServiceMap.Service<{ send: (to: string) => void }>("EmailService");
+const DbService = ServiceMap.Service<{ query: (sql: string) => string }>(
+  "DbService",
+);
+const EmailService = ServiceMap.Service<{ send: (to: string) => void }>(
+  "EmailService",
+);
 const DbLayer = Layer.succeed(DbService, { query: (sql) => `result: ${sql}` });
 type DbR = ServiceMap.Service.Identifier<typeof DbService>;
 
@@ -52,10 +56,11 @@ Deno.test("SC-2: EffectApp.get() rejects handler using undeclared service", () =
   // TypeScript will reject this assignment because EmailService is not in DbR.
   type GoodHandler = Parameters<typeof app.get>[1];
   // @ts-expect-error — EmailService is not in AppR (only DbService is provided)
-  const badHandler: GoodHandler = () => Effect.gen(function* () {
-    yield* EmailService;
-    return new Response("ok");
-  });
+  const badHandler: GoodHandler = () =>
+    Effect.gen(function* () {
+      yield* EmailService;
+      return new Response("ok");
+    });
   // deno-lint-ignore no-explicit-any
   app.get("/test", badHandler as any);
   void app.dispose();
@@ -111,7 +116,10 @@ Deno.test("SC-3: mountApp rejects plugin requiring service not in host layer", a
   const hostApp = createEffectApp<unknown, DbR>({ layer: DbLayer });
 
   type EmailR = ServiceMap.Service.Identifier<typeof EmailService>;
-  const emailPlugin = createPlugin<Record<string, never>, unknown, EmailR>({}, () => new App());
+  const emailPlugin = createPlugin<Record<string, never>, unknown, EmailR>(
+    {},
+    () => new App(),
+  );
 
   // @ts-expect-error — EmailR is not in AppR (host only provides DbR)
   hostApp.mountApp("/email", emailPlugin);
@@ -120,7 +128,10 @@ Deno.test("SC-3: mountApp rejects plugin requiring service not in host layer", a
 
 Deno.test("SC-3: mountApp accepts plugin whose requirements are satisfied by host layer", async () => {
   const hostApp = createEffectApp<unknown, DbR>({ layer: DbLayer });
-  const dbPlugin = createPlugin<Record<string, never>, unknown, DbR>({}, () => new App());
+  const dbPlugin = createPlugin<Record<string, never>, unknown, DbR>(
+    {},
+    () => new App(),
+  );
 
   // No error — DbR is in AppR
   hostApp.mountApp("/db", dbPlugin);

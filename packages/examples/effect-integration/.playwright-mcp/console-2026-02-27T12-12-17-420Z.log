@@ -1,0 +1,9 @@
+[      24ms] [WARNING] WebSocket connection to 'ws://localhost:8001/_frsh/alive' failed: WebSocket is closed before the connection is established. @ http://localhost:8001/_fresh/js/17596652d36deca82f99b931cb8a25501c7c59de/fresh-runtime.js:1923
+[      27ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7
+[     117ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8000/favicon.ico:0

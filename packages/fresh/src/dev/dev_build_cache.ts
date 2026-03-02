@@ -203,7 +203,10 @@ export class MemoryBuildCache<State> implements DevBuildCache<State> {
           const fileUrl = maybeToFileUrl(chunk.server);
           const mod = await import(fileUrl).catch((err: unknown) => {
             const msg = err instanceof Error ? err.message : String(err);
-            throw new Error(`Failed to load island module "${fileUrl}": ${msg}`, { cause: err });
+            throw new Error(
+              `Failed to load island module "${fileUrl}": ${msg}`,
+              { cause: err },
+            );
           });
 
           if (chunk.browser === null) {

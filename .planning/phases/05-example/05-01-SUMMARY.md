@@ -80,7 +80,9 @@ completed: 2026-02-24
 
 # Phase 5 Plan 01: Effect Integration Example Scaffold Summary
 
-**Standalone example app scaffold with TodoService backed by Deno.openKv(), effectPlugin wired to AppLayer without mapError, and serializable todoListAtom ready for SSR hydration in Plan 02**
+**Standalone example app scaffold with TodoService backed by Deno.openKv(),
+effectPlugin wired to AppLayer without mapError, and serializable todoListAtom
+ready for SSR hydration in Plan 02**
 
 ## Performance
 
@@ -92,17 +94,23 @@ completed: 2026-02-24
 
 ## Accomplishments
 
-- `packages/examples/effect-integration/` directory structure created with all scaffold files
-- `deno.json`: standalone app config with imports pointing to local plugin packages, jsxPrecompileSkipElements, tasks (dev/build/start)
+- `packages/examples/effect-integration/` directory structure created with all
+  scaffold files
+- `deno.json`: standalone app config with imports pointing to local plugin
+  packages, jsxPrecompileSkipElements, tasks (dev/build/start)
 - `dev.ts`: Builder + tailwind(builder) entry point following www/dev.ts pattern
-- `main.ts`: App with effectPlugin({ layer: AppLayer }), staticFiles(), fsRoutes() -- NO mapError
+- `main.ts`: App with effectPlugin({ layer: AppLayer }), staticFiles(),
+  fsRoutes() -- NO mapError
 - `types.ts`: TodoSchema (Schema.Struct with id/text/done) and Todo type
 - `services/errors.ts`: KvError and NotFoundError as Data.TaggedError
-- `services/TodoService.ts`: ServiceMap.Service with list/create/toggle/remove operations backed by Deno.openKv() via Layer.effect
+- `services/TodoService.ts`: ServiceMap.Service with list/create/toggle/remove
+  operations backed by Deno.openKv() via Layer.effect
 - `services/layers.ts`: AppLayer = TodoLayer
-- `atoms.ts`: todoListAtom as Atom.serializable with key "todo-list" and Schema.mutable(Schema.Array(TodoSchema))
+- `atoms.ts`: todoListAtom as Atom.serializable with key "todo-list" and
+  Schema.mutable(Schema.Array(TodoSchema))
 - `static/styles.css`: @import "tailwindcss"
-- `routes/_app.tsx`: HTML shell with Tailwind stylesheet link and bg-gray-50 body
+- `routes/_app.tsx`: HTML shell with Tailwind stylesheet link and bg-gray-50
+  body
 - All files pass `deno check`
 
 ## Task Commits
@@ -114,13 +122,18 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `deno.json` (root) - Added `packages/examples/effect-integration` to workspace array
-- `packages/examples/effect-integration/deno.json` - Standalone app config with explicit file imports
+- `deno.json` (root) - Added `packages/examples/effect-integration` to workspace
+  array
+- `packages/examples/effect-integration/deno.json` - Standalone app config with
+  explicit file imports
 - `packages/examples/effect-integration/dev.ts` - Builder listen entry point
-- `packages/examples/effect-integration/main.ts` - App assembly with effectPlugin
+- `packages/examples/effect-integration/main.ts` - App assembly with
+  effectPlugin
 - `packages/examples/effect-integration/types.ts` - TodoSchema + Todo type
-- `packages/examples/effect-integration/services/errors.ts` - KvError, NotFoundError
-- `packages/examples/effect-integration/services/TodoService.ts` - TodoService + TodoLayer
+- `packages/examples/effect-integration/services/errors.ts` - KvError,
+  NotFoundError
+- `packages/examples/effect-integration/services/TodoService.ts` - TodoService +
+  TodoLayer
 - `packages/examples/effect-integration/services/layers.ts` - AppLayer
 - `packages/examples/effect-integration/atoms.ts` - todoListAtom
 - `packages/examples/effect-integration/static/styles.css` - Tailwind import
@@ -128,57 +141,86 @@ Each task was committed atomically:
 
 ## Decisions Made
 
-- Deno 2.6.9 requires nested deno.json configs to be workspace members -- added example to root workspace array (plan said not to, but Deno enforces this at the toolchain level)
-- Used direct file paths (`../../plugin-effect/src/mod.ts`) in import map because directory-trailing-slash references fail to resolve with local workspace packages
-- effectPlugin wired WITHOUT mapError -- effect failures propagate as standard Error with Cause in error.cause to Fresh's _error.tsx
-- `Schema.mutable(Schema.Array(TodoSchema))` required for atom schema because `Atom.serializable` constraint `S extends Codec<Type<R>, any>` requires mutable array type to match `Atom<Todo[]>`
-- TodoLayer uses single `Deno.openKv()` call via `Layer.effect` (opened once at layer build time, reused per request)
+- Deno 2.6.9 requires nested deno.json configs to be workspace members -- added
+  example to root workspace array (plan said not to, but Deno enforces this at
+  the toolchain level)
+- Used direct file paths (`../../plugin-effect/src/mod.ts`) in import map
+  because directory-trailing-slash references fail to resolve with local
+  workspace packages
+- effectPlugin wired WITHOUT mapError -- effect failures propagate as standard
+  Error with Cause in error.cause to Fresh's _error.tsx
+- `Schema.mutable(Schema.Array(TodoSchema))` required for atom schema because
+  `Atom.serializable` constraint `S extends Codec<Type<R>, any>` requires
+  mutable array type to match `Atom<Todo[]>`
+- TodoLayer uses single `Deno.openKv()` call via `Layer.effect` (opened once at
+  layer build time, reused per request)
 
 ## Deviations from Plan
 
 ### Auto-fixed Issues
 
-**1. [Rule 3 - Blocking] Added packages/examples/effect-integration to root workspace**
+**1. [Rule 3 - Blocking] Added packages/examples/effect-integration to root
+workspace**
 
 - **Found during:** Task 1 verification (deno check)
-- **Issue:** Deno 2.6.9 rejects nested deno.json configs that aren't workspace members: "Config file must be a member of the workspace." The plan said NOT to add to workspace, but Deno enforces this at the toolchain level.
-- **Fix:** Added `"./packages/examples/effect-integration"` to root deno.json workspace array
+- **Issue:** Deno 2.6.9 rejects nested deno.json configs that aren't workspace
+  members: "Config file must be a member of the workspace." The plan said NOT to
+  add to workspace, but Deno enforces this at the toolchain level.
+- **Fix:** Added `"./packages/examples/effect-integration"` to root deno.json
+  workspace array
 - **Files modified:** `deno.json` (root)
 - **Commit:** `8d487b97`
 
-**2. [Rule 3 - Blocking] Used direct file paths in import map instead of directory references**
+**2. [Rule 3 - Blocking] Used direct file paths in import map instead of
+directory references**
 
 - **Found during:** Task 1 verification (deno check)
-- **Issue:** The plan specified `"@fresh/plugin-effect": "../plugin-effect/"` (directory trailing slash). As a workspace member, directory references failed to resolve to the package entry point.
-- **Fix:** Changed to explicit file paths: `"@fresh/plugin-effect": "../../plugin-effect/src/mod.ts"` and `"@fresh/plugin-tailwind": "../../plugin-tailwindcss/src/mod.ts"`
+- **Issue:** The plan specified `"@fresh/plugin-effect": "../plugin-effect/"`
+  (directory trailing slash). As a workspace member, directory references failed
+  to resolve to the package entry point.
+- **Fix:** Changed to explicit file paths:
+  `"@fresh/plugin-effect": "../../plugin-effect/src/mod.ts"` and
+  `"@fresh/plugin-tailwind": "../../plugin-tailwindcss/src/mod.ts"`
 - **Files modified:** `packages/examples/effect-integration/deno.json`
 - **Commit:** `8d487b97`
 
 **3. [Rule 1 - Bug] Schema.mutable() wrapper required for array atom schema**
 
 - **Found during:** Task 2 verification (deno check atoms.ts)
-- **Issue:** `Schema.Array(TodoSchema)` produces `readonly Todo[]` as its Type. `Atom.serializable` constraint requires `S extends Codec<Type<R>, any>` where the atom is `Atom<Todo[]>` (mutable). Readonly array is not assignable to mutable.
+- **Issue:** `Schema.Array(TodoSchema)` produces `readonly Todo[]` as its Type.
+  `Atom.serializable` constraint requires `S extends Codec<Type<R>, any>` where
+  the atom is `Atom<Todo[]>` (mutable). Readonly array is not assignable to
+  mutable.
 - **Fix:** Changed to `Schema.mutable(Schema.Array(TodoSchema))`
 - **Files modified:** `packages/examples/effect-integration/atoms.ts`
 - **Commit:** `3343d941`
 
 ## Issues Encountered
 
-- Plan specified relative paths `"../plugin-effect/"` which are wrong for the directory depth (`packages/examples/effect-integration/` is 2 levels deep, not 1). Corrected to `"../../plugin-effect/src/mod.ts"`.
-- Plan specified `"exports"` field not present in deno.json initially (only `"name"` without `"exports"` triggers Deno warning). Added `"exports": "./main.ts"` to silence the warning.
+- Plan specified relative paths `"../plugin-effect/"` which are wrong for the
+  directory depth (`packages/examples/effect-integration/` is 2 levels deep, not
+  1). Corrected to `"../../plugin-effect/src/mod.ts"`.
+- Plan specified `"exports"` field not present in deno.json initially (only
+  `"name"` without `"exports"` triggers Deno warning). Added
+  `"exports": "./main.ts"` to silence the warning.
 
 ## User Setup Required
 
-None - no external service configuration required. Deno KV is built into Deno and requires no setup.
+None - no external service configuration required. Deno KV is built into Deno
+and requires no setup.
 
 ## Next Phase Readiness
 
 - Foundation is solid: effectPlugin wired, AppLayer ready, types defined
-- Plan 02 can immediately build routes (`routes/index.tsx`, `routes/api/todos.ts`) using `createEffectDefine<AppState, TodoServiceR>()`
-- `setAtom(ctx, todoListAtom, todos)` can be called from route handlers (requires import from `@fresh/plugin-effect`)
-- Island (`islands/TodoApp.tsx`) can import from `@fresh/plugin-effect/island` and use `useAtom(todoListAtom)`
-- Error page (`routes/_error.tsx`) can demonstrate `Cause.pretty()` server-side logging
+- Plan 02 can immediately build routes (`routes/index.tsx`,
+  `routes/api/todos.ts`) using `createEffectDefine<AppState, TodoServiceR>()`
+- `setAtom(ctx, todoListAtom, todos)` can be called from route handlers
+  (requires import from `@fresh/plugin-effect`)
+- Island (`islands/TodoApp.tsx`) can import from `@fresh/plugin-effect/island`
+  and use `useAtom(todoListAtom)`
+- Error page (`routes/_error.tsx`) can demonstrate `Cause.pretty()` server-side
+  logging
 
 ---
-*Phase: 05-example*
-*Completed: 2026-02-24*
+
+_Phase: 05-example_ _Completed: 2026-02-24_

@@ -23,6 +23,7 @@ const server = Deno.serve(
     onListen: (addr) => {
       // Signal readiness to the parent test process.
       // Use console.log to write to stdout.
+      // deno-lint-ignore no-console
       console.log(`READY:${addr.port}`);
     },
   },

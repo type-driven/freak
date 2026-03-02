@@ -1,0 +1,7 @@
+[      25ms] TypeError: Cannot assign to read only property 'CONNECTING' of function 'class extends OrigWS {
+      constructor(url, protocols) {
+        window.__wsLog.push({ url: String(url), stac...<omitted>... }'
+    at Object.assign (<anonymous>)
+    at <anonymous>:12:12
+    at <anonymous>:19:5
+    at <anonymous>:20:7

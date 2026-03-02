@@ -10,7 +10,13 @@ export default function TodoApp() {
 
   // Subscribe to WatchTodos stream — keeps all windows in sync every 2 seconds.
   const streamState = useRpcStream(TodoRpc, {
-    url: `${typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws"}://${typeof window !== "undefined" ? window.location.host : "localhost:8000"}/rpc/todos/ws`,
+    url: `${
+      typeof window !== "undefined" && window.location.protocol === "https:"
+        ? "wss"
+        : "ws"
+    }://${
+      typeof window !== "undefined" ? window.location.host : "localhost:8000"
+    }/rpc/todos/ws`,
     procedure: "WatchTodos",
   });
 
@@ -131,6 +137,7 @@ export default function TodoApp() {
                     {todo.text}
                   </span>
                   <button
+                    type="button"
                     onClick={() => handleDelete(todo.id)}
                     class="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   >

@@ -4,7 +4,7 @@ import { staticFiles } from "@fresh/core";
 import { createEffectApp } from "@fresh/effect";
 import * as Layer from "effect/Layer";
 import { CounterLive, createCounterPlugin } from "./counter_plugin.tsx";
-import { GreetingLive, createGreetingPlugin } from "./greeting_plugin.tsx";
+import { createGreetingPlugin, GreetingLive } from "./greeting_plugin.tsx";
 
 // AuthState: typed state set by the host middleware.
 // Both plugins read these fields via generic S = AuthState — no cast needed.
@@ -21,7 +21,8 @@ const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
 // TypeScript cannot partially infer generic params, so specifying State = AuthState
 // forces AppR to be explicit too. Inferring from the layer avoids coupling to
 // individual shape types.
-type AppR = typeof combinedLayer extends Layer.Layer<infer A, infer _E, infer _R> ? A : never;
+type AppR = typeof combinedLayer extends
+  Layer.Layer<infer A, infer _E, infer _R> ? A : never;
 
 const effectApp = createEffectApp<AuthState, AppR>({ layer: combinedLayer });
 

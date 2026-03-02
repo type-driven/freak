@@ -540,7 +540,7 @@ const stringifiers: Stringifiers = {
   },
 };
 
-export function FreshScripts() {
+export function FreshScripts(): VNode | null {
   if (RENDER_STATE === null) return null;
   if (RENDER_STATE.hasRuntimeScript) {
     return null;
