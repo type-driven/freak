@@ -14,14 +14,15 @@
  * the host's effectRunner.
  */
 
-/** @jsxImportSource preact */
-
 import { App, createPlugin, type Plugin } from "@fresh/core";
 import { runEffect, setAtom } from "@fresh/effect";
-import { Effect, Layer, ServiceMap } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as ServiceMap from "effect/ServiceMap";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
-import type { VNode } from "preact";
+import { CounterIsland } from "./counter_island.tsx";
+export { CounterIsland } from "./counter_island.tsx";
 
 // ---------------------------------------------------------------------------
 // Effect service — provided by the host EffectApp layer
@@ -50,9 +51,6 @@ export const CounterLive = Layer.effect(
   }),
 );
 
-/** Type-level identifier for CounterService — used as R in Plugin<Config, S, R>. */
-export type CounterServiceIdentifier = typeof CounterService;
-
 // ---------------------------------------------------------------------------
 // Shared atom — server sets it; client island reads it after hydration
 // ---------------------------------------------------------------------------
@@ -63,23 +61,11 @@ export const counterAtom = Atom.serializable(Atom.make(0), {
 });
 
 // ---------------------------------------------------------------------------
-// Island component — registered via app.islands(); produces SSR markers
-// ---------------------------------------------------------------------------
-
-export function CounterIsland({ initial }: { initial: number }): VNode {
-  return (
-    <div class="counter-island">
-      <p>Count: {initial}</p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Plugin app factory
 // ---------------------------------------------------------------------------
 
-export function createCounterPlugin<S = unknown>(): Plugin<Record<string, never>, S, CounterServiceIdentifier> {
-  return createPlugin<Record<string, never>, S, CounterServiceIdentifier>(
+export function createCounterPlugin<S = unknown>(): Plugin<Record<string, never>, S, CounterServiceShape> {
+  return createPlugin<Record<string, never>, S, CounterServiceShape>(
     {},
     (_config) => {
       const app = new App<S>();

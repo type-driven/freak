@@ -34,7 +34,9 @@ import { MockBuildCache } from "../../fresh/src/test_utils.ts";
 import { createEffectApp } from "@fresh/effect";
 import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
 import type { ComponentType } from "preact";
-import { Effect, Layer, ServiceMap } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as ServiceMap from "effect/ServiceMap";
 import {
   CounterIsland,
   CounterLive,
@@ -212,7 +214,8 @@ Deno.test("composition: plugin factory is generic — composes with typed host s
   // Typed host state — plugin is parameterized over it
   interface HostState { requestId: string }
 
-  const hostApp = createEffectApp<HostState>({ layer: CounterLive });
+  type HostR = typeof CounterLive extends Layer.Layer<infer A, infer _E, infer _R> ? A : never;
+  const hostApp = createEffectApp<HostState, HostR>({ layer: CounterLive });
   const plugin = createCounterPlugin<HostState>();
 
   hostApp.mountApp("/counter", plugin);
@@ -300,7 +303,8 @@ Deno.test("DEMO-01: plugins receive typed AuthState — requestId and userId acc
   interface AuthState { requestId: string; userId: string }
 
   const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
-  const hostApp = createEffectApp<AuthState>({ layer: combinedLayer });
+  type AppR = typeof combinedLayer extends Layer.Layer<infer A, infer _E, infer _R> ? A : never;
+  const hostApp = createEffectApp<AuthState, AppR>({ layer: combinedLayer });
 
   hostApp.use((ctx) => {
     // Typed assignment — no cast needed because State = AuthState

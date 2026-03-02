@@ -7,7 +7,7 @@
 
 import { expect } from "@std/expect";
 import * as Atom from "effect/unstable/reactivity/Atom";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { createEffectApp } from "@fresh/effect";
 import { setAtom, serializeAtomHydration } from "../../effect/src/hydration.ts";
 

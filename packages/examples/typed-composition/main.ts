@@ -2,7 +2,7 @@
 
 import { staticFiles } from "@fresh/core";
 import { createEffectApp } from "@fresh/effect";
-import { Layer } from "effect";
+import * as Layer from "effect/Layer";
 import { CounterLive, createCounterPlugin } from "./counter_plugin.tsx";
 import { GreetingLive, createGreetingPlugin } from "./greeting_plugin.tsx";
 
@@ -17,7 +17,13 @@ export interface AuthState {
 // so Layer.mergeAll is correct (no cross-layer deps to wire).
 const combinedLayer = Layer.mergeAll(CounterLive, GreetingLive);
 
-const effectApp = createEffectApp<AuthState>({ layer: combinedLayer });
+// AppR: inferred from the combined layer's Out type. Must be specified explicitly —
+// TypeScript cannot partially infer generic params, so specifying State = AuthState
+// forces AppR to be explicit too. Inferring from the layer avoids coupling to
+// individual shape types.
+type AppR = typeof combinedLayer extends Layer.Layer<infer A, infer _E, infer _R> ? A : never;
+
+const effectApp = createEffectApp<AuthState, AppR>({ layer: combinedLayer });
 
 // Host middleware sets typed auth state — no cast, types flow via S = AuthState.
 effectApp.use((ctx) => {

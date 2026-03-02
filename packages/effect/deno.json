@@ -4,7 +4,8 @@
   "license": "MIT",
   "exports": {
     ".": "./src/mod.ts",
-    "./island": "./src/island.ts"
+    "./island": "./src/island.ts",
+    "./island-atoms": "./src/island-atoms.ts"
   },
   "imports": {
     "effect": "npm:effect@^4.0.0-beta.20",

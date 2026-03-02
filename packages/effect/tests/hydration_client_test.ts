@@ -20,7 +20,7 @@ import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as Schema from "effect/Schema";
 import { _checkOrphanedKeys, initAtomHydration } from "../src/island-atoms.ts";
 import {
-  initAtomHydrationMap,
+  _initAtomHydrationMap as initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
 } from "../src/hydration.ts";
