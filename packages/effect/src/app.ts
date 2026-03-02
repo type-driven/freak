@@ -188,10 +188,13 @@ export class EffectApp<State, AppR> {
    * Merge another App instance or typed Plugin into this app at the given path.
    * Accepts either a plain App<State> or a Plugin<Config, State, R>.
    *
-   * When a Plugin is provided, TypeScript enforces that the plugin's required
-   * state shape is compatible with this app's State type parameter.
+   * When a Plugin is provided, TypeScript enforces that:
+   * - The plugin's required state shape is compatible with this app's State
+   * - The plugin's service requirements (PluginR) are a subset of the services
+   *   provided by this app's Layer (AppR). Mounting a plugin that requires
+   *   services the host layer does not provide is a compile-time error.
    */
-  mountApp<Config, PluginR>(path: string, plugin: Plugin<Config, State, PluginR>): this;
+  mountApp<Config, PluginR extends AppR>(path: string, plugin: Plugin<Config, State, PluginR>): this;
   mountApp(path: string, app: App<State>): this;
   mountApp(path: string, appOrPlugin: App<State> | Plugin<unknown, State, unknown>): this {
     const inner: App<State> = !(appOrPlugin instanceof App)

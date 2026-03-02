@@ -12,14 +12,15 @@
  * to the host EffectApp's runtime, which provides GreetingService via combinedLayer.
  */
 
-/** @jsxImportSource preact */
-
 import { App, createPlugin, type Plugin } from "@fresh/core";
 import { runEffect, setAtom } from "@fresh/effect";
-import { Effect, Layer, ServiceMap } from "effect";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as ServiceMap from "effect/ServiceMap";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
-import type { VNode } from "preact";
+import { GreetIsland } from "./greet_island.tsx";
+export { GreetIsland } from "./greet_island.tsx";
 
 // ---------------------------------------------------------------------------
 // Effect service — provided by the host EffectApp layer
@@ -37,9 +38,6 @@ export const GreetingLive = Layer.succeed(GreetingService, {
   getGreeting: (name) => `Hello, ${name}!`,
 });
 
-/** Type-level identifier for GreetingService — used as R in Plugin<Config, S, R>. */
-export type GreetingServiceIdentifier = typeof GreetingService;
-
 // ---------------------------------------------------------------------------
 // Shared atom — distinct key "greeting" avoids duplicate-key error with counterAtom
 // ---------------------------------------------------------------------------
@@ -50,23 +48,11 @@ export const greetingAtom = Atom.serializable(Atom.make(""), {
 });
 
 // ---------------------------------------------------------------------------
-// Island component — registered via app.islands(); produces SSR markers
-// ---------------------------------------------------------------------------
-
-export function GreetIsland({ message }: { message: string }): VNode {
-  return (
-    <div class="greet-island">
-      <p>{message}</p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Plugin app factory
 // ---------------------------------------------------------------------------
 
-export function createGreetingPlugin<S = unknown>(): Plugin<Record<string, never>, S, GreetingServiceIdentifier> {
-  return createPlugin<Record<string, never>, S, GreetingServiceIdentifier>(
+export function createGreetingPlugin<S = unknown>(): Plugin<Record<string, never>, S, GreetingServiceShape> {
+  return createPlugin<Record<string, never>, S, GreetingServiceShape>(
     {},
     (_config) => {
       const app = new App<S>();

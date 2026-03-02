@@ -147,9 +147,9 @@ export function _setRequestRunner(
  *
  * @throws If called outside of an EffectApp request context.
  */
-export function runEffect<A>(
+export function runEffect<A, R>(
   ctx: object,
-  eff: Effect.Effect<A, unknown, never>,
+  eff: Effect.Effect<A, unknown, R>,
 ): Promise<A> {
   const runner = requestRunners.get(ctx);
   if (!runner) {

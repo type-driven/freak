@@ -333,14 +333,14 @@ Deno.test("RUNE-1: runEffect runs Effect using host EffectApp runtime", async ()
   const app = createEffectApp<unknown, GreetR>({ layer: LayerA });
 
   app.get("/run", async (ctx) => {
-    // Cast: runEffect accepts Effect<A, unknown, never>. Service requirements
+    // runEffect accepts Effect<A, unknown, R> for any R — service requirements
     // (GreetR) are satisfied at runtime by the host EffectApp's layer.
     const greeting = await runEffect(
       ctx,
       Effect.gen(function* () {
         const svc = yield* GreetingService;
         return svc.greet();
-      }) as Effect.Effect<string, unknown, never>,
+      }),
     );
     return new Response(greeting);
   });

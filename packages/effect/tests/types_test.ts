@@ -19,6 +19,7 @@ import { expectTypeOf } from "npm:expect-type@^1.1.0";
 import { Effect, Layer, ServiceMap } from "effect";
 import { createEffectApp, createEffectDefine } from "../src/mod.ts";
 import type { EffectDefine } from "../src/mod.ts";
+import { App, createPlugin } from "@fresh/core";
 
 // ============================================================================
 // Shared service definitions
@@ -99,4 +100,29 @@ Deno.test("type: EffectDefine interface has handlers method", () => {
 Deno.test("type: createEffectDefine returns EffectDefine", () => {
   const define = createEffectDefine<unknown, DbR>();
   expectTypeOf(define.handlers).toBeFunction();
+});
+
+// ============================================================================
+// SC-3: mountApp rejects plugins whose requirements exceed the host layer
+// ============================================================================
+
+Deno.test("SC-3: mountApp rejects plugin requiring service not in host layer", async () => {
+  // Host provides ONLY DbService
+  const hostApp = createEffectApp<unknown, DbR>({ layer: DbLayer });
+
+  type EmailR = ServiceMap.Service.Identifier<typeof EmailService>;
+  const emailPlugin = createPlugin<Record<string, never>, unknown, EmailR>({}, () => new App());
+
+  // @ts-expect-error — EmailR is not in AppR (host only provides DbR)
+  hostApp.mountApp("/email", emailPlugin);
+  await hostApp.dispose();
+});
+
+Deno.test("SC-3: mountApp accepts plugin whose requirements are satisfied by host layer", async () => {
+  const hostApp = createEffectApp<unknown, DbR>({ layer: DbLayer });
+  const dbPlugin = createPlugin<Record<string, never>, unknown, DbR>({}, () => new App());
+
+  // No error — DbR is in AppR
+  hostApp.mountApp("/db", dbPlugin);
+  await hostApp.dispose();
 });
