@@ -1,0 +1,96 @@
+name: release_freak
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GITEA_PACKAGE_TOKEN: ${{ secrets.GITEA_PACKAGE_TOKEN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          cache: true
+          deno-version: v2.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: deno install
+
+      - name: Validate release version from tag
+        id: release_version
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          SOURCE_VERSION="$(deno eval 'console.log(JSON.parse(await Deno.readTextFile("packages/fresh/deno.json")).version)')"
+
+          SEMVER_REGEX='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+          if ! [[ "$TAG_VERSION" =~ $SEMVER_REGEX ]]; then
+            echo "Tag version ($TAG_VERSION) is not valid SemVer." >&2
+            exit 1
+          fi
+          if ! [[ "$SOURCE_VERSION" =~ $SEMVER_REGEX ]]; then
+            echo "packages/fresh/deno.json version ($SOURCE_VERSION) is not valid SemVer." >&2
+            exit 1
+          fi
+
+          if [ "$TAG_VERSION" != "$SOURCE_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match packages/fresh/deno.json version ($SOURCE_VERSION)." >&2
+            exit 1
+          fi
+
+          echo "value=$TAG_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Configure registry auth
+        id: registry
+        run: |
+          set -euo pipefail
+          if [ -z "${GITEA_PACKAGE_TOKEN:-}" ]; then
+            echo "Missing required secret: GITEA_PACKAGE_TOKEN" >&2
+            exit 1
+          fi
+
+          OWNER="${GITEA_PACKAGE_OWNER:-${GITHUB_REPOSITORY_OWNER:-type-driven}}"
+          REGISTRY_BASE="${GITEA_REGISTRY_URL:-${GITHUB_SERVER_URL:-https://gitea.platform.typedriven.dev}}"
+          REGISTRY_BASE="${REGISTRY_BASE%/}"
+          REGISTRY_API="${REGISTRY_BASE}/api/packages/${OWNER}/npm/"
+          PACKAGE_NAME="@${OWNER}/freak"
+          REGISTRY_HOST="$(printf '%s' "$REGISTRY_API" | sed -E 's#^https?://##')"
+
+          {
+            echo "@${OWNER}:registry=${REGISTRY_API}"
+            echo "//${REGISTRY_HOST}:_authToken=${GITEA_PACKAGE_TOKEN}"
+            echo "always-auth=true"
+          } > "$HOME/.npmrc"
+
+          echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
+          echo "registry_api=$REGISTRY_API" >> "$GITHUB_OUTPUT"
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build package artifact
+        env:
+          FREAK_NPM_PACKAGE: ${{ steps.registry.outputs.package_name }}
+          FREAK_NPM_VERSION: ${{ steps.release_version.outputs.value }}
+        run: |
+          deno task build:registry-package
+          deno check dist/npm/freak/src/mod.ts
+          deno task pack:registry-package
+
+      - name: Publish to Gitea package registry
+        env:
+          NPM_CONFIG_REGISTRY: ${{ steps.registry.outputs.registry_api }}
+        run: npm publish ./dist/npm/freak
