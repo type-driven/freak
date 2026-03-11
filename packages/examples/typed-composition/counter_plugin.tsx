@@ -19,10 +19,10 @@ import { runEffect, setAtom } from "@fresh/core/effect";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as ServiceMap from "effect/ServiceMap";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as Schema from "effect/Schema";
 import { CounterIsland } from "./counter_island.tsx";
+import { counterAtom, platformStatusAtom } from "./shared_atoms.ts";
 export { CounterIsland } from "./counter_island.tsx";
+export { counterAtom } from "./shared_atoms.ts";
 
 // ---------------------------------------------------------------------------
 // Effect service — provided by the host EffectApp layer
@@ -52,15 +52,6 @@ export const CounterLive = Layer.effect(
     };
   }),
 );
-
-// ---------------------------------------------------------------------------
-// Shared atom — server sets it; client island reads it after hydration
-// ---------------------------------------------------------------------------
-
-export const counterAtom = Atom.serializable(Atom.make(0), {
-  key: "counter",
-  schema: Schema.Number,
-});
 
 // ---------------------------------------------------------------------------
 // Plugin app factory
@@ -94,6 +85,16 @@ export function createCounterPlugin<S = unknown>(): Plugin<
             const svc = yield* CounterService;
             const newCount = svc.increment();
             setAtom(ctx, counterAtom, newCount);
+            setAtom(
+              ctx,
+              platformStatusAtom,
+              `counter:increment:${newCount}:${
+                typeof (ctx.state as { requestId?: unknown }).requestId ===
+                    "string"
+                  ? (ctx.state as { requestId: string }).requestId
+                  : "unknown-request"
+              }`,
+            );
             return Response.json({ count: newCount });
           }),
         ));
@@ -104,6 +105,7 @@ export function createCounterPlugin<S = unknown>(): Plugin<
           Effect.gen(function* () {
             const svc = yield* CounterService;
             svc.reset();
+            setAtom(ctx, platformStatusAtom, "counter:reset");
             return Response.json({ count: 0 });
           }),
         ));

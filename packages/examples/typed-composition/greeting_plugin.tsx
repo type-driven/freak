@@ -17,10 +17,10 @@ import { runEffect, setAtom } from "@fresh/core/effect";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as ServiceMap from "effect/ServiceMap";
-import * as Atom from "effect/unstable/reactivity/Atom";
-import * as Schema from "effect/Schema";
 import { GreetIsland } from "./greet_island.tsx";
+import { greetingAtom, platformStatusAtom } from "./shared_atoms.ts";
 export { GreetIsland } from "./greet_island.tsx";
+export { greetingAtom } from "./shared_atoms.ts";
 
 // ---------------------------------------------------------------------------
 // Effect service — provided by the host EffectApp layer
@@ -36,15 +36,6 @@ export const GreetingService = ServiceMap.Service<GreetingServiceShape>(
 
 export const GreetingLive = Layer.succeed(GreetingService, {
   getGreeting: (name) => `Hello, ${name}!`,
-});
-
-// ---------------------------------------------------------------------------
-// Shared atom — distinct key "greeting" avoids duplicate-key error with counterAtom
-// ---------------------------------------------------------------------------
-
-export const greetingAtom = Atom.serializable(Atom.make(""), {
-  key: "greeting",
-  schema: Schema.String,
 });
 
 function getAuthFields(
@@ -84,10 +75,20 @@ export function createGreetingPlugin<S = unknown>(): Plugin<
           Effect.gen(function* () {
             const svc = yield* GreetingService;
             const { requestId, userId } = getAuthFields(ctx.state);
-            const greeting = svc.getGreeting("World");
+            const url = new URL(ctx.req.url);
+            const name = url.searchParams.get("name")?.trim() || "World";
+            const greeting = svc.getGreeting(name);
             setAtom(ctx, greetingAtom, greeting);
+            setAtom(
+              ctx,
+              platformStatusAtom,
+              `greeting:${userId ?? "unknown-user"}:${
+                requestId ?? "unknown-request"
+              }`,
+            );
             return Response.json({
               greeting,
+              name,
               requestId: requestId ?? "unknown",
               userId: userId ?? "unknown",
             });

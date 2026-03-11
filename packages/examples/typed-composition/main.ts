@@ -5,12 +5,17 @@ import { createEffectApp } from "@fresh/core/effect";
 import * as Layer from "effect/Layer";
 import { CounterLive, createCounterPlugin } from "./counter_plugin.tsx";
 import { createGreetingPlugin, GreetingLive } from "./greeting_plugin.tsx";
+import {
+  COUNTER_SUB_APP_TEMPLATE,
+  GREETING_SUB_APP_TEMPLATE,
+} from "./paths.ts";
 
 // AuthState: typed state set by the host middleware.
 // Both plugins read these fields via generic S = AuthState — no cast needed.
 export interface AuthState {
   requestId: string;
   userId: string;
+  orgSlug: string;
 }
 
 // Combine both service layers — CounterLive and GreetingLive are independent,
@@ -28,15 +33,21 @@ const effectApp = createEffectApp<AuthState, AppR>({ layer: combinedLayer });
 
 // Host middleware sets typed auth state — no cast, types flow via S = AuthState.
 effectApp.use((ctx) => {
+  const match = new URL(ctx.req.url).pathname.match(/^\/orgs\/([^/]+)/);
   ctx.state.requestId = crypto.randomUUID();
   ctx.state.userId = "demo-user";
+  ctx.state.orgSlug = match?.[1] ? decodeURIComponent(match[1]) : "demo-org";
   return ctx.next();
 });
 
 // Mount both plugins — each plugin is generic over S = AuthState.
-// Plugin routes live at /counter/* and /greeting/* — no overlap with routes/.
-effectApp.mountApp("/counter", createCounterPlugin<AuthState>());
-effectApp.mountApp("/greeting", createGreetingPlugin<AuthState>());
+// Platform-style integration path mirrors control-panel mount patterns:
+// /orgs/:orgSlug/platform/<sub-app>/*
+effectApp.mountApp(COUNTER_SUB_APP_TEMPLATE, createCounterPlugin<AuthState>());
+effectApp.mountApp(
+  GREETING_SUB_APP_TEMPLATE,
+  createGreetingPlugin<AuthState>(),
+);
 
 // Export inner App<State> via .app getter — Builder.listen() requires App<State>,
 // not EffectApp. EffectApp is not an App instance; setBuildCache() uses JS private

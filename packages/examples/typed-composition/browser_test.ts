@@ -10,7 +10,8 @@
  *
  * Design: starts the EffectApp in-process with Deno.serve on a random port.
  * No build step — tests JSON API routes and SSR HTML; island client JS is not
- * exercised because the islands are static (display-only, no hydration needed).
+ * exercised in this test harness because the synthetic index page does not
+ * render the example islands.
  *
  * Browser tests navigate to the server origin first so that same-origin fetch()
  * calls in page.evaluate() work without CORS issues.
