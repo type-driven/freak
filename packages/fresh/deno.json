@@ -27,6 +27,7 @@
     "@types/node": "npm:@types/node@^24.2.1",
     "esbuild-wasm": "npm:esbuild-wasm@^0.25.11",
     "preact": "npm:preact@^10.28.3",
-    "preact-render-to-string": "npm:preact-render-to-string@^6.6.3"
+    "preact-render-to-string": "npm:preact-render-to-string@^6.6.3",
+    "@preact/signals": "npm:@preact/signals@^1.3.0"
   }
 }

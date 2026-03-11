@@ -34,9 +34,8 @@ upgraded Deno WebSocket. The client creates a `ManagedRuntime` with
 sides share `RpcSerialization.layerNdjson` for the wire format.
 
 **Lifecycle**: The server-side runtime is disposed when the WebSocket closes
-(via the `"close"` event listener). The client-side runtime is disposed when
-the hook's cleanup runs on unmount. This ensures no leaked fibers or
-connections.
+(via the `"close"` event listener). The client-side runtime is disposed when the
+hook's cleanup runs on unmount. This ensures no leaked fibers or connections.
 
 ---
 
@@ -208,9 +207,9 @@ streaming RPC endpoint and delivers server-push events as state updates.
 function useRpcStream<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: {
-    url: string;        // Full WebSocket URL (ws:// or wss://)
-    procedure: string;  // Name of the streaming procedure
-    payload?: unknown;  // Optional payload (omit for no-arg procedures)
+    url: string; // Full WebSocket URL (ws:// or wss://)
+    procedure: string; // Name of the streaming procedure
+    payload?: unknown; // Optional payload (omit for no-arg procedures)
   },
 ): RpcStreamState<any, any>;
 ```
@@ -219,12 +218,12 @@ function useRpcStream<Rpcs extends Rpc.Any>(
 
 The returned `RpcStreamState` transitions through these tags:
 
-| `_tag`         | Fields           | Meaning                                               |
-| -------------- | ---------------- | ----------------------------------------------------- |
-| `"connecting"` | --               | Initial state. WebSocket is being established.        |
+| `_tag`         | Fields            | Meaning                                                                           |
+| -------------- | ----------------- | --------------------------------------------------------------------------------- |
+| `"connecting"` | --                | Initial state. WebSocket is being established.                                    |
 | `"connected"`  | `latest: A\|null` | Connection open. `latest` is `null` until first push, then the most recent value. |
-| `"error"`      | `error: E`       | The stream or connection failed.                      |
-| `"closed"`     | --               | Stream ended or component unmounted.                  |
+| `"error"`      | `error: E`        | The stream or connection failed.                                                  |
+| `"closed"`     | --                | Stream ended or component unmounted.                                              |
 
 ### WebSocket URL construction
 
@@ -245,8 +244,9 @@ not need to manage cleanup manually.
 
 ### Dependency array
 
-The `useEffect` inside the hook depends on `[options.url, options.procedure, options.payload]`.
-Changing any of these values closes the existing connection and opens a new one.
+The `useEffect` inside the hook depends on
+`[options.url, options.procedure, options.payload]`. Changing any of these
+values closes the existing connection and opens a new one.
 
 ### Full example
 
@@ -256,7 +256,9 @@ import { TodoRpc } from "../services/rpc.ts";
 
 export default function TodoStream() {
   const streamState = useRpcStream(TodoRpc, {
-    url: `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/rpc/todos/ws`,
+    url: `${
+      window.location.protocol === "https:" ? "wss" : "ws"
+    }://${window.location.host}/rpc/todos/ws`,
     procedure: "WatchTodos",
   });
 
@@ -267,9 +269,7 @@ export default function TodoStream() {
       if (streamState.latest === null) return <p>Waiting for data...</p>;
       return (
         <ul>
-          {streamState.latest.map((todo) => (
-            <li key={todo.id}>{todo.text}</li>
-          ))}
+          {streamState.latest.map((todo) => <li key={todo.id}>{todo.text}</li>)}
         </ul>
       );
     case "error":
@@ -302,12 +302,12 @@ function useRpcResult<Rpcs extends Rpc.Any>(
 
 ### State tags
 
-| `_tag`      | Fields        | Meaning                                   |
-| ----------- | ------------- | ----------------------------------------- |
-| `"idle"`    | --            | No call has been made yet.                |
-| `"loading"` | --            | A request is in flight.                   |
-| `"ok"`      | `value: A`    | The call succeeded.                       |
-| `"err"`     | `error: E`    | The call failed.                          |
+| `_tag`      | Fields     | Meaning                    |
+| ----------- | ---------- | -------------------------- |
+| `"idle"`    | --         | No call has been made yet. |
+| `"loading"` | --         | A request is in flight.    |
+| `"ok"`      | `value: A` | The call succeeded.        |
+| `"err"`     | `error: E` | The call failed.           |
 
 ### Usage
 
@@ -325,12 +325,12 @@ if (state._tag === "ok") {
 
 ### Key difference from `useRpcStream`
 
-| Aspect     | `useRpcResult`              | `useRpcStream`             |
-| ---------- | --------------------------- | -------------------------- |
-| Transport  | HTTP POST                   | WebSocket                  |
-| Pattern    | Request/response            | Server-push stream         |
-| Trigger    | Explicit `client.Proc(...)` | Automatic on mount         |
-| State      | idle/loading/ok/err         | connecting/connected/error/closed |
+| Aspect    | `useRpcResult`              | `useRpcStream`                    |
+| --------- | --------------------------- | --------------------------------- |
+| Transport | HTTP POST                   | WebSocket                         |
+| Pattern   | Request/response            | Server-push stream                |
+| Trigger   | Explicit `client.Proc(...)` | Automatic on mount                |
+| State     | idle/loading/ok/err         | connecting/connected/error/closed |
 
 ---
 
@@ -364,7 +364,12 @@ const WatchTodos = Rpc.make("WatchTodos", {
   success: RpcSchema.Stream(Schema.Array(TodoSchema), Schema.Never),
 });
 
-export const TodoRpc = RpcGroup.make(ListTodos, CreateTodo, DeleteTodo, WatchTodos);
+export const TodoRpc = RpcGroup.make(
+  ListTodos,
+  CreateTodo,
+  DeleteTodo,
+  WatchTodos,
+);
 
 export const TodoRpcHandlers = TodoRpc.toLayer({
   ListTodos: () =>
@@ -475,8 +480,8 @@ export default function TodoApp() {
 
 ### `Schema.Void` payload -- pass `undefined`, not `{}`
 
-Procedures without a `payload` field (like `ListTodos`) expect `undefined`
-as the argument. Passing `{}` causes a Schema validation error.
+Procedures without a `payload` field (like `ListTodos`) expect `undefined` as
+the argument. Passing `{}` causes a Schema validation error.
 
 ```typescript
 // Wrong
@@ -490,8 +495,8 @@ client.ListTodos(undefined);
 
 ### Layer composition -- use `Layer.provide`, not `Layer.mergeAll`
 
-Handler layers depend on service layers. Compose with `Layer.provide` to
-satisfy requirements:
+Handler layers depend on service layers. Compose with `Layer.provide` to satisfy
+requirements:
 
 ```typescript
 // Wrong -- mergeAll creates a parallel layer, not a dependency chain
@@ -526,8 +531,8 @@ WatchTodos: () =>
 
 ### Use `wss://` for HTTPS deployments
 
-In production behind TLS, the WebSocket URL must use `wss://`, not `ws://`.
-The dynamic URL construction shown above handles this automatically.
+In production behind TLS, the WebSocket URL must use `wss://`, not `ws://`. The
+dynamic URL construction shown above handles this automatically.
 
 ---
 
@@ -535,16 +540,23 @@ The dynamic URL construction shown above handles this automatically.
 
 ### Client-side error states
 
-The `useRpcStream` hook transitions to `"error"` when the WebSocket
-connection fails or the server-side stream errors. Transition to `"closed"`
-happens when the stream completes normally or the component unmounts.
+The `useRpcStream` hook transitions to `"error"` when the WebSocket connection
+fails or the server-side stream errors. Transition to `"closed"` happens when
+the stream completes normally or the component unmounts.
 
 ```typescript
-const streamState = useRpcStream(TodoRpc, { url: wsUrl, procedure: "WatchTodos" });
+const streamState = useRpcStream(TodoRpc, {
+  url: wsUrl,
+  procedure: "WatchTodos",
+});
 
 if (streamState._tag === "error") {
   // Display error UI, offer retry
-  return <p>Connection lost. <button onClick={() => location.reload()}>Retry</button></p>;
+  return (
+    <p>
+      Connection lost. <button onClick={() => location.reload()}>Retry</button>
+    </p>
+  );
 }
 
 if (streamState._tag === "closed") {
@@ -555,8 +567,8 @@ if (streamState._tag === "closed") {
 
 ### Reconnection pattern
 
-`useRpcStream` does not auto-reconnect. To implement reconnection, use a key
-to force remount:
+`useRpcStream` does not auto-reconnect. To implement reconnection, use a key to
+force remount:
 
 ```typescript
 export default function ReconnectingStream() {
@@ -567,7 +579,9 @@ export default function ReconnectingStream() {
 
 function StreamConsumer({ onError }: { onError: () => void }) {
   const streamState = useRpcStream(TodoRpc, {
-    url: `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/rpc/todos/ws`,
+    url: `${
+      window.location.protocol === "https:" ? "wss" : "ws"
+    }://${window.location.host}/rpc/todos/ws`,
     procedure: "WatchTodos",
   });
 
@@ -580,7 +594,9 @@ function StreamConsumer({ onError }: { onError: () => void }) {
   }, [streamState._tag]);
 
   if (streamState._tag === "connected" && streamState.latest !== null) {
-    return <ul>{streamState.latest.map((t) => <li key={t.id}>{t.text}</li>)}</ul>;
+    return (
+      <ul>{streamState.latest.map((t) => <li key={t.id}>{t.text}</li>)}</ul>
+    );
   }
 
   return <p>{streamState._tag}...</p>;
@@ -589,10 +605,10 @@ function StreamConsumer({ onError }: { onError: () => void }) {
 
 ### Server-side stream errors
 
-If the handler's `Stream` fails, the error is serialized over the WebSocket
-and surfaced as the `error` field in the client's `"error"` state. To handle
-errors gracefully in the stream itself, use `Stream.catchAll` or
-`Stream.retry` in your handler:
+If the handler's `Stream` fails, the error is serialized over the WebSocket and
+surfaced as the `error` field in the client's `"error"` state. To handle errors
+gracefully in the stream itself, use `Stream.catchAll` or `Stream.retry` in your
+handler:
 
 ```typescript
 WatchTodos: () =>
@@ -621,10 +637,11 @@ WatchTodos: () =>
       to your handler streams so transient failures do not kill the connection
 - [ ] **Layer composition** -- verify `handlerLayer` is composed with
       `Layer.provide(handlers, AppLayer)`, not `Layer.mergeAll`
-- [ ] **Schema.Void procedures** -- call with no argument or `undefined`, not `{}`
-- [ ] **Export `.app`** -- the main.ts default export must be `effectApp.....app`
-      (the inner `App<State>` instance), not the `EffectApp` wrapper, because
-      Fresh's `Builder.listen()` calls `setBuildCache()` which requires an `App`
-      instance
+- [ ] **Schema.Void procedures** -- call with no argument or `undefined`, not
+      `{}`
+- [ ] **Export `.app`** -- the main.ts default export must be
+      `effectApp.....app` (the inner `App<State>` instance), not the `EffectApp`
+      wrapper, because Fresh's `Builder.listen()` calls `setBuildCache()` which
+      requires an `App` instance
 - [ ] **Dispose on shutdown** -- `createEffectApp` registers SIGINT/SIGTERM
       handlers automatically; for tests, call `effectApp.dispose()` explicitly
