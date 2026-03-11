@@ -8,7 +8,7 @@
  *
  * Usage:
  * ```typescript
- * import { useAtom, useAtomValue, useAtomSet } from "@fresh/effect/island";
+ * import { useAtom, useAtomValue, useAtomSet } from "@fresh/core/effect/island";
  * import { countAtom } from "../atoms.ts";
  *
  * export default function Counter() {

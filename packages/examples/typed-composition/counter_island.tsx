@@ -11,7 +11,7 @@ import type { VNode } from "preact";
  *
  * This component receives its initial value as a prop from the server — it does
  * not call useAtom() client-side. For client-side reactivity, move the atom
- * import here and use useAtom from "@fresh/effect/island".
+ * import here and use useAtom from "@fresh/core/effect/island".
  */
 export function CounterIsland({ initial }: { initial: number }): VNode {
   return (

@@ -11,7 +11,7 @@
  * 4. SHARED MANAGED RUNTIME — outer EffectApp's runner executes Effect handlers
  *    from inner (plugin) app routes after mounting
  *
- * NOTE: Effect runner + atom tests use the @fresh/effect internals directly
+ * NOTE: Effect runner + atom tests use the @fresh/core/effect internals directly
  * to avoid the full createEffectApp() lifecycle (signal handlers, etc.) and
  * keep tests fast and self-contained.
  */
@@ -27,10 +27,10 @@ import {
 import { setAtomHydrationHook } from "../src/segments.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
 import { Effect, Layer, ManagedRuntime, ServiceMap } from "effect";
-import { createResolver } from "../../effect/src/resolver.ts";
+import { createResolver } from "../src/effect/resolver.ts";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
-import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
+import { serializeAtomHydration, setAtom } from "../src/effect/mod.ts";
 import type { ComponentType } from "preact";
 
 // ---------------------------------------------------------------------------

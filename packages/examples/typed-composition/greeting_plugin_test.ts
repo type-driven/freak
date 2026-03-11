@@ -8,8 +8,8 @@
 import { expect } from "@std/expect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Effect from "effect/Effect";
-import { createEffectApp } from "@fresh/effect";
-import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
+import { createEffectApp } from "@fresh/core/effect";
+import { serializeAtomHydration, setAtom } from "../../fresh/src/effect/hydration.ts";
 
 // Importing these will fail until greeting_plugin.tsx exists
 import {

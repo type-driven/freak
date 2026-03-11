@@ -9,7 +9,7 @@
  * It must NOT import from the test harness (FakeServer, etc.).
  */
 
-import { createEffectApp } from "../src/mod.ts";
+import { createEffectApp } from "../src/effect/mod.ts";
 import { Layer } from "effect";
 
 const app = createEffectApp({ layer: Layer.empty });

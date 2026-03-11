@@ -19,15 +19,15 @@ import { assertEquals } from "jsr:@std/assert@1";
 import { Effect, Layer, ServiceMap } from "effect";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as Schema from "effect/Schema";
-import { App } from "../../fresh/src/app.ts";
-import { FakeServer } from "../../fresh/src/test_utils.ts";
-import { createEffectApp } from "../src/mod.ts";
+import { App } from "../src/app.ts";
+import { FakeServer } from "../src/test_utils.ts";
+import { createEffectApp } from "../src/effect/mod.ts";
 import {
   _initAtomHydrationMap,
   runEffect,
   serializeAtomHydration,
   setAtom,
-} from "../src/hydration.ts";
+} from "../src/effect/hydration.ts";
 
 // ============================================================================
 // Shared service definitions

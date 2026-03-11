@@ -14,7 +14,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/unstable/rpc";
-import { createEffectApp } from "../src/mod.ts";
+import { createEffectApp } from "../src/effect/mod.ts";
 
 // ============================================================================
 // Shared RPC group definition — used by all tests

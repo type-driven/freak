@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { createEffectDefine, setAtom } from "@fresh/effect";
+import { createEffectDefine, setAtom } from "@fresh/core/effect";
 import { page } from "@fresh/core";
 import type { PageProps } from "@fresh/core";
 import { TodoService, type TodoServiceR } from "../services/TodoService.ts";

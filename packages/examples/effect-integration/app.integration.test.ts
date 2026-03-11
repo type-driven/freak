@@ -7,7 +7,7 @@
  * Each test gets an isolated in-memory TodoService via `makeTestApp()`.
  *
  * Run:
- *   deno test --allow-env packages/examples/effect-integration/app.integration.test.ts
+ *   deno test --allow-env packages/examples/core/effect-integration/app.integration.test.ts
  */
 
 import {
@@ -17,7 +17,7 @@ import {
   assertStringIncludes,
 } from "jsr:@std/assert@1";
 import { HttpError } from "@fresh/core";
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import { Cause, Effect, Layer } from "effect";
 import { NotFoundError } from "./services/errors.ts";
 import { TodoRpc, TodoRpcHandlers } from "./services/rpc.ts";

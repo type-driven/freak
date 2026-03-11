@@ -19,7 +19,7 @@ import {
   useRpcPolled,
   useRpcSse,
   useRpcStream,
-} from "@fresh/effect/island";
+} from "@fresh/core/effect/island";
 import { TodoRpc } from "../services/rpc.ts";
 import type { Todo } from "../types.ts";
 

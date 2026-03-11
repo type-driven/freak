@@ -7,18 +7,18 @@
  * error is NOT raised, `deno check` fails with "Unused '@ts-expect-error'
  * directive" — meaning the test is broken.
  *
- * Run: deno check packages/effect/tests/types_test.ts
- * Run: deno test --allow-env packages/effect/tests/types_test.ts
+ * Run: deno check packages/fresh/tests/effect_types_test.ts
+ * Run: deno test --allow-env packages/fresh/tests/effect_types_test.ts
  *
- * NOTE: createEffectDefine in @fresh/effect is type-only (no app/layer args).
+ * NOTE: createEffectDefine in @fresh/core/effect is type-only (no app/layer args).
  * Runtime management is EffectApp's job. Use createEffectDefine<State, R>()
  * to constrain handler types.
  */
 
 import { expectTypeOf } from "npm:expect-type@^1.1.0";
 import { Effect, Layer, ServiceMap } from "effect";
-import { createEffectApp, createEffectDefine } from "../src/mod.ts";
-import type { EffectDefine } from "../src/mod.ts";
+import { createEffectApp, createEffectDefine } from "../src/effect/mod.ts";
+import type { EffectDefine } from "../src/effect/mod.ts";
 import { App, createPlugin } from "@fresh/core";
 
 // ============================================================================
@@ -55,8 +55,8 @@ Deno.test("SC-2: EffectApp.get() rejects handler using undeclared service", () =
   // Assign the bad handler to a variable typed to EffectApp's handler signature.
   // TypeScript will reject this assignment because EmailService is not in DbR.
   type GoodHandler = Parameters<typeof app.get>[1];
-  // @ts-expect-error — EmailService is not in AppR (only DbService is provided)
   const badHandler: GoodHandler = () =>
+    // @ts-expect-error — EmailService is not in AppR (only DbService is provided)
     Effect.gen(function* () {
       yield* EmailService;
       return new Response("ok");

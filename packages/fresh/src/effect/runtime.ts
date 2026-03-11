@@ -1,9 +1,7 @@
 import { type Layer, ManagedRuntime } from "effect";
 
 /**
- * Create a ManagedRuntime from a Layer. Called once at createEffectApp() setup
- * time — NOT per-request. The ManagedRuntime caches built services via its
- * internal memo map.
+ * Create a ManagedRuntime from a Layer.
  */
 export function makeRuntime<R, E>(
   layer: Layer.Layer<R, E, never>,
@@ -14,9 +12,6 @@ export function makeRuntime<R, E>(
 /**
  * Register a dispose function to run on SIGINT and SIGTERM signals.
  * Returns a cleanup function that removes the signal listeners (for testing).
- *
- * Uses signal handlers instead of the `unload` event — signals fire reliably
- * on Deno.serve shutdown and are the idiomatic lifecycle mechanism for v2.
  */
 export function registerSignalDisposal(
   disposeFn: () => Promise<void>,

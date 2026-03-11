@@ -1,7 +1,7 @@
 /**
  * /streaming-modes — side-by-side comparison of all four RPC streaming transports.
  *
- * Each panel uses a different hook from @fresh/effect/island:
+ * Each panel uses a different hook from @fresh/core/effect/island:
  *   - WebSocket     → useRpcStream
  *   - HTTP-stream   → useRpcHttpStream  (framed NDJSON POST)
  *   - SSE           → useRpcSse         (EventSource GET)
@@ -17,7 +17,7 @@ export default function StreamingModesPage() {
       <p style="color: #6b7280; margin: 0 0 2rem">
         Four ways to receive server-push data via{" "}
         <code style="background:#f3f4f6;padding:0.1rem 0.3rem;border-radius:3px">
-          @fresh/effect
+          @fresh/core/effect
         </code>{" "}
         RPC. Pick the transport that fits your environment.
       </p>

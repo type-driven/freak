@@ -16,21 +16,29 @@
 
 import {
   App,
-  type FreshConfig,
   type ListenOptions,
-  type Plugin,
-  type ResolvedFreshConfig,
-} from "@fresh/core";
-import type { Context } from "@fresh/core";
-import type { Middleware } from "@fresh/core";
-import type { LayoutConfig, MaybeLazy, RouteConfig } from "@fresh/core";
-import { setAtomHydrationHook, setEffectRunner } from "@fresh/core/internal";
-import type { EffectRunner, Route, RouteComponent } from "@fresh/core/internal";
+} from "../app.ts";
+import type { FreshConfig, ResolvedFreshConfig } from "../config.ts";
+import type { Plugin } from "../plugin.ts";
+import type { Context } from "../context.ts";
+import type { Middleware } from "../middlewares/mod.ts";
+import type { LayoutConfig, MaybeLazy, RouteConfig } from "../types.ts";
+import {
+  getAtomHydrationHookForApp,
+  getEffectRunner,
+  setAtomHydrationHook,
+  setEffectRunner,
+  type EffectRunner,
+  type Route,
+  type RouteComponent,
+} from "../internals.ts";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
 import { Socket, SocketServer } from "effect/unstable/socket";
+import type { HttpApi, HttpApiGroup } from "effect/unstable/httpapi";
+import type { Rpc, RpcGroup } from "effect/unstable/rpc";
 import { createResolver, type ResolverOptions } from "./resolver.ts";
 import { makeRuntime, registerSignalDisposal } from "./runtime.ts";
 import { _setRequestRunner, serializeAtomHydration } from "./hydration.ts";
@@ -65,6 +73,16 @@ export interface CreateEffectAppOptions<AppR, E = never> {
    * an HttpError(500). See ResolverOptions.mapError for details.
    */
   mapError?: (cause: unknown) => Response;
+  /**
+   * strict: throw on invalid plugin mount or runner/hydration conflicts.
+   * compat: warn and continue to preserve legacy behavior.
+   */
+  mountValidationMode?: "strict" | "compat";
+  /**
+   * fail: reject inner runner/hydration hooks.
+   * host-wins: keep host hooks and log warning.
+   */
+  mountConflictPolicy?: "fail" | "host-wins";
 }
 
 /**
@@ -85,13 +103,21 @@ export class EffectApp<State, AppR> {
   // deno-lint-ignore no-explicit-any
   #activeWsRuntimes: Map<ManagedRuntime.ManagedRuntime<any, any>, WebSocket> =
     new Map();
+  #mountValidationMode: "strict" | "compat";
+  #mountConflictPolicy: "fail" | "host-wins";
 
   constructor(
     app: App<State>,
     runtime: ManagedRuntime.ManagedRuntime<AppR, unknown>,
+    options: {
+      mountValidationMode: "strict" | "compat";
+      mountConflictPolicy: "fail" | "host-wins";
+    },
   ) {
     this.#app = app;
     this.#runtime = runtime;
+    this.#mountValidationMode = options.mountValidationMode;
+    this.#mountConflictPolicy = options.mountConflictPolicy;
   }
 
   /** @internal */
@@ -207,26 +233,71 @@ export class EffectApp<State, AppR> {
 
   /**
    * Merge another App instance or typed Plugin into this app at the given path.
-   * Accepts either a plain App<State> or a Plugin<Config, State, R>.
    *
-   * When a Plugin is provided, TypeScript enforces that:
-   * - The plugin's required state shape is compatible with this app's State
-   * - The plugin's service requirements (PluginR) are a subset of the services
-   *   provided by this app's Layer (AppR). Mounting a plugin that requires
-   *   services the host layer does not provide is a compile-time error.
+   * The mounted app/plugin may require only a subset of host state:
+   * `HostState extends MountedState`.
+   *
+   * When a Plugin is provided, TypeScript also enforces that the plugin's
+   * service requirements (PluginR) are a subset of this app's AppR.
    */
-  mountApp<Config, PluginR extends AppR>(
+  mountApp<Config, MountedState, PluginR extends AppR>(
     path: string,
-    plugin: Plugin<Config, State, PluginR>,
+    plugin: Plugin<Config, MountedState, PluginR> &
+      (State extends MountedState ? unknown : never),
   ): this;
-  mountApp(path: string, app: App<State>): this;
+  mountApp<MountedState>(
+    path: string,
+    app: App<MountedState> & (State extends MountedState ? unknown : never),
+  ): this;
   mountApp(
     path: string,
-    appOrPlugin: App<State> | Plugin<unknown, State, unknown>,
+    appOrPlugin: App<unknown> | Plugin<unknown, unknown, unknown>,
   ): this {
-    const inner: App<State> = !(appOrPlugin instanceof App)
-      ? (appOrPlugin as Plugin<unknown, State, unknown>).app
-      : appOrPlugin;
+    const isPlugin = !(appOrPlugin instanceof App);
+    const plugin = isPlugin
+      ? appOrPlugin as Plugin<unknown, unknown, unknown>
+      : undefined;
+    const inner = (isPlugin
+      ? plugin!.app
+      : appOrPlugin as App<unknown>) as App<State>;
+
+    const hostEffectRunner = getEffectRunner(this.#app as App<unknown>);
+    const innerEffectRunner = getEffectRunner(inner as App<unknown>);
+    const hostHydrationHook = getAtomHydrationHookForApp(
+      this.#app as App<unknown>,
+    );
+    const innerHydrationHook = getAtomHydrationHookForApp(
+      inner as App<unknown>,
+    );
+
+    if (
+      this.#mountConflictPolicy === "fail" &&
+      hostEffectRunner !== null &&
+      innerEffectRunner !== null
+    ) {
+      const message =
+        `[freak] mountApp conflict at "${path}": both host and mounted app define effectRunner.`;
+      if (this.#mountValidationMode === "compat") {
+        // deno-lint-ignore no-console
+        console.warn(`${message} Keeping host runner.`);
+      } else {
+        throw new Error(message);
+      }
+    }
+    if (
+      this.#mountConflictPolicy === "fail" &&
+      hostHydrationHook !== null &&
+      innerHydrationHook !== null
+    ) {
+      const message =
+        `[freak] mountApp conflict at "${path}": both host and mounted app define atomHydrationHook.`;
+      if (this.#mountValidationMode === "compat") {
+        // deno-lint-ignore no-console
+        console.warn(`${message} Keeping host hook.`);
+      } else {
+        throw new Error(message);
+      }
+    }
     this.#app.mountApp(path, inner);
     return this;
   }
@@ -264,11 +335,16 @@ export class EffectApp<State, AppR> {
    * app.httpApi("/api", Api, UsersLive);
    * ```
    */
-  // deno-lint-ignore no-explicit-any
-  httpApi(prefix: string, api: any, ...groupLayers: any[]): this {
+  httpApi(
+    prefix: string,
+    api: HttpApi.HttpApi<string, HttpApiGroup.Any>,
+    ...groupLayers: [
+      Layer.Layer<never, unknown, unknown>,
+      ...Array<Layer.Layer<never, unknown, unknown>>,
+    ]
+  ): this {
     // Build the complete API layer: HttpApiBuilder.layer(api) + group impls + infra services
-    // deno-lint-ignore no-explicit-any
-    const groupLayer = Layer.mergeAll(...(groupLayers as [any, ...any[]]));
+    const groupLayer = Layer.mergeAll(...groupLayers);
     const apiLayer = HttpApiBuilder.layer(api).pipe(
       Layer.provide(groupLayer),
       Layer.provide(HttpServer.layerServices),
@@ -279,7 +355,10 @@ export class EffectApp<State, AppR> {
     // (when the user explicitly composes AppLayer into their group layer).
     // deno-lint-ignore no-explicit-any
     const { handler, dispose } = HttpRouter.toWebHandler(apiLayer as any, {
-      memoMap: this.#runtime.memoMap,
+      // Keep HttpApi handlers on an isolated router/runtime cache path.
+      // Sharing memoMap with RPC mounts can surface duplicate route registration
+      // defects in Effect's HttpRouter layer (e.g. "POST / already declared").
+      routerConfig: {},
     });
 
     // Store disposer for cleanup
@@ -360,13 +439,11 @@ export class EffectApp<State, AppR> {
    * });
    * ```
    */
-  rpc(options: {
-    // deno-lint-ignore no-explicit-any
-    group: any;
+  rpc<Rpcs extends Rpc.Any>(options: {
+    group: RpcGroup.RpcGroup<Rpcs>;
     path: string;
     protocol: "http" | "http-stream" | "sse" | "websocket";
-    // deno-lint-ignore no-explicit-any
-    handlerLayer: any;
+    handlerLayer: Layer.Layer<Rpc.ToHandler<Rpcs>, unknown, unknown>;
     /**
      * Optional list of allowed origins for WebSocket connections.
      * When provided, the `Origin` request header must match one of the listed
@@ -415,7 +492,28 @@ export class EffectApp<State, AppR> {
       const httpHandler = async (ctx: Context<State>) => {
         const url = new URL(ctx.req.url);
         url.pathname = url.pathname.slice(options.path.length) || "/";
-        const rewritten = new Request(url.toString(), ctx.req);
+        // If the Fresh middleware validated or refreshed the session (e.g. rotating
+        // cookie auth) and stored the JWT in ctx.state.jwtToken, inject it as
+        // Authorization: Bearer so the Effect RPC middleware can authenticate the
+        // request. This handles the case where ae_at has expired and been silently
+        // refreshed server-side — the original request has no ae_at cookie, but
+        // ctx.state.jwtToken holds the valid token from the upstream middleware.
+        // deno-lint-ignore no-explicit-any
+        const stateJwt = ((ctx.state as Record<string, unknown>)?.jwtToken) as
+          | string
+          | undefined;
+        let rewritten: Request;
+        if (stateJwt && !ctx.req.headers.has("authorization")) {
+          const headers = new Headers(ctx.req.headers);
+          headers.set("authorization", `Bearer ${stateJwt}`);
+          rewritten = new Request(url.toString(), {
+            method: ctx.req.method,
+            headers,
+            body: ctx.req.body,
+          } as RequestInit);
+        } else {
+          rewritten = new Request(url.toString(), ctx.req);
+        }
         // deno-lint-ignore no-explicit-any
         return await (handler as any)(rewritten);
       };
@@ -958,7 +1056,7 @@ export class EffectApp<State, AppR> {
 /**
  * Create an `EffectApp` — an Effect-aware wrapper around Fresh's `App<State>`.
  *
- * This is the primary entry point for the `@fresh/effect` v2 API. It:
+ * This is the primary entry point for the `@fresh/core/effect` v2 API. It:
  * 1. Creates an `App<State>` instance
  * 2. Creates a `ManagedRuntime` from the provided Layer
  * 3. Calls `setEffectRunner(app, runner)` so Effect-returning handlers work
@@ -970,7 +1068,7 @@ export class EffectApp<State, AppR> {
  *
  * @example
  * ```typescript
- * import { createEffectApp } from "@fresh/effect";
+ * import { createEffectApp } from "@fresh/core/effect";
  * import { DbLayer } from "./layers.ts";
  *
  * const app = createEffectApp<AppState, typeof DbService>({ layer: DbLayer });
@@ -1018,6 +1116,10 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
   const effectApp = new EffectApp<State, AppR>(
     app,
     runtime as ManagedRuntime.ManagedRuntime<AppR, unknown>,
+    {
+      mountValidationMode: options.mountValidationMode ?? "strict",
+      mountConflictPolicy: options.mountConflictPolicy ?? "fail",
+    },
   );
   // Register signal disposal AFTER creating EffectApp so that SIGINT/SIGTERM
   // calls effectApp.dispose() — which disposes ALL resources (httpApi sub-handlers

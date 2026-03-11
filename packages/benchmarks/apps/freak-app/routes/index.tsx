@@ -1,5 +1,5 @@
 import { page } from "@fresh/core";
-import { setAtom } from "@fresh/effect";
+import { setAtom } from "@fresh/core/effect";
 import Counter from "../islands/Counter.tsx";
 import { counterAtom } from "../atoms.ts";
 

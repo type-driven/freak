@@ -17,7 +17,7 @@ import {
   setCacheData,
   useMutation,
   useRpcQuery,
-} from "@fresh/effect/island";
+} from "@fresh/core/effect/island";
 import { Effect } from "effect";
 import { RpcClient } from "effect/unstable/rpc";
 import { TodoRpc } from "../services/rpc.ts";

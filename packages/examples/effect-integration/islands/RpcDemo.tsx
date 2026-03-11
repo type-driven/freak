@@ -10,7 +10,7 @@
  */
 
 import { useState } from "preact/hooks";
-import { useRpcResult, useRpcStream } from "@fresh/effect/island";
+import { useRpcResult, useRpcStream } from "@fresh/core/effect/island";
 import { TodoRpc } from "../services/rpc.ts";
 
 export default function RpcDemo() {

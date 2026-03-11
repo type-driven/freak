@@ -1,7 +1,7 @@
 # freak
 
 **Fresh 2 + Effect-TS.** A fork of [@fresh/core](https://jsr.io/@fresh/core)
-that adds first-class [Effect](https://effect.website/) integration for typed
+that adds first-class [Effect](https://core/effect.website/) integration for typed
 services, structured errors, and full-stack RPC.
 
 ## Packages
@@ -9,8 +9,8 @@ services, structured errors, and full-stack RPC.
 | Package                                                       | Description                                                                         |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | [`@fresh/core`](./packages/fresh/)                            | Fresh 2 framework (forked)                                                          |
-| [`@fresh/effect`](./packages/effect/)                         | Effect integration — `createEffectApp`, HTTP API, RPC, atom hydration, client hooks |
-| [`@fresh/plugin-effect`](./packages/plugin-effect/)           | Re-export shim (backward compat — prefer `@fresh/effect`)                           |
+| [`@fresh/core/effect`](./packages/core/effect/)                         | Effect integration — `createEffectApp`, HTTP API, RPC, atom hydration, client hooks |
+| [`@fresh/plugin-effect`](./packages/plugin-effect/)           | Re-export shim (backward compat — prefer `@fresh/core/effect`)                           |
 | [`@fresh/plugin-tailwindcss`](./packages/plugin-tailwindcss/) | Tailwind CSS v4 plugin                                                              |
 
 ## Getting started
@@ -19,7 +19,7 @@ services, structured errors, and full-stack RPC.
 # Clone and run the example app
 git clone https://github.com/type-driven/freak
 cd freak
-deno task --cwd packages/examples/effect-integration dev
+deno task --cwd packages/examples/core/effect-integration dev
 ```
 
 ## Usage
@@ -28,7 +28,7 @@ deno task --cwd packages/examples/effect-integration dev
 
 ```ts
 // main.ts
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import { staticFiles } from "@fresh/core";
 import { AppLayer } from "./layers.ts";
 
@@ -49,7 +49,7 @@ export const appInstance = app
 
 ```ts
 // routes/todos.ts
-import { createEffectDefine } from "@fresh/effect";
+import { createEffectDefine } from "@fresh/core/effect";
 import { Effect } from "effect";
 import { TodoService } from "../services/TodoService.ts";
 
@@ -166,7 +166,7 @@ app.rpc({
 
 ```tsx
 // islands/TodoApp.tsx
-import { useRpcResult, useRpcStream } from "@fresh/effect/island";
+import { useRpcResult, useRpcStream } from "@fresh/core/effect/island";
 import { TodoRpc } from "../services/rpc.ts";
 
 export default function TodoApp() {
@@ -219,7 +219,7 @@ import {
   useRpcResult, // Request/response RPC — returns [state, client proxy]
   useRpcSse, // SSE streaming
   useRpcStream, // WebSocket streaming
-} from "@fresh/effect/island";
+} from "@fresh/core/effect/island";
 ```
 
 All hooks share a module-level `ManagedRuntime` backed by `FetchHttpClient`.
@@ -232,7 +232,7 @@ Seed client-side state from the server without prop drilling. No setup required
 
 ```ts
 // routes/index.tsx (server)
-import { setAtom } from "@fresh/effect";
+import { setAtom } from "@fresh/core/effect";
 import { todoListAtom } from "../atoms.ts";
 
 export const handlers = define.handlers({
@@ -248,7 +248,7 @@ export const handlers = define.handlers({
 
 ```tsx
 // islands/TodoApp.tsx (client)
-import { useAtom } from "@fresh/effect/island";
+import { useAtom } from "@fresh/core/effect/island";
 import { todoListAtom } from "../atoms.ts";
 
 export default function TodoApp() {
@@ -280,7 +280,7 @@ memoMap to prevent stale protocol state across reconnections. Shared services
 
 ## Project status
 
-Built on [Effect v4 beta](https://github.com/Effect-TS/effect). The core
+Built on [Effect v4 beta](https://github.com/Effect-TS/core/effect). The core
 integration patterns are stable and tested, but the upstream Effect API is still
 evolving. Not recommended for production until Effect v4 reaches a stable
 release.

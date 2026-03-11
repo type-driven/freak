@@ -22,7 +22,7 @@
  *
  * Usage:
  * ```typescript
- * import { useRpcResult, useRpcStream } from "@fresh/effect/island";
+ * import { useRpcResult, useRpcStream } from "@fresh/core/effect/island";
  * import { TodoRpc } from "../rpc/todo.ts";
  *
  * export default function TodoIsland() {
@@ -56,34 +56,124 @@ import type { Rpc } from "effect/unstable/rpc";
 // Internal helpers
 // ──────────────────────────────────────────────────────────────────────────────
 
-/**
- * Typed record for dynamic RPC procedure dispatch on a client proxy.
- *
- * Covers both request/response procedures (return `Effect`) and streaming
- * procedures (return `Stream`), eliminating double-casts at call sites.
- */
-type RpcProxyCall = Record<
-  string,
-  (
-    payload?: unknown,
-  ) => // deno-lint-ignore no-explicit-any
-  | Effect.Effect<unknown, unknown, any>
-  // deno-lint-ignore no-explicit-any
-  | Stream.Stream<unknown, unknown, any>
+type ProcedureName<Rpcs extends Rpc.Any> = Rpcs["_tag"] & string;
+
+type RpcByTag<Rpcs extends Rpc.Any, K extends ProcedureName<Rpcs>> = Extract<
+  Rpcs,
+  { _tag: K }
 >;
+
+type NonStreamingProcedureName<Rpcs extends Rpc.Any> = {
+  [K in ProcedureName<Rpcs>]: Rpc.Success<RpcByTag<Rpcs, K>> extends
+    Stream.Stream<unknown, unknown, unknown> ? never : K;
+}[ProcedureName<Rpcs>];
+
+type StreamingProcedureName<Rpcs extends Rpc.Any> = {
+  [K in ProcedureName<Rpcs>]: Rpc.Success<RpcByTag<Rpcs, K>> extends
+    Stream.Stream<unknown, unknown, unknown> ? K : never;
+}[ProcedureName<Rpcs>];
+
+type ProcedurePayload<
+  Rpcs extends Rpc.Any,
+  K extends ProcedureName<Rpcs>,
+> = Rpc.PayloadConstructor<RpcByTag<Rpcs, K>>;
+
+type ProcedureSuccess<
+  Rpcs extends Rpc.Any,
+  K extends ProcedureName<Rpcs>,
+> = Rpc.Success<RpcByTag<Rpcs, K>>;
+
+type ProcedureError<
+  Rpcs extends Rpc.Any,
+  K extends ProcedureName<Rpcs>,
+> = Rpc.Error<RpcByTag<Rpcs, K>>;
+
+type StreamingChunk<
+  Rpcs extends Rpc.Any,
+  K extends StreamingProcedureName<Rpcs>,
+> = ProcedureSuccess<Rpcs, K> extends Stream.Stream<infer A, unknown, unknown>
+  ? A
+  : never;
+
+type RpcResultClient<Rpcs extends Rpc.Any> = {
+  [K in NonStreamingProcedureName<Rpcs>]: (
+    ...args: [ProcedurePayload<Rpcs, K>] extends [void]
+      ? [payload?: ProcedurePayload<Rpcs, K>]
+      : [payload: ProcedurePayload<Rpcs, K>]
+  ) => Promise<ProcedureSuccess<Rpcs, K>>;
+};
+
+function invokeRpcRequest<
+  Rpcs extends Rpc.Any,
+  K extends NonStreamingProcedureName<Rpcs>,
+>(
+  client: RpcClient.RpcClient<Rpcs>,
+  procedure: K,
+  payload: ProcedurePayload<Rpcs, K>,
+): Effect.Effect<ProcedureSuccess<Rpcs, K>, ProcedureError<Rpcs, K>, never> {
+  const call = client[procedure] as (
+    payload: ProcedurePayload<Rpcs, K>,
+  ) => Effect.Effect<ProcedureSuccess<Rpcs, K>, ProcedureError<Rpcs, K>, never>;
+  return call(payload);
+}
+
+function invokeRpcStream<
+  Rpcs extends Rpc.Any,
+  K extends StreamingProcedureName<Rpcs>,
+>(
+  client: RpcClient.RpcClient<Rpcs>,
+  procedure: K,
+  payload: ProcedurePayload<Rpcs, K>,
+): Stream.Stream<StreamingChunk<Rpcs, K>, ProcedureError<Rpcs, K>, never> {
+  const call = client[procedure] as (
+    payload: ProcedurePayload<Rpcs, K>,
+  ) => Stream.Stream<StreamingChunk<Rpcs, K>, ProcedureError<Rpcs, K>, never>;
+  return call(payload);
+}
+
+/**
+ * layerJson.decode wraps the parsed value in [parsed], but the RpcServer HTTP
+ * protocol collects all responses and sends JSON.stringify([...responses]),
+ * so the body is already a JSON array. Wrapping it again produces [[...]] and
+ * writeResponse receives an array with no _tag, silently dropping the message.
+ *
+ * This fixed layer returns the parsed value directly when it is already an
+ * array, matching the server's encode(responses) → JSON.stringify(array) path.
+ */
+const layerJsonFixed = Layer.succeed(RpcSerialization.RpcSerialization)(
+  RpcSerialization.RpcSerialization.of({
+    contentType: "application/json",
+    includesFraming: false,
+    makeUnsafe: () => {
+      const decoder = new TextDecoder();
+      return {
+        decode: (bytes: Uint8Array | string) => {
+          const parsed = JSON.parse(
+            typeof bytes === "string" ? bytes : decoder.decode(bytes),
+          );
+          // If the server sent an array of responses (the normal HTTP path),
+          // return it directly instead of wrapping in another array.
+          return Array.isArray(parsed) ? parsed : [parsed];
+        },
+        encode: (response: unknown) => JSON.stringify(response),
+      };
+    },
+  }),
+);
 
 /**
  * Build the HTTP transport layer for RPC calls.
  *
- * Dependency chain: layerProtocolHttp ← layerJson ← FetchHttpClient.layer
+ * Dependency chain: layerProtocolHttp ← layerJsonFixed ← FetchHttpClient.layer
  *
  * Exported so island authors can build a typed ManagedRuntime for mutations
  * that share the browser runtime's memoMap (same pattern as `useRpcQuery`).
  */
-// deno-lint-ignore no-explicit-any
-export function makeRpcHttpLayer(url: string): Layer.Layer<any, never, never> {
+export function makeRpcHttpLayer(
+  url: string,
+): Layer.Layer<RpcClient.Protocol, never, never> {
   return RpcClient.layerProtocolHttp({ url }).pipe(
-    Layer.provide(RpcSerialization.layerJson),
+    Layer.provide(layerJsonFixed),
     Layer.provide(FetchHttpClient.layer),
   );
 }
@@ -157,8 +247,11 @@ function getBrowserRuntime(): ManagedRuntime.ManagedRuntime<any, never> {
  * Useful for island authors who want to run arbitrary effects using
  * the same runtime (and memoMap) as the built-in hooks.
  */
-// deno-lint-ignore no-explicit-any
-export function useBrowserRuntime(): ManagedRuntime.ManagedRuntime<any, never> {
+export function useBrowserRuntime(): ManagedRuntime.ManagedRuntime<
+  // deno-lint-ignore no-explicit-any
+  any,
+  never
+> {
   return getBrowserRuntime();
 }
 
@@ -429,16 +522,24 @@ export function useMutation<A, E, Payload, Ctx = void>(
  * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
  * @param options.enabled - If false, skip automatic fetching (default: true)
  */
-export function useRpcQuery<Rpcs extends Rpc.Any>(
+export function useRpcQuery<
+  Rpcs extends Rpc.Any,
+  Proc extends NonStreamingProcedureName<Rpcs>,
+>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: {
     key: string;
     url: string;
-    procedure: string;
-    payload?: unknown;
+    procedure: Proc;
+    payload?: ProcedurePayload<Rpcs, Proc>;
     enabled?: boolean;
   },
-): { data: unknown; error: unknown; isLoading: boolean; refetch: () => void } {
+): {
+  data: ProcedureSuccess<Rpcs, Proc> | undefined;
+  error: ProcedureError<Rpcs, Proc> | undefined;
+  isLoading: boolean;
+  refetch: () => void;
+} {
   const layer = useMemo(() => makeRpcHttpLayer(options.url), [options.url]);
 
   // Create a ManagedRuntime per URL change, sharing the browser runtime's
@@ -458,29 +559,31 @@ export function useRpcQuery<Rpcs extends Rpc.Any>(
     };
   }, [layer]);
 
-  // The effect uses the runtime's provided services — no Effect.provide needed.
-  // Cast to Effect<any,any,never> since the runtime satisfies R at execution time.
-  const effect = useMemo(
+  const effect = useMemo<
+    Effect.Effect<ProcedureSuccess<Rpcs, Proc>, ProcedureError<Rpcs, Proc>, never>
+  >(
     () =>
       Effect.scoped(
         Effect.gen(function* () {
           yield* Effect.logDebug(
             "[useRpcQuery] making RPC client for: " + options.procedure,
           );
-          // deno-lint-ignore no-explicit-any
-          const client = yield* RpcClient.make(group as any);
-          const result = yield* (
-            (client as unknown as RpcProxyCall)[options.procedure](
-              options.payload,
-            ) as Effect.Effect<unknown, unknown, never>
+          const client = yield* RpcClient.make(group);
+          const result = yield* invokeRpcRequest(
+            client,
+            options.procedure,
+            options.payload as ProcedurePayload<Rpcs, Proc>,
           );
           yield* Effect.logDebug(
             "[useRpcQuery] got result for: " + options.procedure,
           );
           return result;
         }),
-        // deno-lint-ignore no-explicit-any
-      ) as Effect.Effect<any, any, never>,
+      ) as Effect.Effect<
+        ProcedureSuccess<Rpcs, Proc>,
+        ProcedureError<Rpcs, Proc>,
+        never
+      >,
     [group, options.procedure, options.payload],
   );
 
@@ -525,9 +628,19 @@ export function useRpcQuery<Rpcs extends Rpc.Any>(
 export function useRpcResult<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: { url: string },
-  // deno-lint-ignore no-explicit-any
-): [RpcResultState<any, any>, RpcProxyCall] {
-  const [state, setState] = useState<RpcResultState<unknown, unknown>>({
+): [
+  RpcResultState<
+    ProcedureSuccess<Rpcs, NonStreamingProcedureName<Rpcs>>,
+    ProcedureError<Rpcs, NonStreamingProcedureName<Rpcs>>
+  >,
+  RpcResultClient<Rpcs>,
+] {
+  const [state, setState] = useState<
+    RpcResultState<
+      ProcedureSuccess<Rpcs, NonStreamingProcedureName<Rpcs>>,
+      ProcedureError<Rpcs, NonStreamingProcedureName<Rpcs>>
+    >
+  >({
     _tag: "idle",
   });
   const unmountedRef = useRef(false);
@@ -560,39 +673,43 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
   // Stable proxy — created once and stored in a ref so the returned `client`
   // reference is stable across re-renders. Handlers close over runtimeRef so
   // they always use the current runtime.
-  const proxyRef = useRef<RpcProxyCall | null>(null);
+  const proxyRef = useRef<RpcResultClient<Rpcs> | null>(null);
   if (!proxyRef.current) {
-    proxyRef.current = new Proxy({} as unknown as RpcProxyCall, {
-      get: (_target, prop: string) => (payload?: unknown) => {
+    proxyRef.current = new Proxy({} as RpcResultClient<Rpcs>, {
+      get: (_target, prop: string) => (payload?: unknown): Promise<unknown> => {
+        const procedure = prop as NonStreamingProcedureName<Rpcs>;
         setState({ _tag: "loading" });
         const effect = Effect.scoped(
           Effect.gen(function* () {
-            // deno-lint-ignore no-explicit-any
-            const c = yield* RpcClient.make(group as any);
-            return yield* (
-              (c as unknown as RpcProxyCall)[prop](payload) as Effect.Effect<
-                unknown,
-                unknown,
-                never
-              >
+            const c = yield* RpcClient.make(group);
+            return yield* invokeRpcRequest(
+              c,
+              procedure,
+              payload as ProcedurePayload<Rpcs, typeof procedure>,
             );
           }),
-        ) as Effect.Effect<unknown, unknown, never>;
+        );
         const rt = runtimeRef.current;
-        (rt ? rt.runPromise(effect) : Effect.runPromise(effect)).then(
+        if (!rt) {
+          return Promise.reject(
+            new Error("[useRpcResult] runtime not initialized"),
+          );
+        }
+        return rt.runPromise(effect).then(
           (value) => {
             if (!unmountedRef.current) setState({ _tag: "ok", value });
+            return value;
           },
           (error) => {
             if (!unmountedRef.current) setState({ _tag: "err", error });
+            throw error;
           },
         );
       },
     });
   }
 
-  // deno-lint-ignore no-explicit-any
-  return [state as RpcResultState<any, any>, proxyRef.current];
+  return [state, proxyRef.current];
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -613,34 +730,36 @@ export function useRpcResult<Rpcs extends Rpc.Any>(
  * @param payload - Optional procedure payload
  * @param deps - useEffect dependency array (should list everything that changes layer/procedure/payload)
  */
-function useStreamingRpc<Rpcs extends Rpc.Any>(
+function useStreamingRpc<
+  Rpcs extends Rpc.Any,
+  Proc extends StreamingProcedureName<Rpcs>,
+>(
   group: RpcGroup.RpcGroup<Rpcs>,
-  // deno-lint-ignore no-explicit-any
-  layer: Layer.Layer<any, any, never>,
-  procedure: string,
-  payload: unknown,
+  layer: Layer.Layer<RpcClient.Protocol, unknown, never>,
+  procedure: Proc,
+  payload: ProcedurePayload<Rpcs, Proc> | undefined,
   deps: readonly unknown[],
-  // deno-lint-ignore no-explicit-any
-): RpcStreamState<any, any> {
-  const [state, setState] = useState<RpcStreamState<unknown, unknown>>({
+): RpcStreamState<StreamingChunk<Rpcs, Proc>, ProcedureError<Rpcs, Proc>> {
+  const [state, setState] = useState<
+    RpcStreamState<StreamingChunk<Rpcs, Proc>, ProcedureError<Rpcs, Proc>>
+  >({
     _tag: "connecting",
   });
 
   useEffect(() => {
     // Share the browser runtime's memoMap so already-built services aren't duplicated.
-    // deno-lint-ignore no-explicit-any
-    const runtime = ManagedRuntime.make(layer as any, {
+    const runtime = ManagedRuntime.make(layer, {
       memoMap: getBrowserRuntime().memoMap,
     });
 
     const effect: Effect.Effect<void, unknown, never> = Effect.scoped(
       Effect.gen(function* () {
-        // deno-lint-ignore no-explicit-any
-        const client = yield* RpcClient.make(group as any);
-        // Streaming procedures return Stream directly (not Effect<Stream>), so no yield*.
-        const stream = (client as unknown as RpcProxyCall)[procedure](
-          payload,
-        ) as Stream.Stream<unknown, unknown, never>;
+        const client = yield* RpcClient.make(group);
+        const stream = invokeRpcStream(
+          client,
+          procedure,
+          payload as ProcedurePayload<Rpcs, Proc>,
+        );
         setState({ _tag: "connected", latest: null });
         yield* Stream.runForEach(
           stream,
@@ -648,8 +767,7 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
             Effect.sync(() => setState({ _tag: "connected", latest: value })),
         );
       }),
-      // deno-lint-ignore no-explicit-any
-    ) as any;
+    ) as Effect.Effect<void, unknown, never>;
 
     runtime.runPromise(effect).then(
       () => setState({ _tag: "closed" }),
@@ -662,8 +780,7 @@ function useStreamingRpc<Rpcs extends Rpc.Any>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
-  // deno-lint-ignore no-explicit-any
-  return state as RpcStreamState<any, any>;
+  return state;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -719,17 +836,22 @@ function resolveWsUrl(url: string): string {
  * }
  * ```
  */
-export function useRpcStream<Rpcs extends Rpc.Any>(
+export function useRpcStream<
+  Rpcs extends Rpc.Any,
+  Proc extends StreamingProcedureName<Rpcs>,
+>(
   group: RpcGroup.RpcGroup<Rpcs>,
-  options: { url: string; procedure: string; payload?: unknown },
-  // deno-lint-ignore no-explicit-any
-): RpcStreamState<any, any> {
+  options: {
+    url: string;
+    procedure: Proc;
+    payload?: ProcedurePayload<Rpcs, Proc>;
+  },
+): RpcStreamState<StreamingChunk<Rpcs, Proc>, ProcedureError<Rpcs, Proc>> {
   const wsUrl = resolveWsUrl(options.url);
   const layer = RpcClient.layerProtocolSocket().pipe(
     Layer.provide(RpcSerialization.layerNdjson),
     Layer.provide(BrowserSocket.layerWebSocket(wsUrl)),
-    // deno-lint-ignore no-explicit-any
-  ) as unknown as Layer.Layer<any, any, never>;
+  ) as Layer.Layer<RpcClient.Protocol, never, never>;
   return useStreamingRpc(
     group,
     layer,
@@ -763,16 +885,22 @@ export function useRpcStream<Rpcs extends Rpc.Any>(
  * @param options.procedure - The name of the streaming procedure
  * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
  */
-export function useRpcHttpStream<Rpcs extends Rpc.Any>(
+export function useRpcHttpStream<
+  Rpcs extends Rpc.Any,
+  Proc extends StreamingProcedureName<Rpcs>,
+>(
   group: RpcGroup.RpcGroup<Rpcs>,
-  options: { url: string; procedure: string; payload?: unknown },
-  // deno-lint-ignore no-explicit-any
-): RpcStreamState<any, any> {
+  options: {
+    url: string;
+    procedure: Proc;
+    payload?: ProcedurePayload<Rpcs, Proc>;
+  },
+): RpcStreamState<StreamingChunk<Rpcs, Proc>, ProcedureError<Rpcs, Proc>> {
   // layerNdjson (includesFraming=true) → server streams chunks, client reads r.stream.
   const layer = RpcClient.layerProtocolHttp({ url: options.url }).pipe(
     Layer.provide(RpcSerialization.layerNdjson),
     Layer.provide(FetchHttpClient.layer),
-  );
+  ) as Layer.Layer<RpcClient.Protocol, never, never>;
   return useStreamingRpc(
     group,
     layer,
@@ -813,11 +941,26 @@ export function useRpcHttpStream<Rpcs extends Rpc.Any>(
  * @param options.procedure - The procedure name (e.g., "WatchTodos")
  * @param options.payload - Optional payload to send as ?payload=<json>
  */
+export function useRpcSse<
+  Rpcs extends Rpc.Any,
+  Proc extends StreamingProcedureName<Rpcs>,
+>(
+  group: RpcGroup.RpcGroup<Rpcs>,
+  options: {
+    url: string;
+    procedure: Proc;
+    payload?: ProcedurePayload<Rpcs, Proc>;
+  },
+): RpcStreamState<StreamingChunk<Rpcs, Proc>, ProcedureError<Rpcs, Proc>>;
+export function useRpcSse(options: {
+  url: string;
+  procedure: string;
+  payload?: unknown;
+}): RpcStreamState<unknown, unknown>;
 export function useRpcSse(
   groupOrOptions: unknown,
   maybeOptions?: { url: string; procedure: string; payload?: unknown },
-  // deno-lint-ignore no-explicit-any
-): RpcStreamState<any, any> {
+): RpcStreamState<unknown, unknown> {
   const options = (maybeOptions ?? groupOrOptions) as {
     url: string;
     procedure: string;
@@ -904,17 +1047,21 @@ export function useRpcSse(
  * @param options.interval - Poll interval in milliseconds (default: 2000)
  * @param options.payload - Optional payload (defaults to `undefined` / Schema.Void)
  */
-export function useRpcPolled<Rpcs extends Rpc.Any>(
+export function useRpcPolled<
+  Rpcs extends Rpc.Any,
+  Proc extends NonStreamingProcedureName<Rpcs>,
+>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options: {
     url: string;
-    procedure: string;
+    procedure: Proc;
     interval?: number;
-    payload?: unknown;
+    payload?: ProcedurePayload<Rpcs, Proc>;
   },
-  // deno-lint-ignore no-explicit-any
-): RpcStreamState<any, any> {
-  const [state, setState] = useState<RpcStreamState<unknown, unknown>>({
+): RpcStreamState<ProcedureSuccess<Rpcs, Proc>, ProcedureError<Rpcs, Proc>> {
+  const [state, setState] = useState<
+    RpcStreamState<ProcedureSuccess<Rpcs, Proc>, ProcedureError<Rpcs, Proc>>
+  >({
     _tag: "connected",
     latest: null,
   });
@@ -930,17 +1077,24 @@ export function useRpcPolled<Rpcs extends Rpc.Any>(
     const intervalMs = options.interval ?? 2000;
 
     const runPoll = () => {
-      const effect = Effect.scoped(
+      const effect: Effect.Effect<
+        ProcedureSuccess<Rpcs, Proc>,
+        ProcedureError<Rpcs, Proc>,
+        never
+      > = Effect.scoped(
         Effect.gen(function* () {
-          // deno-lint-ignore no-explicit-any
-          const client = yield* RpcClient.make(group as any);
-          return yield* (
-            (client as unknown as RpcProxyCall)[options.procedure](
-              options.payload,
-            ) as Effect.Effect<unknown, unknown, never>
+          const client = yield* RpcClient.make(group);
+          return yield* invokeRpcRequest(
+            client,
+            options.procedure,
+            options.payload as ProcedurePayload<Rpcs, Proc>,
           );
         }),
-      ) as Effect.Effect<unknown, unknown, never>;
+      ) as Effect.Effect<
+        ProcedureSuccess<Rpcs, Proc>,
+        ProcedureError<Rpcs, Proc>,
+        never
+      >;
 
       runtime.runPromise(effect).then(
         (value) => {

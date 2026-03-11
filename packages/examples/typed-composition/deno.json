@@ -6,9 +6,11 @@
   "imports": {
     "@fresh/core": "../../fresh/src/mod.ts",
     "@fresh/core/dev": "../../fresh/src/dev/mod.ts",
-    "@fresh/core/runtime": "jsr:@fresh/core@^2.0.0/runtime",
+    "@fresh/core/runtime": "../../fresh/src/runtime/shared.ts",
     "@fresh/core/internal": "../../fresh/src/internals.ts",
-    "@fresh/effect": "../../effect/src/mod.ts",
+    "@fresh/core/effect": "../../fresh/src/effect/mod.ts",
+    "@fresh/core/effect/island": "../../fresh/src/effect/island.ts",
+    "@fresh/core/effect/island-atoms": "../../fresh/src/effect/island-atoms.ts",
     "effect": "npm:effect@^4.0.0-beta.20",
     "effect/Schema": "npm:effect@^4.0.0-beta.20/Schema",
     "effect/unstable/reactivity/Atom": "npm:effect@^4.0.0-beta.20/unstable/reactivity/Atom",

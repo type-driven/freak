@@ -1,4 +1,4 @@
-import { useAtom } from "@fresh/effect/island-atoms";
+import { useAtom } from "@fresh/core/effect/island-atoms";
 import { counterAtom } from "../atoms.ts";
 
 export default function Counter() {

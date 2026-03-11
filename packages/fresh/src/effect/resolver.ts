@@ -1,5 +1,5 @@
 import { Effect, Exit, type ManagedRuntime } from "effect";
-import { HttpError } from "@fresh/core";
+import { HttpError } from "../error.ts";
 
 /**
  * Check whether a value is an Effect, using the official Effect.isEffect guard.
@@ -25,13 +25,7 @@ export interface ResolverOptions {
 }
 
 /**
- * Create the resolver callback that createEffectApp() wraps as an EffectRunner
- * and registers via setEffectRunner(). The resolver:
- * 1. Checks if the handler return value is an Effect (via isEffect)
- * 2. If not, returns the value unchanged (pass-through)
- * 3. If yes, runs it via runtime.runPromiseExit
- * 4. On success, returns the unwrapped value
- * 5. On failure, delegates to mapError or throws HttpError(500)
+ * Create the resolver callback that createEffectApp() wraps as an EffectRunner.
  */
 export function createResolver(
   // deno-lint-ignore no-explicit-any
@@ -43,7 +37,6 @@ export function createResolver(
       return value;
     }
 
-    // Cast is safe: isEffect confirmed the TypeId key exists
     const exit = await runtime.runPromiseExit(
       value as Effect.Effect<unknown, unknown, unknown>,
     );
@@ -52,14 +45,10 @@ export function createResolver(
       return exit.value;
     }
 
-    // Failure path
     if (options.mapError) {
       return options.mapError(exit.cause);
     }
 
-    // Default: throw HttpError(500) so Fresh's error handling chain
-    // (_error.tsx / app.onError) renders a proper error page.
-    // Raw Cause is intentionally omitted to avoid leaking sensitive internals.
     throw new HttpError(500, "Internal Server Error");
   };
 }

@@ -22,7 +22,7 @@
 import { launch } from "@astral/astral";
 import { expect } from "@std/expect";
 import { App } from "@fresh/core";
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import * as Layer from "effect/Layer";
 import { CounterLive, createCounterPlugin } from "./counter_plugin.tsx";
 import { createGreetingPlugin, GreetingLive } from "./greeting_plugin.tsx";

@@ -13,7 +13,7 @@
  */
 
 import { App, createPlugin, type Plugin } from "@fresh/core";
-import { runEffect, setAtom } from "@fresh/effect";
+import { runEffect, setAtom } from "@fresh/core/effect";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as ServiceMap from "effect/ServiceMap";
@@ -47,6 +47,19 @@ export const greetingAtom = Atom.serializable(Atom.make(""), {
   schema: Schema.String,
 });
 
+function getAuthFields(
+  state: unknown,
+): { requestId?: string; userId?: string } {
+  if (typeof state !== "object" || state === null) return {};
+  const record = state as Record<string, unknown>;
+  return {
+    requestId: typeof record.requestId === "string"
+      ? record.requestId
+      : undefined,
+    userId: typeof record.userId === "string" ? record.userId : undefined,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Plugin app factory
 // ---------------------------------------------------------------------------
@@ -70,15 +83,14 @@ export function createGreetingPlugin<S = unknown>(): Plugin<
           ctx,
           Effect.gen(function* () {
             const svc = yield* GreetingService;
-            // Access typed auth state from host middleware — no cast needed.
-            // ctx.state is typed as S; when S = AuthState these fields exist.
-            const requestId = (ctx.state as { requestId?: string }).requestId ??
-              "unknown";
-            const userId = (ctx.state as { userId?: string }).userId ??
-              "unknown";
+            const { requestId, userId } = getAuthFields(ctx.state);
             const greeting = svc.getGreeting("World");
             setAtom(ctx, greetingAtom, greeting);
-            return Response.json({ greeting, requestId, userId });
+            return Response.json({
+              greeting,
+              requestId: requestId ?? "unknown",
+              userId: userId ?? "unknown",
+            });
           }),
         ));
 

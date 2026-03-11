@@ -50,7 +50,7 @@ export const sliderAtom = Atom.make(50);
 ```
 
 ```tsx islands/SynchronizedSlider.tsx
-import { useAtom } from "@fresh/effect/island";
+import { useAtom } from "@fresh/core/effect/island";
 import { sliderAtom } from "../atoms/slider.ts";
 
 export default function SynchronizedSlider() {
@@ -95,7 +95,7 @@ export const cartAtom = Atom.serializable({
 ```
 
 ```tsx islands/AddToCart.tsx
-import { useAtom } from "@fresh/effect/island";
+import { useAtom } from "@fresh/core/effect/island";
 import { cartAtom } from "../atoms/cart.ts";
 
 export default function AddToCart(props: { product: string }) {
@@ -110,7 +110,7 @@ export default function AddToCart(props: { product: string }) {
 ```
 
 ```tsx islands/Cart.tsx
-import { useAtomSet, useAtomValue } from "@fresh/effect/island";
+import { useAtomSet, useAtomValue } from "@fresh/core/effect/island";
 import { cartAtom } from "../atoms/cart.ts";
 
 export default function Cart() {
@@ -152,7 +152,7 @@ handler:
 
 ```tsx routes/cart.tsx
 import { page } from "@fresh/core";
-import { setAtom } from "@fresh/effect";
+import { setAtom } from "@fresh/core/effect";
 import { define } from "@/utils.ts";
 import { Effect } from "effect";
 import { CartService } from "@/services/CartService.ts";

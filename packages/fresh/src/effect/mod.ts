@@ -7,8 +7,14 @@ export type {
   EffectHandlerFn,
   EffectRouteHandler,
 } from "./define.ts";
-export { isEffect } from "./resolver.ts";
+export { createResolver, isEffect } from "./resolver.ts";
+export type { ResolverOptions } from "./resolver.ts";
+export { makeRuntime, registerSignalDisposal } from "./runtime.ts";
 export type { Layer, ManagedRuntime } from "./types.ts";
-
-// Atom hydration helpers + plugin runner
-export { runEffect, serializeAtomHydration, setAtom } from "./hydration.ts";
+export {
+  _initAtomHydrationMap,
+  _setRequestRunner,
+  runEffect,
+  serializeAtomHydration,
+  setAtom,
+} from "./hydration.ts";

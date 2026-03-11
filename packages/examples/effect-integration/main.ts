@@ -1,5 +1,5 @@
 import { HttpError, staticFiles } from "@fresh/core";
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import { Cause, Layer } from "effect";
 import { AppLayer } from "./services/layers.ts";
 import { NotFoundError } from "./services/errors.ts";

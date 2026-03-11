@@ -1,5 +1,5 @@
 /**
- * Unit tests for server-side atom hydration primitives in @fresh/effect.
+ * Unit tests for server-side atom hydration primitives in @fresh/core/effect.
  *
  * Tests:
  * 1. setAtom stores encoded value in per-request map
@@ -19,7 +19,7 @@ import {
   _initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
-} from "../src/hydration.ts";
+} from "../src/effect/hydration.ts";
 
 Deno.test("setAtom stores encoded value in per-request map", () => {
   const countAtom = Atom.serializable(Atom.make(0), {

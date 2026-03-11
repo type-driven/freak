@@ -15,7 +15,7 @@
  */
 
 import { App, createPlugin, type Plugin } from "@fresh/core";
-import { runEffect, setAtom } from "@fresh/effect";
+import { runEffect, setAtom } from "@fresh/core/effect";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as ServiceMap from "effect/ServiceMap";

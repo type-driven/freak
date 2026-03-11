@@ -9,7 +9,7 @@ description: |
 # Migrating from Fresh 2 to Freak
 
 Freak is a fork of `@fresh/core` that adds first-class
-[Effect](https://effect.website/) integration. The migration is **incremental**
+[Effect](https://core/effect.website/) integration. The migration is **incremental**
 — existing routes, islands, middleware, and Tailwind config all continue to
 work. You add Effect features where you need them.
 
@@ -39,14 +39,14 @@ work. You add Effect features where you need them.
 
 ## Step 1 — Update `deno.json`
 
-Add `@fresh/effect` to your imports. The forked `@fresh/core` is a drop-in
+Add `@fresh/core/effect` to your imports. The forked `@fresh/core` is a drop-in
 replacement — swap the JSR version for the Freak fork.
 
 ```json deno.json
 {
   "imports": {
     "@fresh/core": "jsr:@fresh/core@^2.0.0-alpha",
-    "@fresh/effect": "jsr:@fresh/effect@^0.1.0",
+    "@fresh/core/effect": "jsr:@fresh/core/effect@^0.1.0",
     "@fresh/plugin-tailwindcss": "jsr:@fresh/plugin-tailwindcss@^0.1.0",
     "effect": "npm:effect@^4.0.0-beta",
     "@effect/platform": "npm:@effect/platform@^0.80.0",
@@ -107,7 +107,7 @@ export default app;
 **After (Freak):**
 
 ```ts main.ts
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import { staticFiles } from "@fresh/core";
 import { AppLayer } from "./services/layers.ts";
 
@@ -139,7 +139,7 @@ export const define = createDefine<State>();
 **After:**
 
 ```ts utils.ts
-import { createEffectDefine } from "@fresh/effect";
+import { createEffectDefine } from "@fresh/core/effect";
 import type { TodoService } from "./services/TodoService.ts";
 
 // R = union of all services your handlers may use
@@ -222,7 +222,7 @@ export default define.page<{ todos: Todo[] }>(({ data }) => (
 
 Freak does **not** use `@preact/signals`. Use Effect atoms
 (`effect/unstable/reactivity/Atom`) with the `useAtom`, `useAtomValue`, and
-`useAtomSet` hooks from `@fresh/effect/island`.
+`useAtomSet` hooks from `@fresh/core/effect/island`.
 
 ### Local island state
 
@@ -285,7 +285,7 @@ export const localAtom = Atom.make(0);
 ```
 
 ```tsx islands/A.tsx
-import { useAtomValue } from "@fresh/effect/island";
+import { useAtomValue } from "@fresh/core/effect/island";
 import { countAtom } from "@/atoms.ts";
 
 export default function A() {
@@ -295,7 +295,7 @@ export default function A() {
 ```
 
 ```tsx islands/B.tsx
-import { useAtomSet } from "@fresh/effect/island";
+import { useAtomSet } from "@fresh/core/effect/island";
 import { countAtom } from "@/atoms.ts";
 
 export default function B() {
@@ -337,7 +337,7 @@ export const todoListAtom = Atom.serializable({
 
 ```tsx routes/index.tsx
 import { page } from "@fresh/core";
-import { setAtom } from "@fresh/effect";
+import { setAtom } from "@fresh/core/effect";
 import { define } from "@/utils.ts";
 import { Effect } from "effect";
 import { TodoService } from "@/services/TodoService.ts";
@@ -358,7 +358,7 @@ export default define.page(() => <TodoApp />);
 ```
 
 ```tsx islands/TodoApp.tsx
-import { useAtom } from "@fresh/effect/island";
+import { useAtom } from "@fresh/core/effect/island";
 import { todoListAtom } from "@/atoms.ts";
 
 export default function TodoApp() {
@@ -389,7 +389,7 @@ const effectApp = createEffectApp({ layer: AppLayer });
 effectApp.httpApi("/api", TodoApi, ApiLayer);
 ```
 
-See the [`@effect/platform` HttpApi docs](https://effect.website/) for defining
+See the [`@effect/platform` HttpApi docs](https://core/effect.website/) for defining
 `HttpApiGroup` and `HttpApiEndpoint`.
 
 ---
@@ -447,7 +447,7 @@ effectApp.rpc({
 **Client (island):**
 
 ```tsx islands/TodoApp.tsx
-import { useRpcResult, useRpcStream } from "@fresh/effect/island";
+import { useRpcResult, useRpcStream } from "@fresh/core/effect/island";
 import { TodoRpc } from "@/services/rpc.ts";
 
 export default function TodoApp() {
@@ -535,7 +535,7 @@ client.ListTodos(undefined);
 
 ## Migration checklist
 
-- [ ] Update `deno.json` — add `@fresh/effect`, `effect`, `@effect/platform`
+- [ ] Update `deno.json` — add `@fresh/core/effect`, `effect`, `@effect/platform`
 - [ ] Create service `Layer` in `services/layers.ts`
 - [ ] Rewrite `main.ts` to use `createEffectApp({ layer })`
 - [ ] Export as `app` (named export or default)

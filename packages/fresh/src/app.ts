@@ -409,19 +409,25 @@ export class App<State> {
    * Merge another {@linkcode App} instance or {@linkcode Plugin} into this app
    * at the specified path.
    *
-   * The overload accepting a `Plugin<Config, State, R>` provides type-safe
-   * composition: TypeScript will emit an error if the plugin's required state
-   * shape (S) is incompatible with the host app's State type.
+   * The mounted app/plugin may require only a subset of host state:
+   * `HostState extends MountedState`.
    */
-  mountApp<Config, R>(path: string, plugin: Plugin<Config, State, R>): this;
-  mountApp(path: string, app: App<State>): this;
+  mountApp<Config, MountedState, R>(
+    path: string,
+    plugin: Plugin<Config, MountedState, R> &
+      (State extends MountedState ? unknown : never),
+  ): this;
+  mountApp<MountedState>(
+    path: string,
+    app: App<MountedState> & (State extends MountedState ? unknown : never),
+  ): this;
   mountApp(
     path: string,
-    appOrPlugin: App<State> | Plugin<unknown, State, unknown>,
+    appOrPlugin: App<unknown> | Plugin<unknown, unknown, unknown>,
   ): this {
-    const inner: App<State> = !(appOrPlugin instanceof App)
-      ? (appOrPlugin as Plugin<unknown, State, unknown>).app
-      : appOrPlugin;
+    const inner = (
+      !(appOrPlugin instanceof App) ? appOrPlugin.app : appOrPlugin
+    ) as App<State>;
 
     for (let i = 0; i < inner.#commands.length; i++) {
       const cmd = inner.#commands[i];

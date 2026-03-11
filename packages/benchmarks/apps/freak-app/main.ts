@@ -1,4 +1,4 @@
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import { staticFiles } from "@fresh/core";
 import { TodoLayer } from "./services/TodoService.ts";
 

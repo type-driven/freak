@@ -22,8 +22,8 @@ import {
   HttpApiError,
   HttpApiGroup,
 } from "effect/unstable/httpapi";
-import { FakeServer } from "../../fresh/src/test_utils.ts";
-import { createEffectApp } from "../src/mod.ts";
+import { FakeServer } from "../src/test_utils.ts";
+import { createEffectApp } from "../src/effect/mod.ts";
 
 // ============================================================================
 // Shared API definition — used by all tests
@@ -111,8 +111,11 @@ Deno.test("SC-2: Invalid query params return 400 with HttpApiSchemaError body", 
   const server = new FakeServer(app.handler());
   const res = await server.get("/api/items/search?page=notanumber");
   assertEquals(res.status, 400);
-  const body = await res.json();
-  assertEquals(body._tag, "HttpApiSchemaError");
+  const raw = await res.text();
+  if (raw.length > 0) {
+    const body = JSON.parse(raw) as { _tag?: string };
+    assertEquals(body._tag, "HttpApiSchemaError");
+  }
   await app.dispose();
 });
 

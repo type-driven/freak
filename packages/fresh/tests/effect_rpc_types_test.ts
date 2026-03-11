@@ -8,8 +8,8 @@
  * fails with "Unused '@ts-expect-error' directive" — meaning the SC-3
  * guarantee is broken.
  *
- * Run: deno check packages/effect/tests/rpc_types_test.ts
- * Run: deno test --allow-env packages/effect/tests/rpc_types_test.ts
+ * Run: deno check packages/fresh/tests/effect_rpc_types_test.ts
+ * Run: deno test --allow-env packages/fresh/tests/effect_rpc_types_test.ts
  */
 
 import { assertEquals } from "jsr:@std/assert@1";

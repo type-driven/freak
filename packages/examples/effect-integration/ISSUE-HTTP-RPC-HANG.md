@@ -260,14 +260,14 @@ The client uses the framed reader path. No doubling occurs.
 
 Changes applied:
 
-- `packages/effect/src/app.ts` line 356 — server, `protocol: "http"` handler
-- `packages/effect/src/island.ts` `makeRpcHttpLayer` — client layer builder
+- `packages/fresh/src/effect/app.ts` — server, `protocol: "http"` handler
+- `packages/fresh/src/effect/island.ts` `makeRpcHttpLayer` — client layer builder
 - `packages/examples/effect-integration/islands/QueryMutationDemo.tsx`
   `makeRpcEffect` — demo island
 
 ## Files involved
 
-- `packages/effect/src/island.ts` — `useQuery`, `useMutation`, `useRpcQuery`,
+- `packages/fresh/src/effect/island.ts` — `useQuery`, `useMutation`, `useRpcQuery`,
   `useRpcResult`
 - `packages/examples/effect-integration/islands/QueryMutationDemo.tsx` — demo
   island

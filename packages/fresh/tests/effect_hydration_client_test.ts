@@ -1,5 +1,5 @@
 /**
- * Client-side hydration tests for the atom hydration pipeline in @fresh/effect.
+ * Client-side hydration tests for the atom hydration pipeline in @fresh/core/effect.
  *
  * Tests:
  * 1. AtomRegistry.setSerializable pre-seeds value for serializable atom
@@ -18,12 +18,12 @@ import { assertEquals } from "jsr:@std/assert@1";
 import * as Atom from "effect/unstable/reactivity/Atom";
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry";
 import * as Schema from "effect/Schema";
-import { _checkOrphanedKeys, initAtomHydration } from "../src/island-atoms.ts";
+import { _checkOrphanedKeys, initAtomHydration } from "../src/effect/island-atoms.ts";
 import {
   _initAtomHydrationMap as initAtomHydrationMap,
   serializeAtomHydration,
   setAtom,
-} from "../src/hydration.ts";
+} from "../src/effect/hydration.ts";
 
 // --- Category 1: AtomRegistry.setSerializable behavior ---
 

@@ -12,12 +12,12 @@
  *   - dispose() completes cleanly while a WS connection is open (graceful shutdown)
  *
  * Run:
- *   deno test --allow-env --allow-net packages/examples/effect-integration/app.e2e.test.ts
+ *   deno test --allow-env --allow-net packages/examples/core/effect-integration/app.e2e.test.ts
  */
 
 import { assertEquals } from "jsr:@std/assert@1";
 import { HttpError } from "@fresh/core";
-import { createEffectApp } from "@fresh/effect";
+import { createEffectApp } from "@fresh/core/effect";
 import { Cause, Effect, Layer } from "effect";
 import { NotFoundError } from "./services/errors.ts";
 import { TodoRpc, TodoRpcHandlers } from "./services/rpc.ts";

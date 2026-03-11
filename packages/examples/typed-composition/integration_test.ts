@@ -31,8 +31,8 @@ import { expect } from "@std/expect";
 import { setBuildCache } from "@fresh/core/internal";
 import { App, createPlugin } from "@fresh/core";
 import { MockBuildCache } from "../../fresh/src/test_utils.ts";
-import { createEffectApp } from "@fresh/effect";
-import { serializeAtomHydration, setAtom } from "../../effect/src/hydration.ts";
+import { createEffectApp } from "@fresh/core/effect";
+import { serializeAtomHydration, setAtom } from "../../fresh/src/effect/hydration.ts";
 import type { ComponentType } from "preact";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -303,6 +303,35 @@ Deno.test("composition: PLUG-03 — mounting plugin with incompatible state on E
   const hostApp = createEffectApp<{ name: string }>({ layer: Layer.empty });
   // @ts-expect-error Plugin<{}, { count: number }, never> is not assignable to Plugin<{}, { name: string }, unknown>
   hostApp.mountApp("/bad", incompatiblePlugin);
+  await hostApp.dispose();
+});
+
+Deno.test("composition: PLUG-04 — host with superset state can mount plugin requiring subset", () => {
+  const subsetPlugin = createPlugin<
+    Record<string, never>,
+    { requestId: string },
+    never
+  >(
+    {},
+    (_config) => new App<{ requestId: string }>(),
+  );
+  const host = new App<{ requestId: string; userId: string }>();
+  host.mountApp("/subset", subsetPlugin);
+});
+
+Deno.test("composition: PLUG-04 — EffectApp host with superset state mounts subset plugin", async () => {
+  const subsetPlugin = createPlugin<
+    Record<string, never>,
+    { requestId: string },
+    never
+  >(
+    {},
+    (_config) => new App<{ requestId: string }>(),
+  );
+  const hostApp = createEffectApp<{ requestId: string; userId: string }>({
+    layer: Layer.empty,
+  });
+  hostApp.mountApp("/subset", subsetPlugin);
   await hostApp.dispose();
 });
 

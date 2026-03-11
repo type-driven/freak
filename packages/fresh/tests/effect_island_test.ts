@@ -1,5 +1,5 @@
 /**
- * Export and type verification tests for island-atoms.ts hooks in @fresh/effect.
+ * Export and type verification tests for island-atoms.ts hooks in @fresh/core/effect.
  *
  * Tests:
  * 1. Export verification — runtime checks that hooks are exported as functions
@@ -14,7 +14,7 @@
 
 import { assertEquals } from "jsr:@std/assert@1";
 import { expectTypeOf } from "expect-type";
-import { useAtom, useAtomSet, useAtomValue } from "../src/island-atoms.ts";
+import { useAtom, useAtomSet, useAtomValue } from "../src/effect/island-atoms.ts";
 import type { Atom } from "effect/unstable/reactivity/Atom";
 
 // --- Category 1: Export verification (runtime) ---
@@ -54,7 +54,7 @@ Deno.test("useAtom returns readonly [R, (value: W) => void]", () => {
 
 Deno.test("island.ts has no preact/compat dependency", async () => {
   const cmd = new Deno.Command("deno", {
-    args: ["info", "--json", "packages/effect/src/island.ts"],
+    args: ["info", "--json", "packages/fresh/src/effect/island.ts"],
     stdout: "piped",
   });
   const output = await cmd.output();
