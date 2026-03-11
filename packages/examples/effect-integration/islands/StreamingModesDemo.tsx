@@ -49,15 +49,15 @@ function StatusBadge({ state }: { state: RpcStreamState<unknown, unknown> }) {
 }
 
 function TodoList({ state }: { state: RpcStreamState<unknown, unknown> }) {
-  if (state._tag !== "connected" || state.latest === null) {
-    return <p style="color:#9ca3af;font-size:0.85em;margin:0">—</p>;
-  }
   if (state._tag === "error") {
     return (
       <p style="color:#ef4444;font-size:0.8em;margin:0">
         Error: {String((state as { error: unknown }).error)}
       </p>
     );
+  }
+  if (state._tag !== "connected" || state.latest === null) {
+    return <p style="color:#9ca3af;font-size:0.85em;margin:0">—</p>;
   }
   const todos = state.latest as Todo[];
   if (todos.length === 0) {

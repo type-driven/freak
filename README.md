@@ -1,16 +1,16 @@
 # freak
 
 **Fresh 2 + Effect-TS.** A fork of [@fresh/core](https://jsr.io/@fresh/core)
-that adds first-class [Effect](https://core/effect.website/) integration for typed
-services, structured errors, and full-stack RPC.
+that adds first-class [Effect](https://core/effect.website/) integration for
+typed services, structured errors, and full-stack RPC.
 
 ## Packages
 
 | Package                                                       | Description                                                                         |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | [`@fresh/core`](./packages/fresh/)                            | Fresh 2 framework (forked)                                                          |
-| [`@fresh/core/effect`](./packages/core/effect/)                         | Effect integration — `createEffectApp`, HTTP API, RPC, atom hydration, client hooks |
-| [`@fresh/plugin-effect`](./packages/plugin-effect/)           | Re-export shim (backward compat — prefer `@fresh/core/effect`)                           |
+| [`@fresh/core/effect`](./packages/core/effect/)               | Effect integration — `createEffectApp`, HTTP API, RPC, atom hydration, client hooks |
+| [`@fresh/plugin-effect`](./packages/plugin-effect/)           | Re-export shim (backward compat — prefer `@fresh/core/effect`)                      |
 | [`@fresh/plugin-tailwindcss`](./packages/plugin-tailwindcss/) | Tailwind CSS v4 plugin                                                              |
 
 ## Getting started
@@ -20,6 +20,53 @@ services, structured errors, and full-stack RPC.
 git clone https://github.com/type-driven/freak
 cd freak
 deno task --cwd packages/examples/core/effect-integration dev
+```
+
+## Gitea CI/CD package release
+
+This repo now includes Gitea Actions workflows in
+[`.gitea/workflows/`](./.gitea/workflows/):
+
+- `ci.yml`: format, lint, type-check, test, build package artifact, run
+  `npm pack`
+- `release.yml`: on `v*` tags, validates version, builds package, publishes to
+  Gitea npm registry
+
+Required secret for release workflow:
+
+- `GITEA_PACKAGE_TOKEN` (token with package write access)
+
+Optional environment overrides in the workflow runner:
+
+- `GITEA_PACKAGE_OWNER` (defaults to repository owner)
+- `GITEA_REGISTRY_URL` (defaults to current Gitea server URL)
+
+Local package build:
+
+```sh
+deno task build:registry-package
+deno task pack:registry-package
+```
+
+Tag-based release flow:
+
+```sh
+# 1) bump packages/fresh/deno.json version
+# 2) push commit
+# 3) create matching tag (v<version>)
+git tag v2.2.1
+git push origin v2.2.1
+```
+
+Consumers can use the published package from Gitea with:
+
+```json
+{
+  "imports": {
+    "fresh": "npm:@type-driven/freak@2.2.1",
+    "fresh/": "npm:@type-driven/freak@2.2.1/"
+  }
+}
 ```
 
 ## Usage

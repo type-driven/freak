@@ -23,6 +23,8 @@
     "ok": "deno fmt --check && deno lint && deno task check:types && deno task test",
     "test:www": "deno test -A www/main_test.*",
     "release": "deno run -A tools/release.ts",
+    "build:registry-package": "deno run -A tools/build_registry_package.ts",
+    "pack:registry-package": "deno task build:registry-package && mkdir -p dist/npm/tarballs && npm pack --pack-destination dist/npm/tarballs ./dist/npm/freak",
     "patch": "deno run -A patches/effect-rpc-json-decode.ts"
   },
   "exclude": [
