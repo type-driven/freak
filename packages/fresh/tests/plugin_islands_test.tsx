@@ -16,7 +16,7 @@
 
 /** @jsxImportSource preact */
 import { expect } from "@std/expect";
-import { App, createPlugin } from "@fresh/core";
+import { App, createPlugin } from "@freak/core";
 import { setBuildCache } from "../src/internals.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
 import type { ComponentType } from "preact";

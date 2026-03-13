@@ -1,5 +1,5 @@
 /**
- * Export and type verification tests for island-atoms.ts hooks in @fresh/core/effect.
+ * Export and type verification tests for island-atoms.ts hooks in @freak/core/effect.
  *
  * Tests:
  * 1. Export verification — runtime checks that hooks are exported as functions

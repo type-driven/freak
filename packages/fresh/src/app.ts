@@ -416,6 +416,7 @@ export class App<State> {
     path: string,
     plugin: Plugin<Config, MountedState, R> &
       (State extends MountedState ? unknown : never),
+    options?: { provides?: ReadonlyArray<string> },
   ): this;
   mountApp<MountedState>(
     path: string,
@@ -424,7 +425,23 @@ export class App<State> {
   mountApp(
     path: string,
     appOrPlugin: App<unknown> | Plugin<unknown, unknown, unknown>,
+    options?: { provides?: ReadonlyArray<string> },
   ): this {
+    // Check plugin capability requirements
+    if (!(appOrPlugin instanceof App) && appOrPlugin.requirements) {
+      const provided = new Set(options?.provides ?? []);
+      for (const req of appOrPlugin.requirements) {
+        if (req.required && !provided.has(req.capability)) {
+          const hint = req.missingHint ? ` ${req.missingHint}` : "";
+          const reason = req.reason ? ` (${req.reason})` : "";
+          throw new Error(
+            `[freak] mountApp: plugin requires capability "${req.capability}"${reason} but host did not declare it.${hint}\n` +
+              `Pass { provides: ["${req.capability}", ...] } as the third argument to mountApp().`,
+          );
+        }
+      }
+    }
+
     const inner = (
       !(appOrPlugin instanceof App) ? appOrPlugin.app : appOrPlugin
     ) as App<State>;

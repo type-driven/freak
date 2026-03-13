@@ -1,5 +1,5 @@
 /**
- * Unit tests for server-side atom hydration primitives in @fresh/core/effect.
+ * Unit tests for server-side atom hydration primitives in @freak/core/effect.
  *
  * Tests:
  * 1. setAtom stores encoded value in per-request map

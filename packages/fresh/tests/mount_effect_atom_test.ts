@@ -11,13 +11,13 @@
  * 4. SHARED MANAGED RUNTIME — outer EffectApp's runner executes Effect handlers
  *    from inner (plugin) app routes after mounting
  *
- * NOTE: Effect runner + atom tests use the @fresh/core/effect internals directly
+ * NOTE: Effect runner + atom tests use the @freak/core/effect internals directly
  * to avoid the full createEffectApp() lifecycle (signal handlers, etc.) and
  * keep tests fast and self-contained.
  */
 
 import { expect } from "@std/expect";
-import { App } from "@fresh/core";
+import { App } from "@freak/core";
 import {
   getAtomHydrationHookForApp,
   setAtomHydrationHookForApp,

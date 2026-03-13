@@ -22,7 +22,7 @@
  *
  * Usage:
  * ```typescript
- * import { useRpcResult, useRpcStream } from "@fresh/core/effect/island";
+ * import { useRpcResult, useRpcStream } from "@freak/core/effect/island";
  * import { TodoRpc } from "../rpc/todo.ts";
  *
  * export default function TodoIsland() {

@@ -5,7 +5,7 @@
  * SC-2: Invalid query params return HTTP 400 with HttpApiSchemaError body.
  * SC-3: Handler returning HttpApiError.NotFound produces HTTP 404 status.
  *
- * Test harness: FakeServer from @fresh/core test_utils.
+ * Test harness: FakeServer from @freak/core test_utils.
  *
  * IMPORTANT: Each test calls await app.dispose() at the end to remove signal
  * listeners registered by registerSignalDisposal. Without disposal, the signal

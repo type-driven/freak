@@ -20,7 +20,7 @@ Deno.test("Docs Code example checks", async () => {
   const denoJson = {
     lock: false,
     imports: {
-      fresh: `jsr:@fresh/core@${FRESH_VERSION}`,
+      fresh: `jsr:@freak/core@${FRESH_VERSION}`,
       "@fresh/plugin-tailwind-v3":
         `jsr:@fresh/plugin-tailwind@^${twDenoJson.version}`,
       "@fresh/plugin-tailwind":

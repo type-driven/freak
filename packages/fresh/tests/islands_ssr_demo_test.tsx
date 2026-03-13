@@ -17,7 +17,7 @@
 
 /** @jsxImportSource preact */
 import { expect } from "@std/expect";
-import { App } from "@fresh/core";
+import { App } from "@freak/core";
 import { setBuildCache } from "../src/internals.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
 import type { ComponentType } from "preact";
@@ -135,9 +135,9 @@ Deno.test("SSR: mountApp propagates island registrations — inner app islands h
   expect(html).toContain("DemoCounter");
 });
 
-Deno.test("SSR: FreshScripts component is exported from @fresh/core", async () => {
+Deno.test("SSR: FreshScripts component is exported from @freak/core", async () => {
   // Proves the public export works — consuming apps can import FreshScripts
   // to get island hydration <script> tags injected automatically
-  const { FreshScripts } = await import("@fresh/core");
+  const { FreshScripts } = await import("@freak/core");
   expect(typeof FreshScripts).toBe("function");
 });

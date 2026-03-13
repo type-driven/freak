@@ -7,7 +7,7 @@
  * SC-4: Two EffectApp instances own independent runtimes — disposing one
  *       leaves the other functional.
  *
- * Test harness: FakeServer from @fresh/core test_utils.
+ * Test harness: FakeServer from @freak/core test_utils.
  *
  * IMPORTANT: Each test calls await app.dispose() at the end to remove signal
  * listeners registered by registerSignalDisposal. Without disposal, the signal

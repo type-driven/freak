@@ -9,7 +9,7 @@
  */
 
 import { expect } from "@std/expect";
-import { App } from "@fresh/core";
+import { App } from "@freak/core";
 import { setBuildCache } from "../src/internals.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
 

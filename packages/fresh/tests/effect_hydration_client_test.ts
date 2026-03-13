@@ -1,5 +1,5 @@
 /**
- * Client-side hydration tests for the atom hydration pipeline in @fresh/core/effect.
+ * Client-side hydration tests for the atom hydration pipeline in @freak/core/effect.
  *
  * Tests:
  * 1. AtomRegistry.setSerializable pre-seeds value for serializable atom

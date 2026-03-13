@@ -129,7 +129,7 @@ export class EffectApp<State, AppR> {
    * Access the underlying `App<State>` instance.
    *
    * Not needed for normal use — `Builder.listen()` unwraps EffectApp
-   * automatically. Only necessary when calling `@fresh/core/internal`
+   * automatically. Only necessary when calling `@freak/core/internal`
    * functions (e.g. `setBuildCache`) that require a bare `App<State>`.
    */
   get app(): App<State> {
@@ -1056,7 +1056,7 @@ export class EffectApp<State, AppR> {
 /**
  * Create an `EffectApp` — an Effect-aware wrapper around Fresh's `App<State>`.
  *
- * This is the primary entry point for the `@fresh/core/effect` v2 API. It:
+ * This is the primary entry point for the `@freak/core/effect` v2 API. It:
  * 1. Creates an `App<State>` instance
  * 2. Creates a `ManagedRuntime` from the provided Layer
  * 3. Calls `setEffectRunner(app, runner)` so Effect-returning handlers work
@@ -1068,7 +1068,7 @@ export class EffectApp<State, AppR> {
  *
  * @example
  * ```typescript
- * import { createEffectApp } from "@fresh/core/effect";
+ * import { createEffectApp } from "@freak/core/effect";
  * import { DbLayer } from "./layers.ts";
  *
  * const app = createEffectApp<AppState, typeof DbService>({ layer: DbLayer });

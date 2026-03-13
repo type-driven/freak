@@ -1,4 +1,4 @@
-import { App, staticFiles } from "fresh";
+import { App, staticFiles } from "@freak/core";
 import {
   ALL_ISLAND_DIR,
   assertNotSelector,

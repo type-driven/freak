@@ -4,7 +4,7 @@
  * Quick demo: run this to see island markers in SSR output.
  *   deno run --allow-env packages/fresh/tests/islands_demo_run.tsx
  */
-import { App } from "@fresh/core";
+import { App } from "@freak/core";
 import { setBuildCache } from "../src/internals.ts";
 import { MockBuildCache } from "../src/test_utils.ts";
 

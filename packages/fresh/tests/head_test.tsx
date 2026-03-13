@@ -1,4 +1,4 @@
-import { App, staticFiles } from "fresh";
+import { App, staticFiles } from "@freak/core";
 import { Head } from "fresh/runtime";
 import {
   buildProd,

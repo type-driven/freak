@@ -29,6 +29,10 @@ const toc: RawTableOfContents = {
         title: "Getting Started",
         link: "latest",
       },
+      migration: {
+        title: "Migrating to Freak",
+        link: "latest",
+      },
       concepts: {
         title: "Concepts",
         link: "latest",
@@ -40,6 +44,7 @@ const toc: RawTableOfContents = {
           ["routing", "Routing", "link:latest"],
 
           ["islands", "Islands", "link:latest"],
+          ["effect-integration", "Effect Integration", "link:latest"],
           ["static-files", "Static files", "link:latest"],
 
           ["file-routing", "File routing", "link:latest"],

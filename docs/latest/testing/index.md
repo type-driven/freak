@@ -1,12 +1,16 @@
 ---
 description: |
-  Learn how to test Fresh applications using Deno's built-in test runner.
+  Learn how to test Freak applications using Deno's built-in test runner.
 ---
 
 To ensure that your application works as expected we can write tests. Any aspect
-of Fresh can be tested as a whole together or in isolation. We use Deno's
+of Freak can be tested as a whole together or in isolation. We use Deno's
 built-in [test runner](https://docs.deno.com/runtime/fundamentals/testing/) to
 write tests.
+
+The examples below use `App` from `@freak/core`. If you are building with
+`createEffectApp()` from `@freak/core/effect`, you can test it through the same
+`Request -> Response` boundary via `app.handler()`.
 
 ## Testing middlewares
 
@@ -16,7 +20,7 @@ test assumes the `State` object in `utils.ts` has `text` property.
 
 ```ts tests/middleware.test.ts
 import { expect } from "@std/expect";
-import { App } from "fresh";
+import { App } from "@freak/core";
 import { define, type State } from "../utils.ts";
 
 const middleware = define.middleware((ctx) => {
@@ -49,7 +53,7 @@ Both the [app wrapper](/docs/advanced/app-wrapper) component and
 
 ```tsx tests/appWrapper.test.tsx
 import { expect } from "@std/expect";
-import { App } from "fresh";
+import { App } from "@freak/core";
 import { define, type State } from "../utils.ts";
 
 const AppWrapper = define.layout(function AppWrapper({ Component }) {
@@ -84,7 +88,7 @@ Same can be done for layouts.
 
 ```tsx tests/layout.test.tsx
 import { expect } from "@std/expect";
-import { App } from "fresh";
+import { App } from "@freak/core";
 import { define, type State } from "../utils.ts";
 
 const MyLayout = define.layout(function MyLayout({ Component }) {
@@ -110,16 +114,73 @@ Deno.test("MyLayout - renders heading and content", async () => {
 });
 ```
 
+## Previewing rendered HTML in tests
+
+For render tests it is often easier to inspect the returned HTML as a DOM tree
+instead of asserting against long strings. A small helper can also give you a
+quick preview of the rendered output while you are writing or debugging a test.
+
+```ts tests/render-preview.ts
+import { DOMParser } from "linkedom";
+
+export interface TestDocument extends Document {
+  debug(): void;
+}
+
+export function parseHtml(input: string): TestDocument {
+  const doc = new DOMParser().parseFromString(
+    input,
+    "text/html",
+  ) as TestDocument;
+
+  Object.defineProperty(doc, "debug", {
+    value: () => console.log(doc.documentElement.outerHTML),
+    enumerable: false,
+  });
+
+  return doc;
+}
+```
+
+```tsx tests/render-preview.test.tsx
+import { expect } from "@std/expect";
+import { App } from "@freak/core";
+import { type State } from "../utils.ts";
+import { parseHtml } from "./render-preview.ts";
+
+Deno.test("Home page renders heading", async () => {
+  const handler = new App<State>()
+    .get("/", (ctx) =>
+      ctx.render(
+        <main>
+          <h1>Hello from Freak</h1>
+        </main>,
+      ))
+    .handler();
+
+  const response = await handler(new Request("http://localhost/"));
+  const doc = parseHtml(await response.text());
+
+  expect(doc.querySelector("h1")?.textContent).toEqual("Hello from Freak");
+
+  // Optional while authoring a test or debugging a failure:
+  // doc.debug();
+});
+```
+
+If you want richer failure output, wrap your assertions and call `doc.debug()`
+from a `catch` block before re-throwing the error.
+
 ## Testing routes and handlers
 
 For testing your route handlers and business logic, you can use the same
-[`App`](/docs/concepts/app) pattern shown above. Fresh makes it easy to test
+[`App`](/docs/concepts/app) pattern shown above. Freak makes it easy to test
 individual routes without needing a full build process, as long as they export a
 handler:
 
 ```ts tests/routes.test.ts
 import { expect } from "@std/expect";
-import { App } from "fresh";
+import { App } from "@freak/core";
 import { type State } from "../utils.ts";
 
 // Import actual route handlers
@@ -150,7 +211,7 @@ to use JSX:
 
 ```tsx tests/island-ssr.test.tsx
 import { expect } from "@std/expect";
-import { App } from "fresh";
+import { App } from "@freak/core";
 import { type State } from "../utils.ts";
 import Counter from "../islands/Counter.tsx";
 
@@ -180,13 +241,13 @@ Deno.test("Counter page renders island", async () => {
 
 For testing client-side island behavior (clicks, state changes, etc.), you need
 a full build and browser environment. You can use the approach similar to
-Fresh's own tests:
+Freak's own tests:
 
 ```tsx tests/island-client.test.tsx
 import { expect } from "@std/expect";
-import { buildFreshApp, startTestServer } from "./test-utils.ts";
+import { buildFreakApp, startTestServer } from "./test-utils.ts";
 
-const app = await buildFreshApp();
+const app = await buildFreakApp();
 
 Deno.test("Counter island renders correctly", async () => {
   const { server, address } = startTestServer(app);
@@ -208,8 +269,8 @@ Deno.test("Counter island renders correctly", async () => {
 import { createBuilder, type InlineConfig } from "vite";
 import * as path from "@std/path";
 
-// Default Fresh build configuration
-export const FRESH_BUILD_CONFIG: InlineConfig = {
+// Default Freak build configuration
+export const FREAK_BUILD_CONFIG: InlineConfig = {
   logLevel: "error",
   root: "./",
   build: { emptyOutDir: true },
@@ -219,8 +280,8 @@ export const FRESH_BUILD_CONFIG: InlineConfig = {
   },
 };
 
-// Helper function to create and build the Fresh app
-export async function buildFreshApp(config: InlineConfig = FRESH_BUILD_CONFIG) {
+// Helper function to create and build the Freak app
+export async function buildFreakApp(config: InlineConfig = FREAK_BUILD_CONFIG) {
   const builder = await createBuilder(config);
   await builder.buildApp();
   return await import("../_fresh/server.js");
