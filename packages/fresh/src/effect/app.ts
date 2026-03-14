@@ -32,7 +32,7 @@ import {
   type Route,
   type RouteComponent,
 } from "../internals.ts";
-import { Effect, Layer, ManagedRuntime } from "effect";
+import { Effect, Exit, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { RpcSerialization, RpcServer } from "effect/unstable/rpc";
@@ -83,6 +83,118 @@ export interface CreateEffectAppOptions<AppR, E = never> {
    * host-wins: keep host hooks and log warning.
    */
   mountConflictPolicy?: "fail" | "host-wins";
+}
+
+/**
+ * Options for the shared `makeStreamingRpcEffect` helper.
+ *
+ * Captures everything that is common between the http-stream and SSE streaming
+ * transports.  The protocol-specific differences are:
+ *   - `formatData` — how each chunk is framed before writing to the stream
+ *   - `requestId`  — where the id comes from (POST body vs hardcoded 1 for SSE)
+ *   - `signal`     — the AbortSignal from the incoming request (may be null/undefined)
+ *   - `done`       — optional Promise that resolves when the procedure finishes
+ *                    (http-stream only — used to unblock the fiber on Exit/Defect)
+ */
+interface StreamingRpcEffectOpts<Rpcs extends Rpc.Any> {
+  // deno-lint-ignore no-explicit-any
+  group: RpcGroup.RpcGroup<Rpcs>;
+  // deno-lint-ignore no-explicit-any
+  handlerLayer: Layer.Layer<Rpc.ToHandler<Rpcs>, unknown, unknown>;
+  procedure: string;
+  // deno-lint-ignore no-explicit-any
+  payload: any;
+  requestId: bigint;
+  /** Wraps a JSON string in the protocol-specific framing, e.g. `"data: …\n\n"`. */
+  formatData: (json: string) => string;
+  signal: AbortSignal | null | undefined;
+  /**
+   * Optional Promise that resolves when the RPC procedure finishes
+   * (Exit/Defect received).  When provided, the blocking `Effect.callback`
+   * also resolves on this Promise so the fiber exits promptly instead of
+   * waiting for the client to disconnect.  Used by the http-stream branch.
+   */
+  done?: Promise<void>;
+  close: () => void;
+  writer: WritableStreamDefaultWriter<Uint8Array>;
+  enc: TextEncoder;
+}
+
+/**
+ * Builds the Effect that powers a single streaming RPC request.
+ *
+ * Both the http-stream and SSE branches share identical structure:
+ * they create an `RpcServer.makeNoSerialization` server, send one request,
+ * pipe each `FromServer` message through `onFromServer`, and block until the
+ * stream ends or the client disconnects.  Only the chunk framing, requestId,
+ * and done-Promise differ — those are passed in via `opts`.
+ *
+ * The caller is responsible for forking the returned Effect and attaching an
+ * error observer that calls `opts.close()` on failure.
+ */
+function makeStreamingRpcEffect<Rpcs extends Rpc.Any>(
+  opts: StreamingRpcEffectOpts<Rpcs>,
+): Effect.Effect<void, never, never> {
+  const {
+    group,
+    handlerLayer,
+    procedure,
+    payload,
+    requestId,
+    formatData,
+    signal,
+    done,
+    close,
+    writer,
+    enc,
+  } = opts;
+  return Effect.scoped(Effect.gen(function* () {
+    // deno-lint-ignore no-explicit-any
+    const server = yield* (RpcServer.makeNoSerialization as any)(
+      group,
+      {
+        // deno-lint-ignore no-explicit-any
+        onFromServer: (response: any) =>
+          Effect.sync(() => {
+            if (writer.desiredSize === null) return; // writer already closed
+            // Serialize with BigInt-safe replacer (requestId is a branded bigint).
+            const json = JSON.stringify(
+              response,
+              (_k, v) => typeof v === "bigint" ? String(v) : v,
+            );
+            writer.write(enc.encode(formatData(json))).catch(() => {
+              close();
+            });
+            // Non-streaming procedures complete with a single Exit/Defect response.
+            if (response._tag === "Exit" || response._tag === "Defect") {
+              close();
+            }
+          }),
+      },
+    );
+
+    // Send the single RPC request to the server.
+    // deno-lint-ignore no-explicit-any
+    yield* (server as any).write(0, {
+      _tag: "Request",
+      id: requestId,
+      tag: procedure,
+      payload,
+      headers: [],
+    });
+
+    // Block until the stream ends (via close() / done) or the client disconnects.
+    yield* Effect.callback<void>((resume) => {
+      done?.then(() => resume(Effect.void));
+      signal?.addEventListener("abort", () => resume(Effect.void), {
+        once: true,
+      });
+      if (signal?.aborted) resume(Effect.void);
+    });
+  })).pipe(
+    // deno-lint-ignore no-explicit-any
+    Effect.provide(handlerLayer as any),
+  ) as Effect.Effect<void, never, never>;
 }
 
 /**
@@ -593,58 +705,29 @@ export class EffectApp<State, AppR> {
           }
         };
 
-        const effect = Effect.scoped(Effect.gen(function* () {
-          // deno-lint-ignore no-explicit-any
-          const server = yield* (RpcServer.makeNoSerialization as any)(
-            options.group,
-            {
-              // deno-lint-ignore no-explicit-any
-              onFromServer: (response: any) =>
-                Effect.sync(() => {
-                  if (closed) return;
-                  // Serialize with BigInt-safe replacer.
-                  const line = JSON.stringify(
-                    response,
-                    (_k, v) => typeof v === "bigint" ? String(v) : v,
-                  );
-                  writer.write(enc.encode(line + "\n")).catch(() => {
-                    close();
-                  });
-                  // Non-streaming procedures complete with a single Exit response.
-                  if (response._tag === "Exit" || response._tag === "Defect") {
-                    close();
-                  }
-                }),
-            },
-          );
+        const effect = makeStreamingRpcEffect({
+          group: options.group,
+          handlerLayer: options.handlerLayer,
+          procedure,
+          payload,
+          requestId,
+          formatData: (json) => json + "\n",
+          signal: ctx.req.signal,
+          done,
+          close,
+          writer,
+          enc,
+        });
 
-          // Send the request to the server. requestId was parsed from the request body.
-          // deno-lint-ignore no-explicit-any
-          yield* (server as any).write(0, {
-            _tag: "Request",
-            id: requestId,
-            tag: procedure,
-            payload,
-            headers: [],
-          });
-
-          // Block until the stream ends (Exit/Defect received) or the client disconnects.
-          yield* Effect.callback<void>((resume) => {
-            done.then(() => resume(Effect.void));
-            ctx.req.signal?.addEventListener(
-              "abort",
-              () => resume(Effect.void),
-              { once: true },
-            );
-            if (ctx.req.signal?.aborted) resume(Effect.void);
-          });
-        })).pipe(
-          // deno-lint-ignore no-explicit-any
-          Effect.provide(options.handlerLayer as any),
-        );
-
+        // Fork the effect in the background. If the fiber fails (e.g. Layer build
+        // error, missing service), close the stream so the client does not hang.
         // deno-lint-ignore no-explicit-any
-        appRuntime.runFork(effect as any);
+        const fiber = appRuntime.runFork(effect as any);
+        fiber.addObserver((exit) => {
+          if (Exit.isFailure(exit)) {
+            close();
+          }
+        });
 
         return new Response(readable, {
           headers: {
@@ -702,60 +785,30 @@ export class EffectApp<State, AppR> {
           }
         };
 
-        const effect = Effect.scoped(Effect.gen(function* () {
-          // deno-lint-ignore no-explicit-any
-          const server = yield* (RpcServer.makeNoSerialization as any)(
-            options.group,
-            {
-              // deno-lint-ignore no-explicit-any
-              onFromServer: (response: any) =>
-                Effect.sync(() => {
-                  if (closed) return;
-                  // Serialize with BigInt-safe replacer (requestId is a branded bigint).
-                  const data = JSON.stringify(
-                    response,
-                    (_k, v) => typeof v === "bigint" ? String(v) : v,
-                  );
-                  writer.write(enc.encode(`data: ${data}\n\n`)).catch(() => {
-                    closed = true;
-                  });
-                  // Stream over for non-streaming procedures (single Exit response).
-                  if (response._tag === "Exit" || response._tag === "Defect") {
-                    close();
-                  }
-                }),
-            },
-          );
-
-          // Send the initial RPC request to the server.
-          // id is a RequestId (branded bigint) — BigInt(1) satisfies the brand at runtime.
-          // deno-lint-ignore no-explicit-any
-          yield* (server as any).write(0, {
-            _tag: "Request",
-            id: BigInt(1),
-            tag: procedure,
-            payload,
-            headers: [],
-          });
-
-          // Block until the client disconnects (AbortSignal fires on connection close).
-          yield* Effect.callback<void>((resume) => {
-            ctx.req.signal?.addEventListener(
-              "abort",
-              () => resume(Effect.void),
-              { once: true },
-            );
-            // If signal already aborted, resume immediately.
-            if (ctx.req.signal?.aborted) resume(Effect.void);
-          });
-        })).pipe(
-          // deno-lint-ignore no-explicit-any
-          Effect.provide(options.handlerLayer as any),
-        );
+        const effect = makeStreamingRpcEffect({
+          group: options.group,
+          handlerLayer: options.handlerLayer,
+          procedure,
+          payload,
+          requestId: BigInt(1),
+          formatData: (json) => `data: ${json}\n\n`,
+          signal: ctx.req.signal,
+          // No `done` Promise for SSE — the fiber blocks until the client disconnects.
+          close,
+          writer,
+          enc,
+        });
 
         // Run in background using the app runtime (shares memoMap → shared TodoService).
+        // If the fiber fails (e.g. Layer build error, missing service), close the stream
+        // so the client does not hang indefinitely.
         // deno-lint-ignore no-explicit-any
-        appRuntime.runFork(effect as any);
+        const fiber = appRuntime.runFork(effect as any);
+        fiber.addObserver((exit) => {
+          if (Exit.isFailure(exit)) {
+            close();
+          }
+        });
 
         return new Response(readable, {
           headers: {
