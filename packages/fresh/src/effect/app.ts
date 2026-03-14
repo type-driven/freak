@@ -74,15 +74,13 @@ export interface CreateEffectAppOptions<AppR, E = never> {
    */
   mapError?: (cause: unknown) => Response;
   /**
-   * strict: throw on invalid plugin mount or runner/hydration conflicts.
-   * compat: warn and continue to preserve legacy behavior.
+   * How to handle conflicts when mounting an app/plugin that also defines
+   * an effectRunner or atomHydrationHook:
+   * - "error" (default): throw at mount time
+   * - "warn": log a warning and keep the host runner
+   * - "ignore": silently keep the host runner
    */
-  mountValidationMode?: "strict" | "compat";
-  /**
-   * fail: reject inner runner/hydration hooks.
-   * host-wins: keep host hooks and log warning.
-   */
-  mountConflictPolicy?: "fail" | "host-wins";
+  mountConflictMode?: "error" | "warn" | "ignore";
 }
 
 /**
@@ -215,21 +213,18 @@ export class EffectApp<State, AppR> {
   // deno-lint-ignore no-explicit-any
   #activeWsRuntimes: Map<ManagedRuntime.ManagedRuntime<any, any>, WebSocket> =
     new Map();
-  #mountValidationMode: "strict" | "compat";
-  #mountConflictPolicy: "fail" | "host-wins";
+  #mountConflictMode: "error" | "warn" | "ignore";
 
   constructor(
     app: App<State>,
     runtime: ManagedRuntime.ManagedRuntime<AppR, unknown>,
     options: {
-      mountValidationMode: "strict" | "compat";
-      mountConflictPolicy: "fail" | "host-wins";
+      mountConflictMode: "error" | "warn" | "ignore";
     },
   ) {
     this.#app = app;
     this.#runtime = runtime;
-    this.#mountValidationMode = options.mountValidationMode;
-    this.#mountConflictPolicy = options.mountConflictPolicy;
+    this.#mountConflictMode = options.mountConflictMode;
   }
 
   /** @internal */
@@ -376,36 +371,33 @@ export class EffectApp<State, AppR> {
     const hostEffectRunner = getEffectRunner(this.#app as App<unknown>);
     const innerEffectRunner = getEffectRunner(inner as App<unknown>);
 
-    if (
-      this.#mountConflictPolicy === "fail" &&
-      hostEffectRunner !== null &&
-      innerEffectRunner !== null
-    ) {
+    if (hostEffectRunner !== null && innerEffectRunner !== null) {
       const message =
         `[freak] mountApp conflict at "${path}": both host and mounted app define effectRunner.`;
-      if (this.#mountValidationMode === "compat") {
+      if (this.#mountConflictMode === "error") {
+        throw new Error(message);
+      } else if (this.#mountConflictMode === "warn") {
         // deno-lint-ignore no-console
         console.warn(`${message} Keeping host runner.`);
-      } else {
-        throw new Error(message);
       }
+      // "ignore": do nothing
     }
     // Atom hydration hook conflict: both EffectApps share the same module-global hook
     // (set by createEffectApp via setAtomHydrationHook). Check if a hook is already
     // registered — if so, mounting another EffectApp would be a duplicate registration.
     if (
-      this.#mountConflictPolicy === "fail" &&
       getAtomHydrationHook() !== null &&
       getEffectRunner(inner as App<unknown>) !== null
     ) {
       const message =
         `[freak] mountApp conflict at "${path}": both host and mounted app define atomHydrationHook.`;
-      if (this.#mountValidationMode === "compat") {
+      if (this.#mountConflictMode === "error") {
+        throw new Error(message);
+      } else if (this.#mountConflictMode === "warn") {
         // deno-lint-ignore no-console
         console.warn(`${message} Keeping host hook.`);
-      } else {
-        throw new Error(message);
       }
+      // "ignore": do nothing
     }
     this.#app.mountApp(path, inner);
     return this;
@@ -1170,8 +1162,7 @@ export function createEffectApp<State = unknown, AppR = never, E = never>(
     app,
     runtime as ManagedRuntime.ManagedRuntime<AppR, unknown>,
     {
-      mountValidationMode: options.mountValidationMode ?? "strict",
-      mountConflictPolicy: options.mountConflictPolicy ?? "fail",
+      mountConflictMode: options.mountConflictMode ?? "error",
     },
   );
   // Register signal disposal AFTER creating EffectApp so that SIGINT/SIGTERM
