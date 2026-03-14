@@ -440,3 +440,125 @@ Deno.test(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// Error observer — stream must close when the fiber fails
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds an EffectApp whose http-stream and SSE endpoints use a broken
+ * handlerLayer (Layer.fail) so the forked fiber always fails immediately.
+ * The error observer added by TODO 5 must close the stream writer so the
+ * client body reader reaches `done: true` instead of hanging forever.
+ */
+function makeBrokenStreamApp(): {
+  handler: (req: Request) => Promise<Response>;
+  dispose: () => Promise<void>;
+} {
+  // A layer that always fails to build — simulates a missing service.
+  // Layer.unwrap wraps Effect<Layer> and if the Effect fails, the Layer fails.
+  // The type cast is intentional: we need a Layer with the right output type
+  // for the rpc() call's handlerLayer parameter.
+  // deno-lint-ignore no-explicit-any
+  const brokenLayer = Layer.unwrap(Effect.fail(new Error("broken"))) as any;
+
+  const effectApp = createEffectApp({
+    // deno-lint-ignore no-explicit-any
+    layer: Layer.empty as any,
+    mapError: () => new Response("error", { status: 500 }),
+  });
+
+  effectApp.rpc({
+    group: TodoRpc,
+    path: "/rpc/todos/stream",
+    protocol: "http-stream",
+    handlerLayer: brokenLayer,
+  });
+  effectApp.rpc({
+    group: TodoRpc,
+    path: "/rpc/todos/sse",
+    protocol: "sse",
+    handlerLayer: brokenLayer,
+  });
+
+  return { handler: effectApp.handler(), dispose: () => effectApp.dispose() };
+}
+
+Deno.test(
+  "HTTP-stream: stream closes if handler layer fails",
+  opts,
+  async () => {
+    const { handler, dispose } = makeBrokenStreamApp();
+    try {
+      // Use a 2 s timeout AbortController so the test fails fast if the stream
+      // hangs instead of closing (TODO 5 not working).
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await handler(
+        new Request("http://localhost/rpc/todos/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            _tag: "Request",
+            id: "1",
+            tag: "WatchTodos",
+            payload: null,
+            headers: [],
+          }),
+          signal: controller.signal,
+        }),
+      );
+
+      // The response itself is returned immediately (status 200 + streaming body).
+      assertEquals(res.status, 200);
+
+      // Read the body to completion — the error observer must close the writer,
+      // causing the reader to reach done: true without hanging.
+      const reader = res.body!.getReader();
+      let done = false;
+      while (!done) {
+        const chunk = await reader.read();
+        done = chunk.done;
+      }
+
+      clearTimeout(timeoutId);
+      // If we reach here the stream closed on its own — test passes.
+    } finally {
+      await dispose();
+    }
+  },
+);
+
+Deno.test(
+  "SSE: stream closes if handler layer fails",
+  opts,
+  async () => {
+    const { handler, dispose } = makeBrokenStreamApp();
+    try {
+      // 2 s timeout — catches hangs if the error observer is not wired up.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await handler(
+        new Request("http://localhost/rpc/todos/sse?p=WatchTodos", {
+          signal: controller.signal,
+        }),
+      );
+
+      assertEquals(res.status, 200);
+
+      // The error observer must close the writer so the reader finishes.
+      const reader = res.body!.getReader();
+      let done = false;
+      while (!done) {
+        const chunk = await reader.read();
+        done = chunk.done;
+      }
+
+      clearTimeout(timeoutId);
+    } finally {
+      await dispose();
+    }
+  },
+);

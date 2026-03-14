@@ -119,6 +119,7 @@
     "npm:preact@^10.22.0": "10.28.4",
     "npm:preact@^10.26.9": "10.28.4",
     "npm:preact@^10.27.0": "10.28.4",
+    "npm:preact@^10.27.2": "10.28.4",
     "npm:preact@^10.28.2": "10.28.4",
     "npm:preact@^10.28.3": "10.28.4",
     "npm:prismjs@^1.29.0": "1.30.0",
@@ -222,7 +223,9 @@
         "npm:@preact/signals@^2.2.1",
         "npm:esbuild-wasm@~0.25.11",
         "npm:esbuild@0.25.7",
-        "npm:preact-render-to-string@^6.6.3"
+        "npm:preact-render-to-string@^6.6.3",
+        "npm:preact@^10.27.0",
+        "npm:preact@^10.27.2"
       ]
     },
     "@marvinh-test/fresh-island@0.0.3": {
