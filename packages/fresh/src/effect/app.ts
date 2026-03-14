@@ -687,6 +687,9 @@ export class EffectApp<State, AppR> {
         const url = new URL(ctx.req.url);
         const procedure = url.searchParams.get("p") ?? "";
         const payloadStr = url.searchParams.get("payload");
+        if (payloadStr !== null && payloadStr.length > 65536) {
+          return new Response("Request payload too large", { status: 413 });
+        }
         // deno-lint-ignore no-explicit-any
         const payload: any = payloadStr ? JSON.parse(payloadStr) : null;
 
