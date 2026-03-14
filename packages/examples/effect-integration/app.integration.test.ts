@@ -335,6 +335,19 @@ Deno.test("SSE: POST returns 405", opts, async () => {
   }
 });
 
+Deno.test("SSE: large ?payload= returns 413", opts, async () => {
+  const { handler, dispose } = makeTestApp();
+  try {
+    const bigPayload = JSON.stringify({ data: "x".repeat(70000) });
+    const res = await handler(
+      new Request(`http://localhost/rpc/todos/sse?p=WatchTodos&payload=${encodeURIComponent(bigPayload)}`),
+    );
+    assertEquals(res.status, 413);
+  } finally {
+    await dispose();
+  }
+});
+
 // ---------------------------------------------------------------------------
 // WebSocket endpoint — method and Origin enforcement
 // ---------------------------------------------------------------------------
