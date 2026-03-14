@@ -24,7 +24,7 @@ import type { Context } from "../context.ts";
 import type { Middleware } from "../middlewares/mod.ts";
 import type { LayoutConfig, MaybeLazy, RouteConfig } from "../types.ts";
 import {
-  getAtomHydrationHookForApp,
+  getAtomHydrationHook,
   getEffectRunner,
   setAtomHydrationHook,
   setEffectRunner,
@@ -263,12 +263,6 @@ export class EffectApp<State, AppR> {
 
     const hostEffectRunner = getEffectRunner(this.#app as App<unknown>);
     const innerEffectRunner = getEffectRunner(inner as App<unknown>);
-    const hostHydrationHook = getAtomHydrationHookForApp(
-      this.#app as App<unknown>,
-    );
-    const innerHydrationHook = getAtomHydrationHookForApp(
-      inner as App<unknown>,
-    );
 
     if (
       this.#mountConflictPolicy === "fail" &&
@@ -284,10 +278,13 @@ export class EffectApp<State, AppR> {
         throw new Error(message);
       }
     }
+    // Atom hydration hook conflict: both EffectApps share the same module-global hook
+    // (set by createEffectApp via setAtomHydrationHook). Check if a hook is already
+    // registered — if so, mounting another EffectApp would be a duplicate registration.
     if (
       this.#mountConflictPolicy === "fail" &&
-      hostHydrationHook !== null &&
-      innerHydrationHook !== null
+      getAtomHydrationHook() !== null &&
+      getEffectRunner(inner as App<unknown>) !== null
     ) {
       const message =
         `[freak] mountApp conflict at "${path}": both host and mounted app define atomHydrationHook.`;

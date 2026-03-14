@@ -13,7 +13,7 @@ import type { FreshConfig, ResolvedFreshConfig } from "./config.ts";
 import { type BuildCache, IslandPreparer } from "./build_cache.ts";
 import { HttpError } from "./error.ts";
 import type { LayoutConfig, MaybeLazy, Route, RouteConfig } from "./types.ts";
-import type { RouteComponent } from "./segments.ts";
+import { getAtomHydrationHook, type RouteComponent } from "./segments.ts";
 import {
   applyCommands,
   type Command,
@@ -164,14 +164,6 @@ export let setErrorInterceptor: <State>(
 export let setEffectRunner: (app: App<unknown>, fn: EffectRunner) => void;
 export let getEffectRunner: (app: App<unknown>) => EffectRunner | null;
 
-export let setAtomHydrationHookForApp: (
-  app: App<unknown>,
-  hook: (ctx: Context<unknown>) => string | null,
-) => void;
-export let getAtomHydrationHookForApp: (
-  app: App<unknown>,
-) => ((ctx: Context<unknown>) => string | null) | null;
-
 /** Returns file specifiers registered via `app.islands(mod, chunkName, specifier)`. */
 export let getIslandSpecifiers: <State>(app: App<State>) => string[];
 
@@ -186,7 +178,6 @@ export class App<State> {
   #commands: Command<State>[] = [];
   #onError: (err: unknown) => void = NOOP;
   #effectRunner: EffectRunner | null = null;
-  #atomHydrationHook: ((ctx: Context<unknown>) => string | null) | null = null;
   #islandRegistrations: Array<
     { mod: Record<string, unknown>; chunkName: string; specifier?: string }
   > = [];
@@ -217,10 +208,6 @@ export class App<State> {
       app.#effectRunner = fn;
     };
     getEffectRunner = (app) => app.#effectRunner;
-    setAtomHydrationHookForApp = (app, hook) => {
-      app.#atomHydrationHook = hook;
-    };
-    getAtomHydrationHookForApp = (app) => app.#atomHydrationHook;
     getIslandSpecifiers = (app) =>
       app.#islandRegistrations
         .filter(({ specifier }) => specifier !== undefined)
@@ -471,14 +458,6 @@ export class App<State> {
           "Register services on the host layer instead.",
       );
     }
-    if (!this.#atomHydrationHook && inner.#atomHydrationHook) {
-      this.#atomHydrationHook = inner.#atomHydrationHook;
-    } else if (this.#atomHydrationHook && inner.#atomHydrationHook) {
-      // deno-lint-ignore no-console
-      console.warn(
-        "[freak] mountApp: inner app atomHydrationHook ignored — outer already has one.",
-      );
-    }
 
     return this;
   }
@@ -508,7 +487,7 @@ export class App<State> {
     const router = new UrlPatternRouter<MaybeLazyMiddleware<State>>();
 
     const effectRunner = this.#effectRunner;
-    const atomHydrationHook = this.#atomHydrationHook;
+    const atomHydrationHook = getAtomHydrationHook();
 
     const { rootMiddlewares } = applyCommands(
       router,
