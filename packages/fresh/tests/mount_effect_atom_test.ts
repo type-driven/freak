@@ -19,8 +19,7 @@
 import { expect } from "@std/expect";
 import { App } from "@freak/core";
 import {
-  getAtomHydrationHookForApp,
-  setAtomHydrationHookForApp,
+  getAtomHydrationHook,
   setBuildCache,
   setEffectRunner,
 } from "../src/internals.ts";
@@ -230,33 +229,27 @@ Deno.test("mountApp + atom: setAtom in inner-app handler is serialized by global
 });
 
 // ---------------------------------------------------------------------------
-// 6. ATOM HYDRATION HOOK PROPAGATION — per-app hook propagates via mountApp
+// 6. ATOM HYDRATION HOOK — module-global hook is accessible after registration
 // ---------------------------------------------------------------------------
 
-Deno.test("mountApp: per-app atomHydrationHook propagates from inner to outer when outer has none", () => {
-  const outer = new App<unknown>();
-  const inner = new App<unknown>();
+Deno.test("setAtomHydrationHook: module-global hook is registered and readable via getAtomHydrationHook", () => {
+  // Reset to a known state before this test
+  setAtomHydrationHook(serializeAtomHydration);
 
-  const mockHook = (ctx: { state: unknown }): string | null =>
-    serializeAtomHydration(ctx);
-  setAtomHydrationHookForApp(inner, mockHook);
+  // Hook must be non-null after registration
+  const hook = getAtomHydrationHook();
+  expect(hook).not.toBeNull();
 
-  outer.mountApp("/inner", inner);
-
-  // Hook must be non-null on outer after mounting
-  const propagated = getAtomHydrationHookForApp(outer);
-  expect(propagated).not.toBeNull();
-
-  // Hook works correctly when invoked — verifies it is the same fn as mockHook
+  // Hook works correctly when invoked
   const countAtom = Atom.serializable(Atom.make(0), {
-    key: "propagated-hook-count",
+    key: "global-hook-count",
     schema: Schema.Number,
   });
   const ctx = { state: {} };
   setAtom(ctx, countAtom, 77);
   // deno-lint-ignore no-explicit-any
-  expect(propagated!(ctx as any)).toBe(
-    JSON.stringify({ "propagated-hook-count": 77 }),
+  expect(hook!(ctx as any)).toBe(
+    JSON.stringify({ "global-hook-count": 77 }),
   );
 });
 
